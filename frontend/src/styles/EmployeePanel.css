@@ -1903,6 +1903,29 @@
 
 .download-app-btn.outline:hover { background: #F8FAFC; }
 
+.logout-mobile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: white;
+  color: #EF4444;
+  border: 1px solid #FEE2E2;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.logout-mobile-btn:hover {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  transform: translateY(-1px);
+}
+
 .use-app-footer {
   margin-top: 32px;
   font-size: 12px;

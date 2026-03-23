@@ -42,6 +42,16 @@ const createUser = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ success: false, message: "User with this email already exists" });
         }
+
+        // Check if phone already exists
+        if (bodyContent.phone) {
+            const phoneExists = await User.findOne({ 
+                phone: bodyContent.phone.trim() 
+            });
+            if (phoneExists) {
+                return res.status(400).json({ success: false, message: "A user with this phone number already exists" });
+            }
+        }
         
         // Handle profile photo if uploaded
         let profilePhoto = bodyContent.profilePhoto;

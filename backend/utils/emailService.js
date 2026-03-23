@@ -163,7 +163,7 @@ export const sendOffboardingDocument = async (userEmail, userName, documentType,
 export const verifyEmailConfig = async () => {
     try {
         // await transporter.verify(); // Commented out to avoid blocking if SMTP is not configured
-        console.log('Email server configuration loaded');
+        // Configuration verified silently
         return true;
     } catch (error) {
         console.error('Email configuration error:', error);

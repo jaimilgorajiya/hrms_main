@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import auth from '@react-native-firebase/auth';
+import { getAuth, signInWithPhoneNumber, signOut } from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, SIZES, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme';
 
@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const otpInput = useRef(null);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -61,7 +62,8 @@ export default function LoginScreen() {
 
       // 2. If registered, proceed with Firebase OTP
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+      const auth = getAuth();
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone);
       setConfirm(confirmation);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Please check your messages' });
@@ -82,7 +84,8 @@ export default function LoginScreen() {
     try {
       const result = await confirm.confirm(code);
       if (result) {
-        const idToken = await auth().currentUser.getIdToken();
+        const auth = getAuth();
+        const idToken = await auth.currentUser.getIdToken();
         const apiResult = await loginWithOTP(idToken);
         
         if (apiResult.success) {
@@ -91,7 +94,8 @@ export default function LoginScreen() {
         } else {
           Toast.show({ type: 'error', text1: 'Login Failed', text2: apiResult.message });
           // Sign out from Firebase if backend reject
-          await auth().signOut();
+          const auth = getAuth();
+          await signOut(auth);
         }
       }
     } catch (error) {
@@ -168,17 +172,34 @@ export default function LoginScreen() {
                   ) : (
                     <View style={styles.inputGroup}>
                       <Text style={styles.label}>Verification Code</Text>
-                      <View style={styles.inputWrap}>
-                        <Ionicons name="key-outline" size={18} color={COLORS.textLight} />
+                      <TouchableOpacity 
+                        style={styles.otpContainer} 
+                        activeOpacity={1}
+                        onPress={() => otpInput.current?.focus()}
+                      >
+                        {[...Array(6)].map((_, i) => (
+                          <View 
+                            key={i} 
+                            style={[
+                              styles.otpBox, 
+                              code.length === i && styles.otpBoxActive,
+                              code[i] && styles.otpBoxFilled
+                            ]}
+                          >
+                            <Text style={styles.otpBoxText}>{code[i] || ''}</Text>
+                          </View>
+                        ))}
                         <TextInput
-                          style={styles.input}
-                          placeholder="6-digit OTP"
+                          ref={otpInput}
+                          style={styles.hiddenInput}
                           value={code}
                           onChangeText={setCode}
                           keyboardType="number-pad"
                           maxLength={6}
+                          textContentType="oneTimeCode"
+                          autoComplete="sms-otp"
                         />
-                      </View>
+                      </TouchableOpacity>
                     </View>
                   )}
 
@@ -303,5 +324,44 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: -50, right: -50,
     width: 200, height: 200, borderRadius: 100,
     backgroundColor: COLORS.primaryLight, opacity: 0.5, zIndex: -1,
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    position: 'relative',
+    height: 55,
+    gap: 8,
+  },
+  otpBox: {
+    width: 38,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.bgMain,
+    backgroundColor: COLORS.bgMain,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW.soft,
+  },
+  otpBoxActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+  },
+  otpBoxFilled: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+  },
+  otpBoxText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.textDark,
+  },
+  hiddenInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0,
+    zIndex: 1,
   },
 });

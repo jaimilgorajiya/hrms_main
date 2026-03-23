@@ -1,8 +1,21 @@
 import React from 'react';
-import { Smartphone, Download, ExternalLink } from 'lucide-react';
+import { Smartphone, Download, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../../styles/EmployeePanel.css';
 
 const UseMobileApp = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear all session data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    
+    // Redirect to login
+    navigate('/login', { replace: true });
+  };
+
   return (
     <div className="use-app-container">
       <div className="use-app-card">
@@ -35,6 +48,10 @@ const UseMobileApp = () => {
            <button className="download-app-btn outline">
              <Smartphone size={18} />
              Open on iOS
+           </button>
+           <button className="logout-mobile-btn" onClick={handleLogout}>
+             <LogOut size={18} />
+             Log Out from Website
            </button>
         </div>
 

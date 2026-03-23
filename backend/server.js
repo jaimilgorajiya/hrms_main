@@ -13,10 +13,8 @@ if (fs.existsSync(serviceAccountPath)) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
-    console.log('Firebase Admin initialized');
-} else {
-    console.warn('Firebase Service Account key not found. OTP login may fail.');
-}
+} 
+
 
 import { verifyEmailConfig } from './utils/emailService.js';
 import authRoutes from './routes/Auth.Routes.js';
@@ -109,6 +107,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Client URL: ${process.env.CLIENT_URL}`);
+    console.log(`🚀 API: http://localhost:${PORT} | Client: ${process.env.CLIENT_URL || 'Not Set'}`);
 });

@@ -57,7 +57,6 @@ const EmployeeOnboarding = () => {
         employmentType: 'Full Time',
         idProofType: '',
         maritalStatus: '',
-        bloodGroup: '',
         personalEmail: '',
         currentAddress: '',
         permanentAddress: '',

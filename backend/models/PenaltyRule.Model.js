@@ -43,8 +43,7 @@ const penaltyRuleSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Ensure uniqueness per shift
-penaltyRuleSchema.index({ shift: 1 }, { unique: true });
+// Redundant index removed: shift field already has unique: true in Schema definition
 
 const PenaltyRule = mongoose.model('PenaltyRule', penaltyRuleSchema);
 
