@@ -1,0 +1,55 @@
+/* Manage Shift Premium Styles */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    font-size: 16px;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* Action buttons container in table cell */
+.action-buttons-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Specific overrides for Manage Shift table if needed */
+.designation-table th:nth-child(2) { width: 70px; text-align: center; } /* Sr. No */
+.designation-table th:nth-child(3) { width: 100px; text-align: center; } /* Action */
+.designation-table th:nth-child(4) { width: 140px; } /* Shift Code */
+.designation-table th:nth-child(6) { width: 110px; text-align: center; } /* Employees */
+
+.designation-table td:nth-child(2),
+.designation-table td:nth-child(6) {
+    text-align: center;
+}
+
+/* Ensure the code badge looks premium */
+.percentage {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+    .designation-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .btn-theme {
+        flex: 1;
+        justify-content: center;
+    }
+}

@@ -1,0 +1,147 @@
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLayout from "./layout/AdminLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ModulePlaceholder from "./pages/ModulePlaceholder";
+import CompanyDetails from "./pages/CompanyDetails";
+import MyProfile from "./pages/MyProfile";
+import Designation from "./pages/Designation";
+import Branch from './pages/Branch';
+import Department from './pages/Department';
+import BreakType from './pages/BreakType';
+import Shift from './pages/Shift';
+import AddShift from './pages/AddShift';
+import EditShift from './pages/EditShift';
+import PenaltyRules from './pages/PenaltyRules';
+import GraceTime from './pages/GraceTime';
+import LeaveType from './pages/LeaveType';
+import LeaveGroup from './pages/LeaveGroup';
+import AddLeaveGroup from './pages/AddLeaveGroup';
+import EditLeaveGroup from './pages/EditLeaveGroup';
+import EarningDeductionType from './pages/EarningDeductionType';
+import EmployeeOnboarding from './pages/EmployeeOnboarding';
+import EmployeeOffboarding from './pages/EmployeeOffboarding';
+import PayrollTaxSetting from './pages/PayrollTaxSetting';
+import DocumentType from './pages/DocumentType';
+import OnboardingDocSetting from './pages/OnboardingDocSetting';
+import Employees from './pages/Employees';
+import AddEmployee from './pages/AddEmployee';
+import EmployeeProfile from './pages/EmployeeProfile';
+import ExEmployees from './pages/ExEmployees';
+import ManageRoles from './pages/ManageRoles';
+import ChangeBranch from './pages/ChangeBranch';
+import BulkEmployeeId from './pages/BulkEmployeeId';
+import EmployeeIdFormat from './pages/EmployeeIdFormat';
+import RetirementSettings from './pages/RetirementSettings';
+import UpcomingRetirement from './pages/UpcomingRetirement';
+import EmployeePromotion from './pages/EmployeePromotion';
+import AdminAttendance from './pages/AdminAttendance';
+import UseMobileApp from './pages/employee/UseMobileApp';
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login isRegister={false} />} />
+          <Route path="/register" element={<Login isRegister={true} />} />
+
+          {/* Admin Routes (Protected) */}
+          <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="profile" element={<MyProfile />} />
+              
+              {/* Setup & Configuration placeholders */}
+              <Route path="company/details" element={<CompanyDetails />} />
+              <Route path="company/designation" element={<Designation />} />
+              <Route path="company/departments" element={<Department />} />
+              <Route path="company/branches" element={<Branch />} />
+              <Route path="company/profile" element={<MyProfile />} />
+              <Route path="company/emp-id-format" element={<EmployeeIdFormat />} />
+              <Route path="company/retirement-settings" element={<RetirementSettings />} />
+              <Route path="company-settings" element={<ModulePlaceholder title="Company Settings" />} />
+              <Route path="company/*" element={<ModulePlaceholder title="Company Management" />} />
+              <Route path="attendance/break-type" element={<BreakType />} />
+              <Route path="attendance/records" element={<AdminAttendance />} />
+              <Route path="attendance-settings" element={<ModulePlaceholder title="Attendance Settings" />} />
+              <Route path="attendance/*" element={<ModulePlaceholder title="Attendance Management" />} />
+              <Route path="shift/add" element={<AddShift />} />
+              <Route path="shift/edit/:id" element={<EditShift />} />
+              <Route path="shift/manage" element={<Shift />} />
+              <Route path="shift/penalty" element={<PenaltyRules />} />
+              <Route path="shift/grace-time" element={<GraceTime />} />
+              <Route path="shift-settings" element={<ModulePlaceholder title="Shift Settings" />} />
+              <Route path="leave/type" element={<LeaveType />} />
+              <Route path="leave/group" element={<LeaveGroup />} />
+              <Route path="leave/group/add" element={<AddLeaveGroup />} />
+              <Route path="leave/group/edit/:id" element={<EditLeaveGroup />} />
+              <Route path="leave/*" element={<ModulePlaceholder title="Leave Management" />} />
+              <Route path="payroll-settings" element={<ModulePlaceholder title="Payroll Settings" />} />
+              <Route path="payroll/tax-setting" element={<PayrollTaxSetting />} />
+              <Route path="payroll/earning-deduction" element={<EarningDeductionType />} />
+              <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
+              <Route path="document/emp-types" element={<DocumentType />} />
+              <Route path="document/onboarding-setting" element={<OnboardingDocSetting />} />
+              <Route path="document/*" element={<ModulePlaceholder title="Document Management" />} />
+
+              {/* Core HRMS placeholders */}
+              <Route path="employees/list" element={<Employees />} />
+              <Route path="employees/add" element={<AddEmployee />} />
+              <Route path="employees/profile/:id" element={<EmployeeProfile />} />
+              <Route path="employees/ex" element={<ExEmployees />} />
+              <Route path="employees/onboarding" element={<EmployeeOnboarding />} />
+              <Route path="employees/offboarding" element={<EmployeeOffboarding />} />
+              <Route path="employees/mgmt-role" element={<ManageRoles />} />
+              <Route path="employees/profile-request" element={<ModulePlaceholder title="Profile Request" />} />
+              <Route path="employees/change-branch" element={<ChangeBranch />} />
+              <Route path="employees/bulk-id" element={<BulkEmployeeId />} />
+              <Route path="employees/hierarchy" element={<ModulePlaceholder title="Hierarchy Chart" />} />
+              <Route path="employees/resignation" element={<ModulePlaceholder title="Resignations" />} />
+              <Route path="employees/other" element={<ModulePlaceholder title="Other Employees" />} />
+              <Route path="employees/retirement" element={<UpcomingRetirement />} />
+              <Route path="employees/bulk-upload" element={<ModulePlaceholder title="Bulk Upload" />} />
+              <Route path="employees/promotion" element={<EmployeePromotion />} />
+              <Route path="employees/*" element={<ModulePlaceholder title="Employee Management" />} />
+              <Route path="shifts/*" element={<ModulePlaceholder title="Shift Operations" />} />
+              <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
+              <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />
+              <Route path="holidays/*" element={<ModulePlaceholder title="Holiday Management" />} />
+              <Route path="documents/*" element={<ModulePlaceholder title="Company Documents" />} />
+              <Route path="engagement/*" element={<ModulePlaceholder title="Employee Engagement" />} />
+            </Route>
+            {/* Compatibility redirect for the old dashboard path */}
+            <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
+          </Route>
+
+          {/* Manager Dashboards */}
+          <Route element={<ProtectedRoute allowedRoles={['Manager']} />}>
+            <Route path="/manager-dashboard" element={<Dashboard title="Manager Dashboard" />} />
+          </Route>
+          
+          {/* Employee Redirect to Mobile App Message */}
+          <Route element={<ProtectedRoute allowedRoles={['Employee']} />}>
+            <Route path="/employee" element={<UseMobileApp />} />
+            <Route path="/employee/*" element={<Navigate to="/employee" replace />} />
+            <Route path="/employee-dashboard" element={<Navigate to="/employee" replace />} />
+          </Route>
+
+          {/* Root/Default Redirects */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
