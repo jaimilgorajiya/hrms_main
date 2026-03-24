@@ -203,7 +203,7 @@ const AdminAttendance = () => {
                       <td style={{ padding: '14px 16px', fontSize: '12px', color: '#64748b' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '200px' }}>
                           {r.punches?.map((p, idx) => {
-                            const notes = [p.workSummary, p.earlyReason, p.geofenceReason].filter(Boolean).join(' | ');
+                            const notes = [p.workSummary, p.earlyReason, p.geofenceReason, p.locationAddress].filter(Boolean).join(' | ');
                             if (!notes) return null;
                             return (
                               <div key={idx} style={{ 

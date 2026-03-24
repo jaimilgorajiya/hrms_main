@@ -17,7 +17,8 @@ const attendanceSchema = new mongoose.Schema({
         longitude: Number,
         geofenceReason: String,
         workSummary: String,
-        earlyReason: String
+        earlyReason: String,
+        locationAddress: String
     }],
     breaks: [{
         start: { type: Date },

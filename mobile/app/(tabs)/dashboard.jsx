@@ -238,6 +238,8 @@ export default function Dashboard() {
   const [earlyReason, setEarlyReason] = useState('');
   const [showInRangeModal, setShowInRangeModal] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
+  const [currentAddress, setCurrentAddress] = useState('');
+  const [modalTime, setModalTime] = useState('');
 
   const loadData = async () => {
     try {
@@ -294,6 +296,12 @@ export default function Dashboard() {
     const effectiveWorkSummary = params.workSummary || workSummary;
     const effectiveGeofenceReason = params.geofenceReason || geofenceReason;
     
+    const now = new Date();
+    setModalTime(now.toLocaleString('en-IN', { 
+      day: '2-digit', month: 'short', year: 'numeric', 
+      hour: '2-digit', minute: '2-digit', hour12: true 
+    }));
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
 
@@ -333,6 +341,18 @@ export default function Dashboard() {
       const { latitude, longitude } = loc.coords;
       console.log('Mobile Location:', { latitude, longitude });
 
+      // 1.1 Reverse Geocode to get Building, Street, City
+      let addr = 'Address not found';
+      try {
+        const geo = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (geo?.[0]) {
+          const { street, streetNumber, name, city, region } = geo[0];
+          addr = [name, streetNumber, street, city, region].filter(Boolean).join(', ');
+        }
+      } catch (ge) { console.error('Geocode error:', ge); }
+      console.log('Fethced Address:', addr);
+      setCurrentAddress(addr);
+
       // 2. Check Geofence
       const target = data?.stats?.branchCoords;
       console.log('Target Branch Coords from Server:', target);
@@ -351,7 +371,8 @@ export default function Dashboard() {
           // If in range, just submit directly for a "one-click" experience
           await submitPunch(latitude, longitude, { 
             earlyReason: effectiveEarlyReason, 
-            workSummary: effectiveWorkSummary 
+            workSummary: effectiveWorkSummary,
+            locationAddress: addr
           });
           return;
         }
@@ -361,7 +382,8 @@ export default function Dashboard() {
       await submitPunch(latitude, longitude, { 
         geofenceReason: effectiveGeofenceReason, 
         earlyReason: effectiveEarlyReason, 
-        workSummary: effectiveWorkSummary 
+        workSummary: effectiveWorkSummary,
+        locationAddress: addr
       });
     } catch (e) {
       console.error(e);
@@ -379,7 +401,8 @@ export default function Dashboard() {
         longitude, 
         geofenceReason: reasons.geofenceReason,
         workSummary: reasons.workSummary,
-        earlyReason: reasons.earlyReason
+        earlyReason: reasons.earlyReason,
+        locationAddress: reasons.locationAddress
       }) 
     });
     const json = await res.json();
@@ -483,6 +506,11 @@ export default function Dashboard() {
               </View>
               <Text style={styles.modalTitle}>Work Summary</Text>
               <Text style={styles.modalSub}>Briefly list your achievements for today before you sign off.</Text>
+              
+              <View style={styles.modalTimeRow}>
+                <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
+                <Text style={styles.modalTimeText}>{modalTime}</Text>
+              </View>
             </View>
             
             <TextInput
@@ -521,6 +549,11 @@ export default function Dashboard() {
               </View>
               <Text style={styles.modalTitle}>Early Departure</Text>
               <Text style={styles.modalSub}>Your shift hasn't ended. Please specify a reason for leaving early.</Text>
+              
+              <View style={styles.modalTimeRow}>
+                <Ionicons name="alert-circle-outline" size={14} color={COLORS.textMuted} />
+                <Text style={styles.modalTimeText}>Attempted at: {modalTime}</Text>
+              </View>
             </View>
             
             <TextInput
@@ -559,6 +592,18 @@ export default function Dashboard() {
               </View>
               <Text style={styles.modalTitle}>Geofence Alert</Text>
               <Text style={styles.modalSub}>You are currently outside your assigned workplace reach. Justify this log.</Text>
+              
+              <View style={[styles.modalTimeRow, { marginBottom: 6 }]}>
+                <Ionicons name="calendar-outline" size={12} color={COLORS.textMuted} />
+                <Text style={styles.modalTimeText}>{modalTime}</Text>
+              </View>
+              
+              {currentAddress ? (
+                <View style={styles.currentLocBadge}>
+                  <Ionicons name="pin" size={14} color={COLORS.danger} />
+                  <Text style={styles.currentLocText}>{currentAddress}</Text>
+                </View>
+              ) : null}
             </View>
             
             <TextInput
@@ -656,6 +701,25 @@ const styles = StyleSheet.create({
   historyFullBtn: { width: '100%', marginTop: 12, borderRadius: RADIUS.lg, overflow: 'hidden', ...SHADOW.soft },
   pillGrad: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   pillBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
+  submitBtnText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+  currentLocBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 8, marginTop: 10,
+    width: '100%',
+  },
+  currentLocText: {
+    fontSize: 12, fontWeight: '600', color: COLORS.danger,
+    flex: 1,
+  },
+  modalTimeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 4,
+  },
+  modalTimeText: {
+    fontSize: 11, color: COLORS.textMuted,
+    fontWeight: '600',
+  },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textDark, marginBottom: 16, marginTop: 10 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' },
   statCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },

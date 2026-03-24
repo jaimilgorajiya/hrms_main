@@ -153,7 +153,7 @@ export const getTodayAttendance = async (req, res) => {
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason } = req.body; // reason=early-out, geofenceReason=out-of-range, earlyReason=custom logic
+    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, locationAddress } = req.body; // reason=early-out, geofenceReason=out-of-range, earlyReason=custom logic
         const date = getTodayStr();
         const now = new Date();
 
@@ -170,7 +170,8 @@ export const togglePunch = async (req, res) => {
                     latitude,
                     longitude,
                     geofenceReason,
-                    workSummary
+                    workSummary,
+                    locationAddress
                 }],
                 status: 'Present'
             });
@@ -237,7 +238,8 @@ export const togglePunch = async (req, res) => {
             longitude,
             geofenceReason,
             workSummary,
-            earlyReason: earlyReason || reason
+            earlyReason: earlyReason || reason,
+            locationAddress
         });
         await record.save();
 
