@@ -201,6 +201,7 @@ const getUsers = async (req, res) => {
         today.setHours(23, 59, 59, 999); // Inclusion of full current day
 
         const users = await User.find({ 
+            role: { $ne: 'Admin' },
             $or: [
                 { status: { $in: ['Active', 'Inactive', 'Onboarding'] } },
                 { 

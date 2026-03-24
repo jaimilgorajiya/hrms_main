@@ -22,6 +22,18 @@ const branchSchema = new mongoose.Schema(
         order: {
             type: Number,
             default: 0
+        },
+        latitude: {
+            type: Number,
+            default: 0
+        },
+        longitude: {
+            type: Number,
+            default: 0
+        },
+        radius: {
+            type: Number,
+            default: 200 // meters
         }
     },
     {

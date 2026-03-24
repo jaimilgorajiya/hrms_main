@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager,
+  Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
 } from 'react-native';
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,9 @@ import { COLORS, SIZES, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme'
 import { useAuth } from '../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
+import * as Location from 'expo-location';
+
+import { getDistance } from '../../utils/geofence';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -179,10 +182,27 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
       </Animated.View>
 
       <View style={styles.actionBtnRow}>
-        <TouchableOpacity style={styles.pillBtn} onPress={onPunch} activeOpacity={0.85}>
-          <LinearGradient colors={GRADIENTS.danger} style={styles.pillGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
-            <Ionicons name="exit-outline" size={18} color={COLORS.white} style={{marginRight: 6}} />
-            <Text style={styles.pillBtnText}>{punchData?.punchedIn ? 'Punch Out' : 'Punch In'}</Text>
+        <TouchableOpacity 
+          style={[styles.pillBtn, punchData?.isDoneForToday && { opacity: 0.5 }]} 
+          onPress={onPunch} 
+          activeOpacity={0.85}
+          disabled={punchData?.isDoneForToday}
+        >
+          <LinearGradient 
+            colors={punchData?.isDoneForToday ? ['#94A3B8', '#64748B'] : (punchData?.punchedIn ? GRADIENTS.danger : GRADIENTS.success)} 
+            style={styles.pillGrad} 
+            start={{x:0,y:0}} 
+            end={{x:1,y:0}}
+          >
+            <Ionicons 
+              name={punchData?.isDoneForToday ? 'checkmark-circle' : (punchData?.punchedIn ? 'exit-outline' : 'log-in-outline')} 
+              size={18} 
+              color={COLORS.white} 
+              style={{marginRight: 6}} 
+            />
+            <Text style={styles.pillBtnText}>
+              {punchData?.isDoneForToday ? 'Punch In' : (punchData?.punchedIn ? 'Punch Out' : 'Punch In')}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -204,12 +224,20 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
   );
 };
 
-export default function DashboardScreen() {
+export default function Dashboard() {
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [punchData, setPunchData] = useState({ punchedIn: false, startTime: null, breakDuration: '00:00:00' });
+  const [showGeofenceModal, setShowGeofenceModal] = useState(false);
+  const [geofenceReason, setGeofenceReason] = useState('');
+  const [showWorkSummaryModal, setShowWorkSummaryModal] = useState(false);
+  const [workSummary, setWorkSummary] = useState('');
+  const [showEarlyReasonModal, setShowEarlyReasonModal] = useState(false);
+  const [earlyReason, setEarlyReason] = useState('');
+  const [showInRangeModal, setShowInRangeModal] = useState(false);
+  const [tempLocation, setTempLocation] = useState(null);
 
   const loadData = async () => {
     try {
@@ -236,13 +264,16 @@ export default function DashboardScreen() {
         const bm = Math.floor((totalBreakMs % 3600000) / 60000);
         const bs = Math.floor((totalBreakMs % 60000) / 1000);
 
+        const lastPunch = attnJson.punches?.[attnJson.punches.length - 1];
         setPunchData({
           punchedIn: attnJson.isPunchedIn,
+          isDoneForToday: lastPunch?.type === 'OUT',
           startTime: firstIn?.time,
           breakDuration: `${String(bh).padStart(2, '0')}:${String(bm).padStart(2, '0')}:${String(bs).padStart(2, '0')}`,
           shiftStart: statsJson.stats?.shiftStart,
           shiftEnd: statsJson.stats?.shiftEnd,
         });
+        console.log('App Initial Load - Branch Coords:', statsJson.stats?.branchCoords);
       }
     } catch (e) {
       console.error(e);
@@ -254,15 +285,119 @@ export default function DashboardScreen() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handlePunch = async () => {
+  const handlePunch = async (options = {}) => {
+    // If called from a direct onPress, the first arg is an event object. Ignore it.
+    const params = (options && typeof options === 'object' && !options.nativeEvent) ? options : {};
+    
+    // Favor passed-in parameters over state to avoid state lag
+    const effectiveEarlyReason = params.earlyReason || earlyReason;
+    const effectiveWorkSummary = params.workSummary || workSummary;
+    const effectiveGeofenceReason = params.geofenceReason || geofenceReason;
+    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setLoading(true);
+
     try {
-      const res = await apiFetch(ENDPOINTS.togglePunch, { method: 'POST' });
-      const json = await res.json();
-      if (json.success) loadData();
+      const isPunchingIn = !punchData.punchedIn;
+
+      // 0. Check Early Punch Out
+      if (!isPunchingIn && punchData.shiftEnd && !effectiveEarlyReason) {
+        const [h, m] = punchData.shiftEnd.split(':').map(Number);
+        const now = new Date();
+        const end = new Date();
+        end.setHours(h, m, 0, 0);
+        
+        if (now < end) {
+          setShowEarlyReasonModal(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 0.1 If Punching OUT, ask for Work Summary first
+      if (!isPunchingIn && !effectiveWorkSummary.trim()) {
+        setShowWorkSummaryModal(true);
+        setLoading(false);
+        return;
+      }
+
+      // 1. Get Location
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Toast.show({ type: 'error', text1: 'Permission Denied', text2: 'Location access is required for attendance.' });
+        setLoading(false);
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = loc.coords;
+      console.log('Mobile Location:', { latitude, longitude });
+
+      // 2. Check Geofence
+      const target = data?.stats?.branchCoords;
+      console.log('Target Branch Coords from Server:', target);
+      if (target && target.latitude !== 0) {
+        const distance = getDistance(latitude, longitude, target.latitude, target.longitude);
+        console.log('Calculated Distance (m):', distance);
+        const radius = target.radius || 500;
+        console.log('Branch Radius (m):', radius);
+        
+        if (distance > radius && !effectiveGeofenceReason) {
+          setTempLocation({ latitude, longitude });
+          setShowGeofenceModal(true);
+          setLoading(false);
+          return;
+        } else if (distance <= radius) {
+          // If in range, just submit directly for a "one-click" experience
+          await submitPunch(latitude, longitude, { 
+            earlyReason: effectiveEarlyReason, 
+            workSummary: effectiveWorkSummary 
+          });
+          return;
+        }
+      }
+
+      // 3. Call API with all reasons collected
+      await submitPunch(latitude, longitude, { 
+        geofenceReason: effectiveGeofenceReason, 
+        earlyReason: effectiveEarlyReason, 
+        workSummary: effectiveWorkSummary 
+      });
     } catch (e) {
-      Toast.show({ type: 'error', text1: 'Network error' });
+      console.error(e);
+      Toast.show({ type: 'error', text1: 'Connection error' });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const submitPunch = async (latitude, longitude, reasons = {}) => {
+    const res = await apiFetch(ENDPOINTS.togglePunch, { 
+      method: 'POST', 
+      body: JSON.stringify({ 
+        latitude, 
+        longitude, 
+        geofenceReason: reasons.geofenceReason,
+        workSummary: reasons.workSummary,
+        earlyReason: reasons.earlyReason
+      }) 
+    });
+    const json = await res.json();
+    if (json.success) {
+      setShowGeofenceModal(false);
+      setShowWorkSummaryModal(false);
+      setGeofenceReason('');
+      setWorkSummary('');
+      Toast.show({ type: 'success', text1: 'Success', text2: json.message });
+      loadData();
+    } else {
+      Toast.show({ type: 'error', text1: 'Oops', text2: json.message });
+    }
+  };
+
+  const submitWithReason = async () => {
+    setShowGeofenceModal(false);
+    handlePunch({ geofenceReason });
   };
 
   const handleBreak = async () => {
@@ -280,6 +415,14 @@ export default function DashboardScreen() {
   const stats = data?.stats || {};
   const photoUrl = getImageUrl(emp.profilePhoto);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    if (hour < 21) return 'Good Evening';
+    return 'Good Night';
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -290,8 +433,10 @@ export default function DashboardScreen() {
       >
         <View style={[styles.header, SHADOW.soft]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Good Morning, {emp.name?.split(' ')[0] || 'Member'}</Text>
-            <Text style={styles.subtext}>Let’s have a productive day</Text>
+            <Text style={styles.greeting}>{getGreeting()}, {emp.name?.split(' ')[0] || 'Member'}</Text>
+            <Text style={styles.subtext}>
+              {new Date().getHours() < 17 ? 'Let’s have a productive day' : 'Hope you had a productive day'}
+            </Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.notifBtn}>
@@ -325,6 +470,154 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Today's Work Summary Modal (Punch OUT) */}
+      {/* Today's Work Summary Modal (Punch OUT) */}
+      {/* Work Summary Modal */}
+      <Modal visible={showWorkSummaryModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.alertCircle, { backgroundColor: COLORS.successLight }]}>
+                <Ionicons name="document-text" size={32} color={COLORS.success} />
+              </View>
+              <Text style={styles.modalTitle}>Work Summary</Text>
+              <Text style={styles.modalSub}>Briefly list your achievements for today before you sign off.</Text>
+            </View>
+            
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="e.g., Task A completed, Meeting with Client B..."
+              placeholderTextColor={COLORS.textMuted}
+              value={workSummary}
+              onChangeText={setWorkSummary}
+              multiline
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowWorkSummaryModal(false)}>
+                <Text style={styles.cancelBtnText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                setShowWorkSummaryModal(false);
+                handlePunch({ workSummary });
+              }}>
+                <LinearGradient colors={GRADIENTS.success} style={styles.submitBtnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                  <Text style={styles.submitBtnText}>Submit & Continue</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Early Punch Out Modal */}
+      <Modal visible={showEarlyReasonModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.alertCircle, { backgroundColor: COLORS.warningLight }]}>
+                <Ionicons name="time" size={32} color={COLORS.warning} />
+              </View>
+              <Text style={styles.modalTitle}>Early Departure</Text>
+              <Text style={styles.modalSub}>Your shift hasn't ended. Please specify a reason for leaving early.</Text>
+            </View>
+            
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="e.g., Finished work, Personal emergency..."
+              placeholderTextColor={COLORS.textMuted}
+              value={earlyReason}
+              onChangeText={setEarlyReason}
+              multiline
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowEarlyReasonModal(false); setEarlyReason(''); }}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                setShowEarlyReasonModal(false);
+                handlePunch({ earlyReason });
+              }}>
+                <LinearGradient colors={GRADIENTS.warning} style={styles.submitBtnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                  <Text style={styles.submitBtnText}>Confirm Early Out</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Geofence Alert Modal (Out of Range) */}
+      <Modal visible={showGeofenceModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.alertCircle, { backgroundColor: COLORS.dangerLight }]}>
+                <Ionicons name="location" size={32} color={COLORS.danger} />
+              </View>
+              <Text style={styles.modalTitle}>Geofence Alert</Text>
+              <Text style={styles.modalSub}>You are currently outside your assigned workplace reach. Justify this log.</Text>
+            </View>
+            
+            <TextInput
+              style={styles.reasonInput}
+              placeholder="e.g., Working from onsite, Field work..."
+              placeholderTextColor={COLORS.textMuted}
+              value={geofenceReason}
+              onChangeText={setGeofenceReason}
+              multiline
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowGeofenceModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={submitWithReason}>
+                <LinearGradient colors={GRADIENTS.primary} style={styles.submitBtnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                  <Text style={styles.submitBtnText}>Submit Signature</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Verified: In Range Modal (SweetAlert Style) */}
+      <Modal 
+        visible={showInRangeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInRangeModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalContent, { paddingBottom: 24 }]}>
+          <View style={styles.modalHeader}>
+            <View style={[styles.alertCircle, { backgroundColor: COLORS.successLight, marginBottom: 12 }]}>
+              <Ionicons name="checkmark-circle" size={48} color={COLORS.success} />
+            </View>
+            <Text style={[styles.modalTitle, { fontSize: 22 }]}>Verified: In Range</Text>
+            <Text style={[styles.modalSub, { marginTop: 8 }]}>You are at the {data?.stats?.branchName || 'assigned'} branch.</Text>
+            <Text style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 4 }}>Distance: {Math.round(getDistance(tempLocation?.latitude || 0, tempLocation?.longitude || 0, data?.stats?.branchCoords?.latitude || 0, data?.stats?.branchCoords?.longitude || 0))}m</Text>
+          </View>
+          
+          <View style={[styles.modalActions, { marginTop: 24 }]}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowInRangeModal(false)}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.submitBtn} onPress={async () => {
+              setShowInRangeModal(false);
+              setLoading(true);
+              await submitPunch(tempLocation.latitude, tempLocation.longitude, null);
+            }}>
+              <LinearGradient colors={GRADIENTS.success} style={styles.submitBtnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                <Text style={styles.submitBtnText}>Yes, Proceed</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -374,4 +667,21 @@ const styles = StyleSheet.create({
   productivityCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
   prodIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight, justifyContent: 'center', alignItems: 'center' },
   prodText: { flex: 1, fontSize: 13, color: COLORS.textMain, fontWeight: '600', lineHeight: 20 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: COLORS.white, borderRadius: 24, padding: 24, paddingBottom: 30 },
+  modalHeader: { alignItems: 'center', marginBottom: 20 },
+  alertCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textDark, marginBottom: 8 },
+  modalSub: { fontSize: 13, color: COLORS.textLight, textAlign: 'center', lineHeight: 20 },
+  reasonInput: { 
+    backgroundColor: COLORS.bgMain, borderRadius: 16, padding: 16, 
+    height: 120, textAlignVertical: 'top', fontSize: 14, color: COLORS.textDark,
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: 24
+  },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  cancelBtn: { flex: 1, height: 52, justifyContent: 'center', alignItems: 'center', borderRadius: 14, borderWidth: 1, borderColor: COLORS.border },
+  cancelBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.textLight },
+  submitBtn: { flex: 2, height: 52, borderRadius: 14, overflow: 'hidden' },
+  submitBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  submitBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.white },
 });

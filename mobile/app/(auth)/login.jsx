@@ -65,6 +65,7 @@ export default function LoginScreen() {
       const auth = getAuth();
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone);
       setConfirm(confirmation);
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Please check your messages' });
     } catch (error) {

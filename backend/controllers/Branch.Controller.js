@@ -12,7 +12,14 @@ const getBranches = async (req, res) => {
 
 const addBranch = async (req, res) => {
     try {
-        const { branchName, branchCode, branchType } = req.body;
+        const { 
+            branchName, 
+            branchCode, 
+            branchType, 
+            latitude, 
+            longitude, 
+            radius 
+        } = req.body;
         const adminId = req.user._id;
 
         const branchesCount = await Branch.countDocuments({ adminId });
@@ -22,6 +29,9 @@ const addBranch = async (req, res) => {
             branchCode,
             branchType,
             adminId,
+            latitude,
+            longitude,
+            radius,
             order: branchesCount
         });
 
@@ -38,12 +48,26 @@ const addBranch = async (req, res) => {
 const updateBranch = async (req, res) => {
     try {
         const { id } = req.params;
-        const { branchName, branchCode, branchType } = req.body;
+        const { 
+            branchName, 
+            branchCode, 
+            branchType, 
+            latitude, 
+            longitude, 
+            radius 
+        } = req.body;
         const adminId = req.user._id;
 
         const updatedBranch = await Branch.findOneAndUpdate(
             { _id: id, adminId }, 
-            { branchName, branchCode, branchType }, 
+            { 
+                branchName, 
+                branchCode, 
+                branchType, 
+                latitude, 
+                longitude, 
+                radius 
+            }, 
             { new: true }
         );
 

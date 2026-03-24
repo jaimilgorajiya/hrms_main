@@ -36,6 +36,7 @@ export const COLORS = {
 
 export const GRADIENTS = {
   primary: ['#3B82F6', '#6366F1'],
+  success: ['#22C55E', '#10B981'],
   danger: ['#EF4444', '#F87171'],
   warning: ['#F59E0B', '#FB923C'],
   purple: ['#8B5CF6', '#6366F1'],

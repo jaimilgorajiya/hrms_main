@@ -1,4 +1,5 @@
 import User from "../models/User.Model.js";
+import Branch from "../models/Branch.Model.js";
 
 export const getEmployeeStats = async (req, res) => {
     try {
@@ -38,6 +39,25 @@ export const getEmployeeStats = async (req, res) => {
             const joined = new Date(emp.dateJoined);
             const now = new Date();
             daysSinceJoining = Math.floor((now - joined) / (1000 * 60 * 60 * 24));
+        }
+
+        // Fetch branch coordinates
+        let branchCoords = null;
+        const targetBranch = (emp.branch || emp.workSetup?.location || '').trim();
+        
+        if (targetBranch) {
+            // Find branch by name (case-insensitive)
+            const branch = await Branch.findOne({ 
+                branchName: { $regex: new RegExp(`^${targetBranch}$`, 'i') } 
+            }).sort({ latitude: -1 }); // Prioritize one with actual coords if duplicates exist
+            
+            if (branch) {
+                branchCoords = {
+                    latitude: branch.latitude,
+                    longitude: branch.longitude,
+                    radius: branch.radius
+                };
+            }
         }
 
         res.status(200).json({
@@ -84,6 +104,7 @@ export const getEmployeeStats = async (req, res) => {
                 isWeekOff,
                 weekOffDays: shift?.weekOffDays || [],
                 leaveGroupName: leaveGroup?.leaveGroupName || null,
+                branchCoords
             }
         });
     } catch (error) {

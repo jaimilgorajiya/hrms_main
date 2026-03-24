@@ -12,7 +12,12 @@ const attendanceSchema = new mongoose.Schema({
     },
     punches: [{
         time: { type: Date, required: true },
-        type: { type: String, enum: ["IN", "OUT"], required: true }
+        type: { type: String, enum: ["IN", "OUT"], required: true },
+        latitude: Number,
+        longitude: Number,
+        geofenceReason: String,
+        workSummary: String,
+        earlyReason: String
     }],
     breaks: [{
         start: { type: Date },

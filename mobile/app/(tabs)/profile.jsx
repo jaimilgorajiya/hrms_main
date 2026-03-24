@@ -64,8 +64,19 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={COLORS.primary} />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>My Profile</Text>
-          <Text style={styles.subTitle}>Manage your personal information</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Text style={styles.title}>My Profile</Text>
+              <Text style={styles.subTitle}>Manage your personal information</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.headerLogout, SHADOW.soft]} 
+              onPress={handleLogout} 
+              activeOpacity={0.7}
+            >
+              <Ionicons name="log-out-outline" size={22} color={COLORS.danger} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.body}>
@@ -146,7 +157,11 @@ export default function ProfileScreen() {
                 <ProfileItem icon="at-outline" label="Personal Email" value={data?.personalEmail} />
                 <ProfileItem icon="call-outline" label="Mobile" value={data?.phone} />
                 <ProfileItem icon="home-outline" label="Current Address" value={data?.currentAddress} />
-                <ProfileItem icon="alert-circle-outline" label="Emergency Contact" value={`${data?.emergencyContact?.name} (${data?.emergencyContact?.relation})`} />
+                <ProfileItem 
+                  icon="alert-circle-outline" 
+                  label="Emergency Contact" 
+                  value={data?.emergencyContact?.name ? `${data.emergencyContact.name} (${data.emergencyContact.relation || 'N/A'})` : null} 
+                />
                 <ProfileItem icon="call-outline" label="Emergency Phone" value={data?.emergencyContact?.phone} />
               </View>
             )}
@@ -187,12 +202,7 @@ export default function ProfileScreen() {
               </View>
             )}
 
-            <View style={styles.logoutWrapper}>
-              <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
-                <Text style={styles.logoutText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
+
           </View>
         </View>
       </ScrollView>
@@ -227,7 +237,15 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: COLORS.primary },
   tabText: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
   activeTabText: { color: COLORS.white },
-  card: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, minHeight: 400 },
+  card: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, minHeight: 400, paddingBottom: 30 },
+  headerLogout: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 14, 
+    backgroundColor: COLORS.white, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+  },
   tabContent: { gap: 18 },
   profileItem: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   iconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight, justifyContent: 'center', alignItems: 'center' },
@@ -243,7 +261,4 @@ const styles = StyleSheet.create({
   docType: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
   divider: { height: 1, backgroundColor: COLORS.borderLight, marginTop: 12 },
   emptyText: { textAlign: 'center', color: COLORS.textMuted, padding: 20 },
-  logoutWrapper: { marginTop: 30, borderTopWidth: 1, borderTopColor: COLORS.borderLight, paddingTop: 20 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.dangerLight, paddingVertical: 14, borderRadius: 16, gap: 8 },
-  logoutText: { fontSize: 15, fontWeight: '700', color: COLORS.danger },
 });

@@ -15,7 +15,10 @@ const Branch = () => {
     const [formData, setFormData] = useState({
         branchName: '',
         branchCode: '',
-        branchType: ''
+        branchType: '',
+        latitude: '',
+        longitude: '',
+        radius: 500
     });
 
     useEffect(() => {
@@ -70,7 +73,7 @@ const Branch = () => {
                     showConfirmButton: false
                 });
                 setIsModalOpen(false);
-                setFormData({ branchName: '', branchCode: '', branchType: '' });
+                setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 });
                 setIsEditing(false);
                 fetchBranches();
             } else {
@@ -85,7 +88,10 @@ const Branch = () => {
         setFormData({
             branchName: branch.branchName,
             branchCode: branch.branchCode || '',
-            branchType: branch.branchType
+            branchType: branch.branchType,
+            latitude: branch.latitude || '',
+            longitude: branch.longitude || '',
+            radius: branch.radius || 500
         });
         setCurrentId(branch._id);
         setIsEditing(true);
@@ -183,7 +189,7 @@ const Branch = () => {
                     ) : (
                         <>
                             <button className="btn-hrm btn-hrm-secondary" onClick={() => setIsReordering(true)}>CHANGE ORDER</button>
-                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '' }); setIsModalOpen(true); }}><Plus size={18} /> ADD BRANCH</button>
+                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 }); setIsModalOpen(true); }}><Plus size={18} /> ADD BRANCH</button>
                         </>
                     )}
                 </div>
@@ -220,8 +226,12 @@ const Branch = () => {
                                 <div style={{ fontSize: '18px', fontWeight: '800', color: '#1E293B', marginBottom: '8px' }}>{branch.branchName}</div>
                                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', background: '#F1F5F9', padding: '4px 12px', borderRadius: '20px', marginBottom: '12px' }}>{branch.branchType}</div>
                                 {branch.branchCode && (
-                                    <div style={{ fontSize: '12px', color: '#94A3B8' }}>Code: {branch.branchCode}</div>
+                                    <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>Code: {branch.branchCode}</div>
                                 )}
+                                <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <MapPin size={14} /> {branch.latitude || 0}, {branch.longitude || 0}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>Radius: {branch.radius || 500}m</div>
                                 {!isReordering && (
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '25px' }}>
                                         <button className="btn-action-edit" onClick={() => handleEdit(branch)} title="Edit"><Edit2 size={16} /></button>
@@ -260,6 +270,26 @@ const Branch = () => {
                                         <option value="Non-Metro city">Non-Metro city</option>
                                         <option value="Metro city">Metro city</option>
                                     </select>
+                                </div>
+                                <div style={{ marginTop: '20px', padding: '15px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1E293B', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <MapPin size={16} /> Geofencing Settings
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                                        <div className="hrm-form-group">
+                                            <label className="hrm-label">Latitude</label>
+                                            <input type="number" step="any" className="hrm-input" name="latitude" value={formData.latitude} onChange={handleInputChange} placeholder="e.g. 19.076" />
+                                        </div>
+                                        <div className="hrm-form-group">
+                                            <label className="hrm-label">Longitude</label>
+                                            <input type="number" step="any" className="hrm-input" name="longitude" value={formData.longitude} onChange={handleInputChange} placeholder="e.g. 72.877" />
+                                        </div>
+                                        <div className="hrm-form-group">
+                                            <label className="hrm-label">Radius (meters)</label>
+                                            <input type="number" className="hrm-input" name="radius" value={formData.radius} onChange={handleInputChange} placeholder="500" />
+                                        </div>
+                                    </div>
+                                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px' }}>Geofencing ensures employees punch in within this radius of the coordinates.</p>
                                 </div>
                             </div>
                             <div className="hrm-modal-footer">

@@ -149,7 +149,7 @@ const AdminAttendance = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                  {['Employee', 'Date', 'Status', 'Punch In', 'Punch Out', 'Working Hours', 'Breaks'].map(h => (
+                  {['Employee', 'Date', 'Status', 'Punch In', 'Punch Out', 'Working Hours', 'Breaks', 'Remarks/Logs'].map(h => (
                     <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -198,7 +198,24 @@ const AdminAttendance = () => {
                         {r.workingFormatted || '—'}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                        {r.breakCount > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Coffee size={13} />{r.breakCount}</span> : '—'}
+                        {r.breakCount > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Coffee size={13} /> {r.breakCount}</span> : '—'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: '12px', color: '#64748b' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '200px' }}>
+                          {r.punches?.map((p, idx) => {
+                            const notes = [p.workSummary, p.earlyReason, p.geofenceReason].filter(Boolean).join(' | ');
+                            if (!notes) return null;
+                            return (
+                              <div key={idx} style={{ 
+                                padding: '4px 8px', borderRadius: '6px', background: '#F8FAFC', 
+                                border: '1px solid #E2E8F0', fontSize: '11px', lineHeight: 1.3 
+                              }}>
+                                <span style={{ fontWeight: '700', color: p.type === 'IN' ? '#10B981' : '#EF4444' }}>{p.type}: </span>
+                                {notes}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </td>
                     </tr>
                   );

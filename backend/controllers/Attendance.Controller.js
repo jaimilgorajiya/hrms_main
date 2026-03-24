@@ -153,18 +153,25 @@ export const getTodayAttendance = async (req, res) => {
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-        const { reason } = req.body; // optional early-out reason
+    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason } = req.body; // reason=early-out, geofenceReason=out-of-range, earlyReason=custom logic
         const date = getTodayStr();
         const now = new Date();
 
         let record = await Attendance.findOne({ employee: req.user._id, date });
 
         if (!record) {
-            // First punch — IN
+            // First punch of the day must be IN
             record = new Attendance({
                 employee: req.user._id,
                 date,
-                punches: [{ time: now, type: 'IN' }],
+                punches: [{
+                    time: now,
+                    type: 'IN',
+                    latitude,
+                    longitude,
+                    geofenceReason,
+                    workSummary
+                }],
                 status: 'Present'
             });
             await record.save();
@@ -182,75 +189,56 @@ export const togglePunch = async (req, res) => {
             });
         }
 
+        // If record exists, we must handle the next action
         const lastPunch = record.punches[record.punches.length - 1];
-        const action = lastPunch?.type === 'IN' ? 'OUT' : 'IN';
 
-        // ── Early-out enforcement on PUNCH OUT ──
-        if (action === 'OUT') {
-            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
-
-            if (shift && daySchedule?.shiftEnd) {
-                const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
-                const nowMins = now.getHours() * 60 + now.getMinutes();
-
-                const earlyByMins = shiftEndMins - nowMins;
-
-                if (earlyByMins > 0) {
-                    // Employee is trying to punch out before shift end
-                    const maxAllowed = shift.maxEarlyOutMinutes ?? 0;
-
-                    // Check if removeLateEarlyAfterFullHours: if employee completed full shift hours, allow freely
-                    if (shift.removeLateEarlyAfterFullHours) {
-                        const shiftConfig = { deductBreakIfNotTaken: shift.deductBreakIfNotTaken, daySchedule };
-                        const workedSoFar = computeWorkingMinutes(record.punches, record.breaks, shiftConfig);
-                        const fullDayMins = (daySchedule.minFullDayHours || 8) * 60;
-                        if (workedSoFar >= fullDayMins) {
-                            // Full hours completed — early-out restriction lifted, allow punch out
-                        } else if (earlyByMins > maxAllowed) {
-                            return res.status(400).json({
-                                success: false,
-                                earlyOut: true,
-                                earlyByMins,
-                                maxAllowedMins: maxAllowed,
-                                requireReason: shift.requireEarlyOutReason,
-                                message: `You are trying to punch out ${earlyByMins} min early. Maximum allowed early out is ${maxAllowed} min.`
-                            });
-                        } else if (shift.requireEarlyOutReason && !reason) {
-                            return res.status(400).json({
-                                success: false,
-                                earlyOut: true,
-                                earlyByMins,
-                                requireReason: true,
-                                message: 'A reason is required for early punch out.'
-                            });
-                        }
-                    } else if (earlyByMins > maxAllowed) {
-                        return res.status(400).json({
-                            success: false,
-                            earlyOut: true,
-                            earlyByMins,
-                            maxAllowedMins: maxAllowed,
-                            requireReason: shift.requireEarlyOutReason,
-                            message: `You are trying to punch out ${earlyByMins} min early. Maximum allowed early out is ${maxAllowed} min.`
-                        });
-                    } else if (shift.requireEarlyOutReason && !reason) {
-                        return res.status(400).json({
-                            success: false,
-                            earlyOut: true,
-                            earlyByMins,
-                            requireReason: true,
-                            message: 'A reason is required for early punch out.'
-                        });
-                    }
-                }
-            }
-
-            // Close any open break
-            const lastBreak = record.breaks[record.breaks.length - 1];
-            if (lastBreak && !lastBreak.end) lastBreak.end = now;
+        // RULE: If last punch was OUT, they cannot punch in again today.
+        if (lastPunch.type === 'OUT') {
+            return res.status(400).json({ 
+                success: false, 
+                message: "You have already completed your punch for today. You cannot punch in again until tomorrow." 
+            });
         }
 
-        record.punches.push({ time: now, type: action });
+        // Action MUST be OUT if record exists (since IN is already the only other state)
+        const action = 'OUT';
+
+        // ── Early-out enforcement on PUNCH OUT ──
+        const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+        if (shift && daySchedule?.shiftEnd) {
+            const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            const earlyByMins = shiftEndMins - nowMins;
+
+            if (earlyByMins > 0) {
+                const providedReason = req.body.earlyReason || req.body.reason;
+                const maxAllowed = shift.maxEarlyOutMinutes ?? 0;
+
+                if (earlyByMins > maxAllowed && !providedReason) {
+                    return res.status(400).json({
+                        success: false,
+                        earlyOut: true,
+                        earlyByMins,
+                        requireReason: true,
+                        message: `You are trying to punch out ${earlyByMins} min early. Please provide a reason.`
+                    });
+                }
+            }
+        }
+
+        // Close any open break
+        const lastBreak = record.breaks[record.breaks.length - 1];
+        if (lastBreak && !lastBreak.end) lastBreak.end = now;
+
+        record.punches.push({
+            time: now,
+            type: 'OUT',
+            latitude,
+            longitude,
+            geofenceReason,
+            workSummary,
+            earlyReason: earlyReason || reason
+        });
         await record.save();
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
@@ -368,6 +356,8 @@ export const getAdminAttendance = async (req, res) => {
                 workingFormatted: formatMinutes(workingMinutes),
                 breakCount: r.breaks.length,
                 isPunchedIn: r.punches[r.punches.length - 1]?.type === 'IN',
+                punches: r.punches,
+                breaks: r.breaks
             };
         });
 
