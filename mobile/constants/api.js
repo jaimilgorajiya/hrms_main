@@ -17,4 +17,5 @@ export const ENDPOINTS = {
   attendanceToday: '/api/attendance/today',
   togglePunch: '/api/attendance/toggle-punch',
   toggleBreak: '/api/attendance/toggle-break',
+  attendanceHistory: '/api/attendance/history',
 };

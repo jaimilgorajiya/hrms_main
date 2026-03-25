@@ -10,12 +10,13 @@ import { apiFetch } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
 import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import Toast from 'react-native-toast-message';
 
 const StatusBadge = ({ status }) => {
   const isPresent = status === 'Present';
   const isAbsent = status === 'Absent';
   const isLeave = status === 'Leave';
-  const isLate = status === 'Late';
+  const isLate = status === 'Late' || status === 'Incomplete';
 
   let color = COLORS.textMuted;
   let bg = COLORS.bgMain;
@@ -37,6 +38,7 @@ export default function AttendanceScreen() {
   const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [markedDates, setMarkedDates] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
+  const [joiningDate, setJoiningDate] = useState(null);
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, leaves: 0 });
 
   const loadData = async (m) => {
@@ -45,36 +47,77 @@ export default function AttendanceScreen() {
       const json = await res.json();
       if (json.success) {
         setData(json.records);
-        processAttendance(json.records);
+        setJoiningDate(json.joiningDate);
+        processAttendance(json.records, json.joiningDate);
       }
     } catch (e) {
       console.error(e);
+      Toast.show({ type: 'error', text1: 'Network error', text2: 'Could not load your attendance logs' });
     } finally {
       setLoading(false);
     }
   };
 
-  const processAttendance = (records) => {
+  const processAttendance = (records, jDate = joiningDate) => {
     const marked = {};
     let sPresent = 0, sAbsent = 0, sLate = 0, sLeaves = 0;
 
-    records.forEach(r => {
-      let dotColor = COLORS.textMuted;
-      if (r.status === 'Present') { dotColor = COLORS.success; sPresent++; }
-      if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
-      if (r.status === 'Late') { dotColor = COLORS.warning; sLate++; }
-      if (r.status === 'Leave') { dotColor = COLORS.purple; sLeaves++; }
+    // Create a lookup map for existing records
+    const lookup = {};
+    records.forEach(r => lookup[r.date] = r);
 
-      marked[r.date] = {
-        marked: true,
-        dotColor,
-        customStyles: {
-          container: { backgroundColor: dotColor + '15', borderRadius: 8 },
-          text: { color: dotColor, fontWeight: '700' }
+    // Get range for the current calendar month
+    const cleanMonth = month.length > 7 ? month.substring(0, 7) : month;
+    const start = startOfMonth(new Date(`${cleanMonth}-01T00:00:00`));
+    const end = endOfMonth(new Date(`${cleanMonth}-01T00:00:00`));
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    eachDayOfInterval({ start, end }).forEach(day => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const r = lookup[dateStr];
+
+      if (r) {
+        let dotColor = COLORS.textMuted;
+        const isPast = dateStr < today;
+        const isPunchOutMissing = !r.punchOut || r.punchOut === '—';
+
+        if (r.status === 'Present') { 
+          // If past day and punch out missing -> Warning status (Orange)
+          if (isPast && isPunchOutMissing) {
+            dotColor = COLORS.warning; 
+            sLate++; // Use late or warning count
+          } else {
+            dotColor = COLORS.success; 
+            sPresent++; 
+          }
         }
-      };
+        else if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
+        else if (r.status === 'Late') { dotColor = COLORS.warning; sLate++; }
+        else if (r.status === 'Leave') { dotColor = COLORS.purple; sLeaves++; }
+
+        marked[dateStr] = {
+          marked: true,
+          dotColor,
+          customStyles: {
+            container: { backgroundColor: dotColor + '15', borderRadius: 8, paddingBottom: 2 },
+            text: { color: dotColor, fontWeight: '700' }
+          }
+        };
+      } else if (dateStr < today && (!jDate || dateStr >= jDate)) {
+        // Gap found in the past (after joining) -> Mark as Absent
+        sAbsent++;
+        marked[dateStr] = {
+          marked: true,
+          dotColor: COLORS.danger,
+          customStyles: {
+            container: { backgroundColor: COLORS.danger + '10', borderRadius: 8, paddingBottom: 2 },
+            text: { color: COLORS.danger, fontWeight: '700' }
+          }
+        };
+      }
     });
 
+    console.log(`Processing ${records.length} logs. Stats: Present: ${sPresent}, Absent: ${sAbsent}`);
     setMarkedDates(marked);
     setStats({ present: sPresent, absent: sAbsent, late: sLate, leaves: sLeaves });
   };
@@ -123,7 +166,7 @@ export default function AttendanceScreen() {
               onDayPress={(day) => setSelectedDate(day.dateString)}
               markedDates={{
                 ...markedDates,
-                [selectedDate]: { ...markedDates[selectedDate], selected: true, selectedColor: COLORS.primary }
+                ...(selectedDate ? { [selectedDate]: { ...markedDates[selectedDate], selected: true, selectedColor: COLORS.primary } } : {})
               }}
               markingType={'custom'}
               theme={{
@@ -152,9 +195,15 @@ export default function AttendanceScreen() {
               <View style={styles.detailHeader}>
                 <Text style={styles.detailTitle}>{format(new Date(selectedDate), 'dd MMMM yyyy')}</Text>
                 {selectedRecord ? (
-                  <StatusBadge status={selectedRecord.status} />
+                  <StatusBadge status={
+                    (selectedRecord.status === 'Present' && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!selectedRecord.punchOut || selectedRecord.punchOut === '—')) 
+                    ? 'Incomplete' 
+                    : selectedRecord.status
+                  } />
                 ) : (
-                  <View style={styles.badge}><Text style={styles.badgeText}>No Record</Text></View>
+                  <StatusBadge 
+                    status={selectedDate < format(new Date(), 'yyyy-MM-dd') && (!joiningDate || selectedDate >= joiningDate) ? 'Absent' : 'Pending'} 
+                  />
                 )}
               </View>
 
@@ -174,7 +223,7 @@ export default function AttendanceScreen() {
                   </View>
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Breaks</Text>
-                    <Text style={styles.detailValue}>{selectedRecord.breakCount || 0} Taken</Text>
+                    <Text style={styles.detailValue}>{selectedRecord.breakFormatted || '0h 0m'}</Text>
                   </View>
                 </View>
               ) : (
@@ -182,26 +231,6 @@ export default function AttendanceScreen() {
               )}
             </View>
           )}
-
-          <Text style={styles.sectionTitle}>Recent Logs</Text>
-          {data.slice(0, 5).map((r, i) => (
-            <TouchableOpacity key={i} style={[styles.logCard, SHADOW.sm]} onPress={() => setSelectedDate(r.date)}>
-              <View style={styles.logLeft}>
-                <Text style={styles.logDate}>{format(new Date(r.date), 'dd MMM')}</Text>
-                <Text style={styles.logDay}>{format(new Date(r.date), 'EEE')}</Text>
-              </View>
-              <View style={styles.logBody}>
-                <View style={styles.logRow}>
-                  <Ionicons name="enter-outline" size={14} color={COLORS.success} />
-                  <Text style={styles.logTime}>{r.punchIn || '—'}</Text>
-                  <View style={styles.logGap} />
-                  <Ionicons name="exit-outline" size={14} color={COLORS.danger} />
-                  <Text style={styles.logTime}>{r.punchOut || '—'}</Text>
-                </View>
-              </View>
-              <StatusBadge status={r.status} />
-            </TouchableOpacity>
-          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

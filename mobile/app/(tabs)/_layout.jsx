@@ -20,7 +20,7 @@ export default function TabsLayout() {
         tabBarShowLabel: true,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', paddingBottom: 10 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 6 },
         tabBarStyle: styles.tabBar,
         tabBarBackground: () => (
           Platform.OS === 'ios' ? (
@@ -76,10 +76,10 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 74,
+    height: 64,
     borderTopWidth: 1,
     borderTopColor: COLORS.borderLight,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
     backgroundColor: 'white',
     ...SHADOW.sm,
   },

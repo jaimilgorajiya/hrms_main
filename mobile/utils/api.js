@@ -13,8 +13,17 @@ export const apiFetch = async (endpoint, options = {}) => {
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
   console.log('[apiFetch] Fetching:', url, 'with method:', options.method || 'GET');
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
   try {
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { 
+      ...options, 
+      headers,
+      signal: controller.signal 
+    });
+    
+    clearTimeout(timeoutId);
 
     if (response.status === 401) {
       await storage.remove('token');

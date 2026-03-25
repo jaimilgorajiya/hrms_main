@@ -266,40 +266,9 @@ const EditShift = () => {
                             </select>
                         </div>
 
-                        <div className="form-group-shift">
-                            <label>Deduct Break Time From Total Working Hours If Break Not Taken</label>
-                            <select name="deductBreakIfNotTaken" value={formData.deductBreakIfNotTaken} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
+                    
 
-                        <div className="form-group-shift">
-                            <label>Attendance Request Approve With Remark</label>
-                            <select name="attendanceRequestRemarkPolicy" value={formData.attendanceRequestRemarkPolicy} onChange={handleInputChange}>
-                                <option value="None">None</option>
-                                <option value="Optional">Optional</option>
-                                <option value="Mandatory">Mandatory</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group-shift">
-                            <label>Punch Out Missing Request Approve With Remark</label>
-                            <select name="missingPunchRemarkPolicy" value={formData.missingPunchRemarkPolicy} onChange={handleInputChange}>
-                                <option value="None">None</option>
-                                <option value="Optional">Optional</option>
-                                <option value="Mandatory">Mandatory</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group-shift">
-                            <label>Pending Attendance (Out Of Range) Approve With Remark</label>
-                            <select name="outOfRangeRemarkPolicy" value={formData.outOfRangeRemarkPolicy} onChange={handleInputChange}>
-                                <option value="None">None</option>
-                                <option value="Optional">Optional</option>
-                                <option value="Mandatory">Mandatory</option>
-                            </select>
-                        </div>
+                    
                     </div>
                 </div>
 
@@ -311,9 +280,7 @@ const EditShift = () => {
                             <label>Week Off Type <span className="required">*</span></label>
                             <select name="weekOffType" value={formData.weekOffType} onChange={handleInputChange}>
                                 <option value="Selected Weekdays">Selected Weekdays</option>
-                              
                                 <option value="Manual Week Off">Manual Week Off</option>
-                                <option value="Auto Week off">Auto Week off</option>
                             </select>
                         </div>
 
@@ -336,17 +303,11 @@ const EditShift = () => {
                                     </div>
                                 </div>
 
-                                <div className="form-group-shift">
-                                    <label>Has Alternate Week off <span className="required">*</span></label>
-                                    <select name="hasAlternateWeekOff" value={formData.hasAlternateWeekOff} onChange={handleInputChange}>
-                                        <option value={false}>No</option>
-                                        <option value={true}>Yes</option>
-                                    </select>
-                                </div>
+                              
                             </>
                         )}
 
-                        {(formData.weekOffType === 'Manual Week Off' || formData.weekOffType === 'Auto Week off') && (
+                        {formData.weekOffType === 'Manual Week Off' && (
                             <>
                                 <div className="form-group-shift">
                                     <label>Number of week-offs allowed in a week <span className="required">*</span></label>
@@ -429,13 +390,6 @@ const EditShift = () => {
                             </>
                         )}
 
-                        <div className="form-group-shift">
-                            <label>Apply Leave If Late/Early Limit Exceeded</label>
-                            <select name="applyLeaveIfLimitExceeded" value={formData.applyLeaveIfLimitExceeded} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
 
                     
 
@@ -473,152 +427,11 @@ const EditShift = () => {
                             </>
                         )}
 
-                        <div className="form-group-shift">
-                            <label>Late In Early Out Apply On Extra Day</label>
-                            <select name="lateEarlyApplyOnExtraDay" value={formData.lateEarlyApplyOnExtraDay} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
 
                     </div>
                 </div>
 
-                {/* SECTION 6 - OT SETTINGS */}
-                <div className="shift-card">
-                    <h2 className="card-title">OT Settings</h2>
-                    <div className="form-grid">
-                        <div className="form-group-shift">
-                            <label>Need Approval For Extra Day <span className="required">*</span></label>
-                            <select name="extraDayApprovalPolicy" value={formData.extraDayApprovalPolicy} onChange={handleInputChange}>
-                                <option value="None">None</option>
-                                <option value="Week Off">Week Off</option>
-                                <option value="Holiday">Holiday</option>
-                                <option value="Week off and holiday">Week off and holiday</option>
-                            </select>
-                        </div>
 
-                        {formData.extraDayApprovalPolicy !== 'None' && (
-                            <>
-                                <div className="form-group-shift">
-                                    <label>Need approval for extra hours on weekdays <span className="required">*</span></label>
-                                    <select name="needApprovalExtraHoursWeekdays" value={formData.needApprovalExtraHoursWeekdays} onChange={handleInputChange}>
-                                        <option value={false}>No</option>
-                                        <option value={true}>Yes</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-group-shift">
-                                    <label>Need OT Request For Same Day <span className="required">*</span></label>
-                                    <select name="needOTRequestSameDay" value={formData.needOTRequestSameDay} onChange={handleInputChange}>
-                                        <option value={false}>No</option>
-                                        <option value={true}>Yes</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-group-shift">
-                                    <label>OT Request Type <span className="required">*</span></label>
-                                    <select name="otRequestType" value={formData.otRequestType} onChange={handleInputChange}>
-                                        <option value="Get approval before overtime work">Get approval before overtime work</option>
-                                        <option value="Get approval after overtime work">Get approval after overtime work</option>
-                                    </select>
-                                </div>
-                            </>
-                        )}
-
-                        <div className="form-group-shift">
-                            <label>Shift Time Extra Payout <span className="required">*</span></label>
-                            <select name="extraPayoutMultiplier" value={formData.extraPayoutMultiplier} onChange={handleInputChange}>
-                                <option value="Default">Default</option>
-                                <option value="1x">1x</option>
-                                <option value="1.5x">1.5x</option>
-                                <option value="2x">2x</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* SECTION 7 - COMP OFF LEAVE */}
-                <div className="shift-card">
-                    <h2 className="card-title">Comp Off Leave</h2>
-                    <div className="form-grid">
-                        <div className="form-group-shift">
-                            <label>Add Comp Off Leave On Extra Day <span className="required">*</span></label>
-                            <select name="compOffOnExtraDay" value={formData.compOffOnExtraDay} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group-shift">
-                            <label>Add Comp Off Leave On Extra Hours After Shift Hours Completed (Working Days) <span className="required">*</span></label>
-                            <select name="compOffOnExtraHoursWorkingDay" value={formData.compOffOnExtraHoursWorkingDay} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
-
-                        {(formData.compOffOnExtraDay === true || formData.compOffOnExtraDay === 'true' || 
-                          formData.compOffOnExtraHoursWorkingDay === true || formData.compOffOnExtraHoursWorkingDay === 'true') && (
-                            <>
-                                <div className="form-group-shift">
-                                    <label>Comp Off Expiry Type <span className="required">*</span></label>
-                                    <select name="compOffExpiryType" value={formData.compOffExpiryType} onChange={handleInputChange}>
-                                        <option value="None">None</option>
-                                        <option value="Custom Days">Custom Days</option>
-                                        <option value="End of Month">End of Month</option>
-                                        <option value="End of Quarter">End of Quarter</option>
-                                        <option value="End of Year">End of Year</option>
-                                    </select>
-                                </div>
-
-                                {formData.compOffExpiryType === 'Custom Days' && (
-                                    <div className="form-group-shift">
-                                        <label>Comp Off Leave Expire Days <span className="required">*</span></label>
-                                        <input
-                                            type="number"
-                                            name="compOffExpireDays"
-                                            value={formData.compOffExpireDays || 0}
-                                            onChange={handleInputChange}
-                                            min="0"
-                                            placeholder="Enter days"
-                                            required
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="form-group-shift">
-                                    <label>Maximum Comp Off Leave Applicable In A Month <span className="required">*</span></label>
-                                    <input
-                                        type="number"
-                                        name="maxCompOffInMonth"
-                                        value={formData.maxCompOffInMonth || 0}
-                                        onChange={handleInputChange}
-                                        min="0"
-                                        placeholder="Enter max limit"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="form-group-shift">
-                                    <label>Apply Comp Off Leave On Past Date <span className="required">*</span></label>
-                                    <select name="applyCompOffOnPastDate" value={formData.applyCompOffOnPastDate} onChange={handleInputChange}>
-                                        <option value={false}>No</option>
-                                        <option value={true}>Yes</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-group-shift">
-                                    <label>Exclude comp off with auto leave <span className="required">*</span></label>
-                                    <select name="excludeCompOffWithAutoLeave" value={formData.excludeCompOffWithAutoLeave} onChange={handleInputChange}>
-                                        <option value={false}>No</option>
-                                        <option value={true}>Yes</option>
-                                    </select>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
 
                 {/* SECTION 8 - BREAK SETTINGS */}
                 <div className="shift-card">
@@ -632,21 +445,9 @@ const EditShift = () => {
                             </select>
                         </div>
 
-                        <div className="form-group-shift">
-                            <label>Take Break With Approval In Face App</label>
-                            <select name="breakApprovalFaceApp" value={formData.breakApprovalFaceApp} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
+               
 
-                        <div className="form-group-shift">
-                            <label>Take Break With Approval In Employee App</label>
-                            <select name="breakApprovalEmployeeApp" value={formData.breakApprovalEmployeeApp} onChange={handleInputChange}>
-                                <option value={false}>No</option>
-                                <option value={true}>Yes</option>
-                            </select>
-                        </div>
+                      
                     </div>
                 </div>
 
@@ -748,177 +549,6 @@ const EditShift = () => {
                                             <ShiftTimePicker
                                                 value={formData.schedule[day]?.teaEnd || ''}
                                                 onChange={(val) => handleScheduleChange(day, 'teaEnd', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Three Quarter Day After Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.threeQuarterAfter || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'threeQuarterAfter', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Three Quarter Day Before Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.threeQuarterBefore || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'threeQuarterBefore', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Half Day After Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.halfDayAfter || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'halfDayAfter', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Half Day Before Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.halfDayBefore || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'halfDayBefore', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Quarter Day After Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.quarterDayAfter || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'quarterDayAfter', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Quarter Day Before Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.quarterDayBefore || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'quarterDayBefore', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Late In Count After Minutes</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <input
-                                                type="number"
-                                                value={formData.schedule[day]?.lateCountAfter || ''}
-                                                onChange={(e) => handleScheduleChange(day, 'lateCountAfter', e.target.value)}
-                                                min="0"
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Early Out Count Before Minutes</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <input
-                                                type="number"
-                                                value={formData.schedule[day]?.earlyCountBefore || ''}
-                                                onChange={(e) => handleScheduleChange(day, 'earlyCountBefore', e.target.value)}
-                                                min="0"
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Minimum Quarter Day Hours</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <HourMinutePicker
-                                                value={formData.schedule[day]?.minQuarterHours || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'minQuarterHours', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Minimum Half Day Hours</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <HourMinutePicker
-                                                value={formData.schedule[day]?.minHalfHours || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'minHalfHours', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Minimum Three Quarter Day Hours</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <HourMinutePicker
-                                                value={formData.schedule[day]?.minThreeQuarterHours || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'minThreeQuarterHours', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Minimum Full Day Hours</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <HourMinutePicker
-                                                value={formData.schedule[day]?.minFullDayHours || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'minFullDayHours', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Maximum Personal Break</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <input
-                                                type="number"
-                                                value={formData.schedule[day]?.maxPersonalBreak || ''}
-                                                onChange={(e) => handleScheduleChange(day, 'maxPersonalBreak', e.target.value)}
-                                                min="0"
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Maximum Punch Out Time</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <ShiftTimePicker
-                                                value={formData.schedule[day]?.maxPunchOutTime || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'maxPunchOutTime', val)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="row-label">Maximum Punch Out Hour</td>
-                                    {days.map(day => (
-                                        <td key={day}>
-                                            <HourDurationSelect
-                                                value={formData.schedule[day]?.maxPunchOutHour || ''}
-                                                onChange={(val) => handleScheduleChange(day, 'maxPunchOutHour', val)}
                                             />
                                         </td>
                                     ))}

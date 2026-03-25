@@ -1,5 +1,8 @@
 import User from "../models/User.Model.js";
 import Branch from "../models/Branch.Model.js";
+import BreakType from "../models/BreakType.Model.js";
+import Attendance from "../models/Attendance.Model.js";
+import { computeWorkingMinutes } from "../utils/attendance.js";
 
 export const getEmployeeStats = async (req, res) => {
     try {
@@ -16,6 +19,21 @@ export const getEmployeeStats = async (req, res) => {
         }
 
         const emp = employee.toObject();
+
+        // Month stats
+        const start = new Date();
+        start.setDate(1); start.setHours(0,0,0,0);
+        const monthAttendance = await Attendance.find({ 
+            employee: userId,
+            date: { $gte: start.toISOString().split('T')[0] }
+        });
+
+        let monthWorkMins = 0;
+        monthAttendance.forEach(a => {
+            monthWorkMins += computeWorkingMinutes(a.punches, a.breaks);
+        });
+        const monthHours = Math.floor(monthWorkMins / 60);
+        const presentDays = monthAttendance.filter(a => a.status === 'Present').length;
 
         // Get day name
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -98,13 +116,34 @@ export const getEmployeeStats = async (req, res) => {
                 totalLeaves,
                 documentCount,
                 daysSinceJoining,
+                monthHours,
+                presentDays,
                 shiftName: shift?.shiftName || null,
                 shiftStart: schedule?.shiftStart || null,
                 shiftEnd: schedule?.shiftEnd || null,
+                lunchStart: schedule?.lunchStart || null,
+                lunchEnd: schedule?.lunchEnd || null,
+                teaStart: schedule?.teaStart || null,
+                teaEnd: schedule?.teaEnd || null,
+                breakMode: shift?.breakMode || 'Defined Minutes',
+                maxPersonalBreak: shift?.maxPersonalBreak || 0,
                 isWeekOff,
+                weekOffType: shift?.weekOffType || 'Selected Weekdays',
                 weekOffDays: shift?.weekOffDays || [],
+                weekOffsPerWeek: shift?.weekOffsPerWeek || 0,
+                weekOffsPerMonth: shift?.weekOffsPerMonth || 0,
+                requireOutOfRangeReason: shift?.requireOutOfRangeReason || false,
+                requireLateReason: shift?.requireLateReason || false,
+                requireEarlyOutReason: shift?.requireEarlyOutReason || false,
+                lateEarlyType: shift?.lateEarlyType || 'Combined',
+                maxLateInMinutes: shift?.maxLateInMinutes || 0,
+                maxEarlyOutMinutes: shift?.maxEarlyOutMinutes || 0,
                 leaveGroupName: leaveGroup?.leaveGroupName || null,
-                branchCoords
+                branchCoords,
+                availableBreaks: await BreakType.find({ 
+                    adminId: emp.adminId || emp._id, 
+                    isActive: true 
+                }).sort({ order: 1 })
             }
         });
     } catch (error) {

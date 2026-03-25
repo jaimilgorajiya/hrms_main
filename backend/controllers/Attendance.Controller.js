@@ -1,6 +1,7 @@
 import Attendance from "../models/Attendance.Model.js";
 import User from "../models/User.Model.js";
 import Shift from "../models/Shift.Model.js";
+import { computeWorkingMinutes, formatMinutes } from "../utils/attendance.js";
 
 // Helper: get today's date string YYYY-MM-DD in IST
 const getTodayStr = () => {
@@ -54,51 +55,6 @@ const getShiftDurationMinutes = async (userId) => {
     } catch { return 480; }
 };
 
-// Helper: compute working minutes from punches, subtracting break time
-// If shift.deductBreakIfNotTaken=true and employee took no breaks, deduct scheduled lunch duration
-const computeWorkingMinutes = (punches, breaks = [], shiftConfig = null) => {
-    const sorted = [...punches].sort((a, b) => new Date(a.time) - new Date(b.time));
-
-    let totalMs = 0;
-    for (let i = 0; i < sorted.length - 1; i += 2) {
-        if (sorted[i].type === 'IN' && sorted[i + 1]?.type === 'OUT') {
-            totalMs += new Date(sorted[i + 1].time) - new Date(sorted[i].time);
-        }
-    }
-
-    if (sorted.length % 2 !== 0 && sorted[sorted.length - 1]?.type === 'IN') {
-        totalMs += Date.now() - new Date(sorted[sorted.length - 1].time);
-    }
-
-    // Subtract actual breaks taken
-    breaks.forEach(b => {
-        const start = new Date(b.start);
-        const end = b.end ? new Date(b.end) : new Date();
-        totalMs -= end - start;
-    });
-
-    // If deductBreakIfNotTaken is enabled and no breaks were taken, deduct scheduled lunch
-    if (shiftConfig?.deductBreakIfNotTaken && breaks.length === 0) {
-        const { daySchedule } = shiftConfig;
-        if (daySchedule) {
-            const lunchStart = parseTimeToMinutes(daySchedule.lunchStart);
-            const lunchEnd = parseTimeToMinutes(daySchedule.lunchEnd);
-            if (lunchStart !== null && lunchEnd !== null && lunchEnd > lunchStart) {
-                totalMs -= (lunchEnd - lunchStart) * 60000;
-            }
-        }
-    }
-
-    return Math.max(0, Math.round(totalMs / 60000));
-};
-
-// Helper: format minutes to "Xh Ym"
-const formatMinutes = (mins) => {
-    if (!mins) return '0h 0m';
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h}h ${m}m`;
-};
 
 // GET /api/attendance/today
 export const getTodayAttendance = async (req, res) => {
@@ -126,8 +82,9 @@ export const getTodayAttendance = async (req, res) => {
         const lastPunch = record.punches[record.punches.length - 1];
         const isPunchedIn = lastPunch?.type === 'IN';
 
-        const lastBreak = record.breaks[record.breaks.length - 1];
-        const isOnBreak = lastBreak && !lastBreak.end;
+        const lastBreak = record.breaks?.[record.breaks.length - 1];
+        const isOnBreak = !!(lastBreak && !lastBreak.end);
+        const currentBreakType = isOnBreak ? lastBreak.type : null;
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
 
@@ -137,6 +94,7 @@ export const getTodayAttendance = async (req, res) => {
             status: record.status,
             isPunchedIn,
             isOnBreak,
+            currentBreakType,
             workingMinutes,
             workingFormatted: formatMinutes(workingMinutes),
             punches: record.punches,
@@ -153,7 +111,7 @@ export const getTodayAttendance = async (req, res) => {
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, locationAddress } = req.body; // reason=early-out, geofenceReason=out-of-range, earlyReason=custom logic
+    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress } = req.body;
         const date = getTodayStr();
         const now = new Date();
 
@@ -161,6 +119,23 @@ export const togglePunch = async (req, res) => {
 
         if (!record) {
             // First punch of the day must be IN
+            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+            if (shift) {
+                const shiftStartMins = parseTimeToMinutes(daySchedule?.shiftStart);
+                if (shiftStartMins !== null) {
+                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const lateByMins = nowMins - shiftStartMins;
+                    const maxAllowed = shift.maxLateInMinutes || 0;
+                    if (lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            requireLateReason: true, 
+                            message: `You are punching in ${lateByMins}m late. Please provide a reason.` 
+                        });
+                    }
+                }
+            }
+
             record = new Attendance({
                 employee: req.user._id,
                 date,
@@ -171,6 +146,7 @@ export const togglePunch = async (req, res) => {
                     longitude,
                     geofenceReason,
                     workSummary,
+                    lateReason,
                     locationAddress
                 }],
                 status: 'Present'
@@ -213,15 +189,29 @@ export const togglePunch = async (req, res) => {
 
             if (earlyByMins > 0) {
                 const providedReason = req.body.earlyReason || req.body.reason;
-                const maxAllowed = shift.maxEarlyOutMinutes ?? 0;
+                let maxAllowed = shift.maxEarlyOutMinutes ?? 0;
+                
+                // If Combined, maxAllowed is (maxLateInMinutes - lateMins)
+                if (shift.lateEarlyType === 'Combined') {
+                    const firstIn = record.punches.find(p => p.type === 'IN');
+                    const shiftStartMins = parseTimeToMinutes(daySchedule?.shiftStart);
+                    if (firstIn && shiftStartMins !== null) {
+                        const inTime = new Date(firstIn.time);
+                        const inMinsTotal = inTime.getHours() * 60 + inTime.getMinutes();
+                        const lateMins = Math.max(0, inMinsTotal - shiftStartMins);
+                        maxAllowed = Math.max(0, (shift.maxLateInMinutes || 0) - lateMins);
+                    } else {
+                        maxAllowed = shift.maxLateInMinutes || 0;
+                    }
+                }
 
-                if (earlyByMins > maxAllowed && !providedReason) {
+                if (earlyByMins > maxAllowed && shift.requireEarlyOutReason && !providedReason) {
                     return res.status(400).json({
                         success: false,
                         earlyOut: true,
                         earlyByMins,
                         requireReason: true,
-                        message: `You are trying to punch out ${earlyByMins} min early. Please provide a reason.`
+                        message: `You were late ${shift.maxLateInMinutes - maxAllowed}m this morning. You can only leave ${maxAllowed}m early. Please provide a reason.`
                     });
                 }
             }
@@ -283,6 +273,43 @@ export const toggleBreak = async (req, res) => {
             await record.save();
             return res.status(200).json({ success: true, message: "Break ended", isOnBreak: false, record });
         } else {
+            // -- Defined Minutes Enforcement --
+            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+            if (shift && shift.breakMode === 'Defined Minutes') {
+                const typeLower = breakType.toLowerCase();
+                let startStr = '', endStr = '';
+
+                if (typeLower.includes('lunch')) {
+                    startStr = daySchedule?.lunchStart;
+                    endStr = daySchedule?.lunchEnd;
+                } else if (typeLower.includes('tea')) {
+                    startStr = daySchedule?.teaStart;
+                    endStr = daySchedule?.teaEnd;
+                }
+
+                if (startStr && endStr) {
+                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const startMins = parseTimeToMinutes(startStr);
+                    const endMins = parseTimeToMinutes(endStr);
+                    
+                    if (nowMins < startMins || nowMins > endMins) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            message: `You can only take ${breakType} between ${startStr} and ${endStr}` 
+                        });
+                    }
+                } else if (typeLower.includes('lunch') || typeLower.includes('tea')) {
+                    // It's a standard break but NO range is set in the shift
+                   return res.status(400).json({ 
+                        success: false, 
+                        message: `No time range defined for ${breakType} in your shift configuration.` 
+                    });
+                }
+                // For other breaks (like Personal), we allow them if not explicitly scheduled 
+                // OR we could block them too. User said "apply rule for other", so likely block?
+                // Let's stick to Lunch/Tea for now as they are the only ones with fields.
+            }
+
             record.breaks.push({ start: now, type: breakType });
             await record.save();
             return res.status(200).json({ success: true, message: "Break started", isOnBreak: true, record });
@@ -308,8 +335,17 @@ export const getAttendanceHistory = async (req, res) => {
 
         const formatted = records.map(r => {
             const workingMinutes = computeWorkingMinutes(r.punches, r.breaks);
+            
+            // Total break time
+            let totalBreakMs = 0;
+            (r.breaks || []).forEach(b => {
+                if (b.start && b.end) totalBreakMs += new Date(b.end) - new Date(b.start);
+            });
+            const breakMinutes = Math.round(totalBreakMs / 60000);
+
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
+            
             return {
                 date: r.date,
                 status: r.status,
@@ -318,12 +354,18 @@ export const getAttendanceHistory = async (req, res) => {
                 workingMinutes,
                 workingFormatted: formatMinutes(workingMinutes),
                 breakCount: r.breaks.length,
+                breakFormatted: formatMinutes(breakMinutes),
                 punches: r.punches,
                 breaks: r.breaks,
             };
         });
 
-        res.status(200).json({ success: true, records: formatted });
+        const employee = await User.findById(employeeId).select('dateJoined');
+        res.status(200).json({ 
+            success: true, 
+            records: formatted, 
+            joiningDate: employee?.dateJoined ? new Date(employee.dateJoined).toISOString().split('T')[0] : null 
+        });
     } catch (error) {
         console.error("getAttendanceHistory error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
