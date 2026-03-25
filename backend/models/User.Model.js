@@ -256,6 +256,10 @@ const userSchema = new mongoose.Schema(
             verifiedBy: String,
             verificationDate: Date
         },
+        adminId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
         otp: {
             type: String
         },

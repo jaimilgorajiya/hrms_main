@@ -14,11 +14,13 @@ import {
   Search,
   LayoutDashboard
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
 
   useEffect(() => {
@@ -62,7 +64,8 @@ const AdminDashboard = () => {
       icon: <Users size={20} />, 
       trend: '+12%', 
       positive: true,
-      color: 'blue' 
+      color: 'blue',
+      link: '/admin/employees/list'
     },
     { 
       title: 'Active Now', 
@@ -70,7 +73,8 @@ const AdminDashboard = () => {
       icon: <Briefcase size={20} />, 
       trend: '+4%', 
       positive: true,
-      color: 'green' 
+      color: 'green',
+      link: '/admin/attendance/records'
     },
     { 
       title: 'Monthly Onboarding', 
@@ -78,7 +82,8 @@ const AdminDashboard = () => {
       icon: <UserPlus size={20} />, 
       trend: '+4', 
       positive: true,
-      color: 'purple' 
+      color: 'purple',
+      link: '/admin/employees/onboarding'
     },
     { 
       title: 'Active Offboarding', 
@@ -86,7 +91,8 @@ const AdminDashboard = () => {
       icon: <UserMinus size={20} />, 
       trend: '-2', 
       positive: false,
-      color: 'red' 
+      color: 'red',
+      link: '/admin/employees/offboarding'
     }
   ];
 
@@ -110,7 +116,7 @@ const AdminDashboard = () => {
 
       <div className="stats-grid-premium">
         {statCards.map((card, index) => (
-          <div key={index} className="stat-card-premium">
+          <div key={index} className="stat-card-premium" onClick={() => navigate(card.link)}>
             <div className={`icon-box-prem ${card.color}`}>
               {card.icon}
             </div>
@@ -138,7 +144,7 @@ const AdminDashboard = () => {
             <div className="card-body-prem">
               <div className="activity-list-prem">
                 {data?.recentUsers?.map((user, index) => (
-                  <div key={index} className="activity-item-prem">
+                  <div key={index} className="activity-item-prem" onClick={() => navigate(`/admin/employees/profile/${user._id}`)}>
                     <div className="user-avatar-prem">
                       <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} alt="" />
                     </div>
@@ -160,8 +166,8 @@ const AdminDashboard = () => {
                 )}
               </div>
             </div>
-            <div className="card-footer-prem">
-              <button className="view-all-prem">View Full History</button>
+             <div className="card-footer-prem">
+              <button className="view-all-prem" onClick={() => navigate('/admin/attendance/records')}>View Full History</button>
             </div>
           </div>
         </div>
@@ -192,12 +198,12 @@ const AdminDashboard = () => {
           </div>
           
           <div className="quick-stats-prem">
-             <div className="small-card-prem">
+             <div className="small-card-prem" onClick={() => navigate('/admin/company/departments')}>
                 <span className="small-label">Departments</span>
                 <span className="small-value">{stats.totalDepartments || 0}</span>
                 <Building2 size={16} className="small-icon" />
              </div>
-             <div className="small-card-prem">
+             <div className="small-card-prem" onClick={() => navigate('/admin/company/designation')}>
                 <span className="small-label">Designations</span>
                 <span className="small-value">{stats.totalDesignations || 0}</span>
                 <LayoutDashboard size={16} className="small-icon" />

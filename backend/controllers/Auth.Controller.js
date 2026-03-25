@@ -107,11 +107,11 @@ const checkPhone = async (req, res) => {
 
 const generateTokenAndSetCookie = (userId, res) => {
     const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: "24h",
+        expiresIn: "3650d", // 10 years
     });
 
     res.cookie("jwt", token, {
-        maxAge: 24 * 60 * 60 * 1000, 
+        maxAge: 10 * 365 * 24 * 60 * 60 * 1000, // 10 years in ms
         httpOnly: true,
         secure: false, // Set to true only in production with HTTPS
         sameSite: "lax",

@@ -8,7 +8,8 @@ import Onboarding from "../models/Onboarding.Model.js";
 // MANAGERS LIST
 const getManagers = async (req, res) => {
     try {
-        const managers = await User.find({ role: 'Manager' }).select("-password");
+        const adminId = req.user._id;
+        const managers = await User.find({ role: 'Manager', adminId }).select("-password");
         res.status(200).json({ success: true, managers });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -18,8 +19,10 @@ const getManagers = async (req, res) => {
 // EX-EMPLOYEES LIST
 const getExEmployees = async (req, res) => {
     try {
+        const adminId = req.user._id;
         const users = await User.find({ 
-            status: { $in: ['Resigned', 'Terminated', 'Inactive', 'Absconding', 'Retired'] } 
+            status: { $in: ['Resigned', 'Terminated', 'Inactive', 'Absconding', 'Retired'] },
+            adminId
         }).select("-password");
 
         const userIds = users.map(user => user._id);
@@ -50,7 +53,8 @@ const getExEmployees = async (req, res) => {
 // NEW JOINERS (ONBOARDING PIPELINE)
 const getNewJoiners = async (req, res) => {
     try {
-        const newJoiners = await User.find({ status: 'Onboarding' }).select("-password");
+        const adminId = req.user._id;
+        const newJoiners = await User.find({ status: 'Onboarding', adminId }).select("-password");
         const userIds = newJoiners.map(u => u._id);
         const onboardingRecords = await Onboarding.find({ userId: { $in: userIds } });
 
@@ -138,7 +142,8 @@ const getUpcomingRetirements = async (req, res) => {
         // Find users whose 60th birthday is within next 6 months
         // Note: Logic simplification. In prod, use DOB field + aggregation.
         // Assuming user has 'dob' field.
-        const users = await User.find({ dob: { $exists: true } }).select("-password");
+        const adminId = req.user._id;
+        const users = await User.find({ dob: { $exists: true }, adminId }).select("-password");
         
         const retiringUsers = users.filter(user => {
             if (!user.dob) return false;
@@ -156,7 +161,11 @@ const getUpcomingRetirements = async (req, res) => {
 // OTHER EMPLOYEES (CONTRACT/INTERN)
 const getOtherEmployees = async (req, res) => {
     try {
-        const others = await User.find({ employmentType: { $in: ['Contract', 'Intern', 'Freelance'] } }).select("-password");
+        const adminId = req.user._id;
+        const others = await User.find({ 
+            employmentType: { $in: ['Contract', 'Intern', 'Freelance'] },
+            adminId
+        }).select("-password");
         res.status(200).json({ success: true, others });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

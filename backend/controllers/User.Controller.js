@@ -146,7 +146,8 @@ const createUser = async (req, res) => {
             employeeId,
             documents,
             password: hashedPassword,
-            forcePasswordReset: true
+            forcePasswordReset: true,
+            adminId: req.user._id
         });
 
         await newUser.save();
@@ -197,16 +198,27 @@ const createUser = async (req, res) => {
 
 const getUsers = async (req, res) => {
     try {
+        const adminId = req.user._id;
         const today = new Date();
         today.setHours(23, 59, 59, 999); // Inclusion of full current day
 
         const users = await User.find({ 
             role: { $ne: 'Admin' },
-            $or: [
-                { status: { $in: ['Active', 'Inactive', 'Onboarding'] } },
-                { 
-                    status: 'Resigned', 
-                    exitDate: { $gt: today } 
+            $and: [
+                {
+                    $or: [
+                        { adminId },
+                        { adminId: { $exists: false } }
+                    ]
+                },
+                {
+                    $or: [
+                        { status: { $in: ['Active', 'Inactive', 'Onboarding'] } },
+                        { 
+                            status: 'Resigned', 
+                            exitDate: { $gt: today } 
+                        }
+                    ]
                 }
             ]
         })
@@ -234,14 +246,24 @@ const getExEmployees = async (req, res) => {
     try {
         const today = new Date();
         today.setHours(23, 59, 59, 999);
-
+        const adminId = req.user._id;
         const users = await User.find({ 
             role: { $ne: 'Admin' },
-            $or: [
-                { status: { $in: ['Ex-Employee', 'Terminated', 'Absconding', 'Retired'] } },
-                { 
-                    status: 'Resigned', 
-                    exitDate: { $lte: today } 
+            $and: [
+                {
+                    $or: [
+                        { adminId },
+                        { adminId: { $exists: false } }
+                    ]
+                },
+                {
+                    $or: [
+                        { status: { $in: ['Ex-Employee', 'Terminated', 'Absconding', 'Retired'] } },
+                        { 
+                            status: 'Resigned', 
+                            exitDate: { $lte: today } 
+                        }
+                    ]
                 }
             ]
         })

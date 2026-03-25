@@ -6,35 +6,62 @@ import Offboarding from "../models/Offboarding.Model.js";
 
 export const getAdminStats = async (req, res) => {
     try {
-        // Basic Stats
-        const totalUsers = await User.countDocuments({ role: { $ne: 'Admin' } }); 
-        const activeUsers = await User.countDocuments({ status: 'Active', role: { $ne: 'Admin' } });
-        const totalDepartments = await Department.countDocuments();
-        const totalDesignations = await Designation.countDocuments();
-        const activeOnboarding = await User.countDocuments({ status: 'Onboarding' });
-        const activeOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' } });
+        const adminId = req.user._id;
 
-        // Department Distribution (Assuming department is stored as string/name in User model)
+        // Basic Stats
+        const adminFilter = { 
+            role: { $ne: 'Admin' }, 
+            $or: [{ adminId }, { adminId: { $exists: false } }] 
+        };
+
+        const totalUsers = await User.countDocuments(adminFilter); 
+        const activeUsers = await User.countDocuments({ ...adminFilter, status: 'Active' });
+        const totalDepartments = await Department.countDocuments({ adminId });
+        const totalDesignations = await Designation.countDocuments({ adminId });
+        const activeOnboarding = await User.countDocuments({ 
+            ...adminFilter, 
+            status: 'Onboarding' 
+        });
+        const activeOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' }, adminId });
+
+        // Department Distribution
         const departmentStats = await User.aggregate([
-            { $match: { role: { $ne: 'Admin' }, department: { $exists: true, $ne: null, $ne: '' } } },
+            { 
+                $match: { 
+                    role: { $ne: 'Admin' }, 
+                    department: { $exists: true, $ne: null, $ne: '' },
+                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                } 
+            },
             { $group: { _id: "$department", count: { $sum: 1 } } },
             { $project: { name: "$_id", count: 1 } }
         ]);
     
         // Role Distribution
         const roleStats = await User.aggregate([
-            { $match: { role: { $ne: 'Admin' } } },
+            { 
+                $match: { 
+                    role: { $ne: 'Admin' },
+                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                } 
+            },
             { $group: { _id: "$role", count: { $sum: 1 } } }
         ]);
     
         // Gender Distribution
         const genderStats = await User.aggregate([
-            { $match: { role: { $ne: 'Admin' }, gender: { $exists: true, $ne: null } } },
+            { 
+                $match: { 
+                    role: { $ne: 'Admin' }, 
+                    gender: { $exists: true, $ne: null },
+                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                } 
+            },
             { $group: { _id: "$gender", count: { $sum: 1 } } }
         ]);
     
         // Recent Users
-        const recentUsers = await User.find({ role: { $ne: 'Admin' } })
+        const recentUsers = await User.find(adminFilter)
             .select("name email role status department createdAt")
             .sort({ createdAt: -1 })
             .limit(5);
