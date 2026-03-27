@@ -75,3 +75,68 @@ export const deletePenaltyRule = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to delete penalty rule' });
     }
 };
+export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = null) => {
+    try {
+        const cleanLateMins = Math.floor(lateByMins);
+        const searchId = shiftId?._id || shiftId;
+
+        console.log(`[PENALTY_DEBUG] Fetching rule for shift: ${searchId}`);
+        const rule = await PenaltyRule.findOne({ shift: searchId });
+        
+        if (!rule) {
+            console.log(`[PENALTY_DEBUG] No rule record found in database for shift ${searchId}`);
+            return 0;
+        }
+
+        if (!rule.slabs || rule.slabs.length === 0) {
+            console.log(`[PENALTY_DEBUG] Rule found, but slabs are empty for shift ${searchId}`);
+            return 0;
+        }
+
+        const lateSlabs = rule.slabs.filter(s => s.penaltyType === 'Late In Minutes');
+        console.log(`[PENALTY_DEBUG] Checking ${lateSlabs.length} 'Late In Minutes' slabs for ${cleanLateMins}m lateness.`);
+
+        const matchingSlab = lateSlabs.find(s => cleanLateMins >= s.minTime && (cleanLateMins <= s.maxTime || !s.maxTime));
+        
+        if (!matchingSlab) {
+            console.log(`[PENALTY_DEBUG] No matching slab found in range for ${cleanLateMins}m.`);
+            return 0;
+        }
+
+        // Grace count check — skip penalty if employee hasn't exceeded allowed late entries this month
+        const graceCount = matchingSlab.grace_count || 0;
+        if (graceCount > 0 && employeeId) {
+            const Attendance = (await import('../models/Attendance.Model.js')).default;
+            const monthStart = new Date();
+            monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+            const monthStartStr = monthStart.toISOString().split('T')[0];
+
+            const lateThisMonth = await Attendance.countDocuments({
+                employee: employeeId,
+                date: { $gte: monthStartStr },
+                'lateInPenalty.isLate': true
+            });
+
+            console.log(`[PENALTY_DEBUG] Grace count: ${graceCount}, Late entries this month (with penalty): ${lateThisMonth}`);
+
+            if (lateThisMonth < graceCount) {
+                console.log(`[PENALTY_DEBUG] Within grace period. No penalty applied.`);
+                return 0;
+            }
+        }
+
+        console.log(`[PENALTY_DEBUG] Match Found! Slab: ${matchingSlab.minTime}-${matchingSlab.maxTime}, Value: ${matchingSlab.value}, Type: ${matchingSlab.type}`);
+
+        switch (matchingSlab.type) {
+            case 'Flat':
+                return matchingSlab.value;
+            case 'Per Minute (Flat Amount)':
+                return cleanLateMins * matchingSlab.value;
+            default:
+                return matchingSlab.value;
+        }
+    } catch (error) {
+        console.error("[PENALTY_DEBUG] Calculation Error:", error);
+        return 0;
+    }
+};

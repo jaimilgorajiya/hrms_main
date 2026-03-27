@@ -3,6 +3,7 @@ import Branch from "../models/Branch.Model.js";
 import BreakType from "../models/BreakType.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
+import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
 export const getEmployeeStats = async (req, res) => {
     try {
@@ -29,18 +30,61 @@ export const getEmployeeStats = async (req, res) => {
         });
 
         let monthWorkMins = 0;
-        monthAttendance.forEach(a => {
+        let monthPenalty = 0;
+        const penaltyHistory = [];
+
+        const shift = emp.workSetup?.shift || null;
+
+        for (const a of monthAttendance) {
             monthWorkMins += computeWorkingMinutes(a.punches, a.breaks);
-        });
+
+            // Recalculate late penalty live to respect grace count
+            // Also handles old records that don't have isLate field yet
+            let lateAmount = a.lateInPenalty?.amount || 0;
+            if ((a.lateInPenalty?.isLate || lateAmount > 0) && shift) {
+                const firstIn = a.punches?.find(p => p.type === 'IN');
+                if (firstIn) {
+                    const days2 = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                    const recordDate = new Date(a.date + 'T00:00:00+05:30');
+                    const dayName = days2[recordDate.getDay()];
+                    const daySchedule = shift.schedule?.[dayName];
+                    if (daySchedule?.shiftStart) {
+                        const shiftStartMins = parseInt(daySchedule.shiftStart.split(':')[0]) * 60 + parseInt(daySchedule.shiftStart.split(':')[1]);
+                        const inTime = new Date(firstIn.time);
+                        const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                        const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                        const lateByMins = inMins - shiftStartMins;
+                        if (lateByMins > 0) {
+                            lateAmount = await calculatePenaltyAmount(shift._id, lateByMins, userId);
+                            // Patch DB if stale
+                            if (lateAmount !== a.lateInPenalty?.amount) {
+                                await Attendance.updateOne(
+                                    { _id: a._id },
+                                    { $set: { 'lateInPenalty.amount': lateAmount, 'lateInPenalty.isApplied': lateAmount > 0 } }
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (lateAmount > 0) {
+                penaltyHistory.push({ date: a.date, amount: lateAmount, type: 'Late In' });
+            }
+            if (a.earlyOutPenalty?.amount > 0) {
+                penaltyHistory.push({ date: a.date, amount: a.earlyOutPenalty.amount, type: 'Early Out' });
+            }
+            monthPenalty += lateAmount + (a.earlyOutPenalty?.amount || 0);
+        }
         const monthHours = Math.floor(monthWorkMins / 60);
         const presentDays = monthAttendance.filter(a => a.status === 'Present').length;
 
-        // Get day name
+        // Get day name (IST)
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const todayName = days[new Date().getDay()];
+        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+        const todayName = days[istNow.getUTCDay()];
 
         // Build shift info
-        const shift = emp.workSetup?.shift || null;
         const schedule = shift?.schedule?.[todayName] || null;
         const isWeekOff = shift?.weekOffDays?.includes(todayName.charAt(0).toUpperCase() + todayName.slice(1)) || false;
 
@@ -61,19 +105,30 @@ export const getEmployeeStats = async (req, res) => {
 
         // Fetch branch coordinates
         let branchCoords = null;
-        const targetBranch = (emp.branch || emp.workSetup?.location || '').trim();
+        const targetBranch = (emp.branch || '').trim();
         
         if (targetBranch) {
-            // Find branch by name (case-insensitive)
-            const branch = await Branch.findOne({ 
-                branchName: { $regex: new RegExp(`^${targetBranch}$`, 'i') } 
-            }).sort({ latitude: -1 }); // Prioritize one with actual coords if duplicates exist
+            // Find branch by name (case-insensitive & literal match)
+            // Using literal name first to avoid regex issues
+            let branch = await Branch.findOne({ 
+                branchName: targetBranch,
+                adminId: emp.adminId || userId
+            });
+
+            if (!branch) {
+                // Regex fallback if direct match fails
+                const escaped = targetBranch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                branch = await Branch.findOne({ 
+                    branchName: { $regex: new RegExp(`^${escaped}$`, 'i') },
+                    adminId: emp.adminId || userId
+                });
+            }
             
             if (branch) {
                 branchCoords = {
-                    latitude: branch.latitude,
-                    longitude: branch.longitude,
-                    radius: branch.radius
+                    latitude: branch.latitude || 0,
+                    longitude: branch.longitude || 0,
+                    radius: branch.radius || 200 // Default 200 meters if not set
                 };
             }
         }
@@ -117,6 +172,8 @@ export const getEmployeeStats = async (req, res) => {
                 documentCount,
                 daysSinceJoining,
                 monthHours,
+                monthPenalty,
+                penaltyHistory,
                 presentDays,
                 shiftName: shift?.shiftName || null,
                 shiftStart: schedule?.shiftStart || null,

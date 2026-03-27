@@ -30,6 +30,11 @@ const attendanceSchema = new mongoose.Schema({
         type: String,
         enum: ["Present", "Absent", "Half Day", "On Leave"],
         default: "Present"
+    },
+    lateInPenalty: {
+        amount: { type: Number, default: 0 },
+        isApplied: { type: Boolean, default: false },
+        isLate: { type: Boolean, default: false }
     }
 }, { timestamps: true });
 

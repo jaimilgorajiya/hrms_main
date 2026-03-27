@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const penaltySlabSchema = new mongoose.Schema({
     penaltyType: { 
         type: String, 
-        enum: ['Auto Leave', 'Late In Minutes', 'Break Penalty'], 
-        default: 'Auto Leave' 
+        enum: ['Late In Minutes', 'Half-Day'], 
+        default: 'Late In Minutes' 
     },
     minTime: { 
         type: Number
@@ -18,8 +18,15 @@ const penaltySlabSchema = new mongoose.Schema({
         default: 'Flat' 
     },
     value: { 
-        type: Number, 
-        required: true 
+        type: Number
+    },
+    grace_count: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    threshold_time: {
+        type: String  // HH:mm, used for Half-Day type
     }
 }, { _id: true });
 

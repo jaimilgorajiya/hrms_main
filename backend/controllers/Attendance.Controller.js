@@ -1,6 +1,8 @@
-import Attendance from "../models/Attendance.Model.js";
+import PenaltyRule from '../models/PenaltyRule.Model.js';
+import { calculatePenaltyAmount } from './PenaltyRule.Controller.js';
 import User from "../models/User.Model.js";
 import Shift from "../models/Shift.Model.js";
+import Attendance from "../models/Attendance.Model.js";
 import { computeWorkingMinutes, formatMinutes } from "../utils/attendance.js";
 
 // Helper: get today's date string YYYY-MM-DD in IST
@@ -35,7 +37,8 @@ const getEmployeeShiftToday = async (userId) => {
         const shift = user?.workSetup?.shift;
         if (!shift) return { shift: null, daySchedule: null, dayName: null };
         const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-        const dayName = days[new Date().getDay()];
+        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+        const dayName = days[istNow.getUTCDay()];
         const daySchedule = shift.schedule?.[dayName] || null;
         return { shift, daySchedule, dayName };
     } catch { return { shift: null, daySchedule: null, dayName: null }; }
@@ -88,6 +91,34 @@ export const getTodayAttendance = async (req, res) => {
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
 
+        // Recalculate lateInPenalty live to respect current grace count rules
+        // Also handles old records that don't have isLate field yet
+        let liveLatePenalty = record.lateInPenalty || { amount: 0, isApplied: false };
+        if (record.lateInPenalty?.isLate || (record.lateInPenalty?.amount > 0)) {
+            const { shift: empShift, daySchedule: empDaySchedule } = await getEmployeeShiftToday(req.user._id);
+            if (empShift && empDaySchedule?.shiftStart) {
+                const firstIn = record.punches.find(p => p.type === 'IN');
+                if (firstIn) {
+                    const shiftStartMins = parseTimeToMinutes(empDaySchedule.shiftStart);
+                    const inTime = new Date(firstIn.time);
+                    const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                    const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                    const lateByMins = inMins - shiftStartMins;
+                    if (lateByMins > 0) {
+                        const recalcAmount = await calculatePenaltyAmount(empShift._id, lateByMins, req.user._id);
+                        liveLatePenalty = { amount: recalcAmount, isApplied: recalcAmount > 0, isLate: true };
+                        // Patch the stored record if it differs
+                        if (recalcAmount !== record.lateInPenalty?.amount) {
+                            await Attendance.updateOne(
+                                { _id: record._id },
+                                { $set: { 'lateInPenalty.amount': recalcAmount, 'lateInPenalty.isApplied': recalcAmount > 0 } }
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         res.status(200).json({
             success: true,
             record,
@@ -97,6 +128,7 @@ export const getTodayAttendance = async (req, res) => {
             currentBreakType,
             workingMinutes,
             workingFormatted: formatMinutes(workingMinutes),
+            lateInPenalty: liveLatePenalty,
             punches: record.punches,
             breaks: record.breaks,
             shiftDurationMinutes,
@@ -118,13 +150,17 @@ export const togglePunch = async (req, res) => {
         let record = await Attendance.findOne({ employee: req.user._id, date });
 
         if (!record) {
-            // First punch of the day must be IN
+            let latePenaltyAmount = 0;
             const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+
             if (shift) {
                 const shiftStartMins = parseTimeToMinutes(daySchedule?.shiftStart);
                 if (shiftStartMins !== null) {
-                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+                    const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
                     const lateByMins = nowMins - shiftStartMins;
+                    console.log(`[PENALTY_DEBUG] Punch In at ${istNow.getUTCHours()}:${istNow.getUTCMinutes()} IST. Shift Start: ${shiftStartMins}m, Late: ${lateByMins}m`);
+                    
                     const maxAllowed = shift.maxLateInMinutes || 0;
                     if (lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
                         return res.status(400).json({ 
@@ -132,6 +168,12 @@ export const togglePunch = async (req, res) => {
                             requireLateReason: true, 
                             message: `You are punching in ${lateByMins}m late. Please provide a reason.` 
                         });
+                    }
+
+                    // EVEN if they provide reason, calculate penalty if late
+                    if (lateByMins > 0) {
+                        latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
+                        console.log(`[PENALTY_DEBUG] Calculated late penalty: ${latePenaltyAmount} for ${lateByMins}m late.`);
                     }
                 }
             }
@@ -149,7 +191,12 @@ export const togglePunch = async (req, res) => {
                     lateReason,
                     locationAddress
                 }],
-                status: 'Present'
+                status: 'Present',
+                lateInPenalty: {
+                    amount: latePenaltyAmount,
+                    isApplied: latePenaltyAmount > 0,
+                    isLate: lateByMins > 0
+                }
             });
             await record.save();
 
@@ -162,6 +209,7 @@ export const togglePunch = async (req, res) => {
                 isOnBreak: false,
                 workingMinutes: 0,
                 workingFormatted: '0h 0m',
+                lateInPenalty: record.lateInPenalty || { amount: 0, isApplied: false },
                 record
             });
         }
@@ -184,8 +232,10 @@ export const togglePunch = async (req, res) => {
         const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
         if (shift && daySchedule?.shiftEnd) {
             const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
-            const nowMins = now.getHours() * 60 + now.getMinutes();
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
             const earlyByMins = shiftEndMins - nowMins;
+            console.log(`[PENALTY_DEBUG] Punch Out at ${istNow.getUTCHours()}:${istNow.getUTCMinutes()} IST. Shift End: ${shiftEndMins}m, Early: ${earlyByMins}m`);
 
             if (earlyByMins > 0) {
                 const providedReason = req.body.earlyReason || req.body.reason;
@@ -200,8 +250,10 @@ export const togglePunch = async (req, res) => {
                         const inMinsTotal = inTime.getHours() * 60 + inTime.getMinutes();
                         const lateMins = Math.max(0, inMinsTotal - shiftStartMins);
                         maxAllowed = Math.max(0, (shift.maxLateInMinutes || 0) - lateMins);
+                        console.log(`[PENALTY_DEBUG] Combined late/early. First IN: ${inMinsTotal}m, Shift Start: ${shiftStartMins}m, Late: ${lateMins}m. Adjusted maxEarlyOut: ${maxAllowed}m`);
                     } else {
                         maxAllowed = shift.maxLateInMinutes || 0;
+                        console.log(`[PENALTY_DEBUG] Combined late/early. No first IN or shift start. Defaulting maxEarlyOut: ${maxAllowed}m`);
                     }
                 }
 
@@ -213,6 +265,17 @@ export const togglePunch = async (req, res) => {
                         requireReason: true,
                         message: `You were late ${shift.maxLateInMinutes - maxAllowed}m this morning. You can only leave ${maxAllowed}m early. Please provide a reason.`
                     });
+                }
+                // Calculate early out penalty if applicable
+                if (earlyByMins > 0) {
+                    const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins);
+                    if (earlyOutPenaltyAmount > 0) {
+                        record.earlyOutPenalty = {
+                            amount: earlyOutPenaltyAmount,
+                            isApplied: true
+                        };
+                        console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
+                    }
                 }
             }
         }
@@ -244,6 +307,7 @@ export const togglePunch = async (req, res) => {
             isOnBreak: false,
             workingMinutes,
             workingFormatted: formatMinutes(workingMinutes),
+            lateInPenalty: record.lateInPenalty || { amount: 0, isApplied: false },
             record
         });
     } catch (error) {
@@ -360,11 +424,13 @@ export const getAttendanceHistory = async (req, res) => {
             };
         });
 
-        const employee = await User.findById(employeeId).select('dateJoined');
+        const totalPenalty = records.reduce((acc, r) => acc + (r.lateInPenalty?.amount || 0), 0);
+
         res.status(200).json({ 
             success: true, 
             records: formatted, 
-            joiningDate: employee?.dateJoined ? new Date(employee.dateJoined).toISOString().split('T')[0] : null 
+            totalPenalty,
+            joiningDate: req.user?.dateJoined ? new Date(req.user.dateJoined).toISOString().split('T')[0] : null 
         });
     } catch (error) {
         console.error("getAttendanceHistory error:", error);

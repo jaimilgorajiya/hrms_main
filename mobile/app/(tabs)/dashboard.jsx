@@ -281,6 +281,7 @@ export default function Dashboard() {
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [filteredBreaks, setFilteredBreaks] = useState([]);
   const [showShiftModal, setShowShiftModal] = useState(false);
+  const [showPenaltyModal, setShowPenaltyModal] = useState(false);
 
   const loadData = async () => {
     try {
@@ -319,6 +320,7 @@ export default function Dashboard() {
           punches: attnJson.punches || [],
           shiftStart: statsJson.stats?.shiftStart,
           shiftEnd: statsJson.stats?.shiftEnd,
+          lateInPenalty: attnJson.lateInPenalty?.amount || 0,
         });
         console.log('App Initial Load - Branch Coords:', statsJson.stats?.branchCoords);
       }
@@ -413,7 +415,10 @@ export default function Dashboard() {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const loc = await Location.getCurrentPositionAsync({ 
+        accuracy: Location.Accuracy.High, 
+        timeout: 10000 
+      });
       const { latitude, longitude } = loc.coords;
       console.log('Mobile Location:', { latitude, longitude });
 
@@ -434,9 +439,8 @@ export default function Dashboard() {
       console.log('Target Branch Coords from Server:', target);
       if (target && target.latitude !== 0) {
         const distance = getDistance(latitude, longitude, target.latitude, target.longitude);
-        console.log('Calculated Distance (m):', distance);
-        const radius = target.radius || 500;
-        console.log('Branch Radius (m):', radius);
+        const radius = target.radius || 200;
+        console.log('[GEOFENCE] Distance:', distance, 'm, Max Radius:', radius, 'm');
         
         if (distance > radius) {
           if (data?.stats?.requireOutOfRangeReason) {
@@ -639,8 +643,10 @@ export default function Dashboard() {
           <View style={styles.statsGrid}>
             <StatCard icon="time-outline" label="Work Hours" value={`${stats.monthHours}h`} sub="This Month" color={COLORS.primary} bg={COLORS.primaryLight} onPress={() => router.push('/(tabs)/attendance')} delay={0} />
             <StatCard icon="calendar-outline" label="Attendance" value={`${stats.presentDays}d`} sub="Days Present" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/attendance')} delay={50} />
-            <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.warning} bg={COLORS.warningLight} delay={100} onPress={() => setShowShiftModal(true)} />
-            <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.purple} bg={COLORS.purpleLight} onPress={() => router.push('/(tabs)/leaves')} delay={150} />
+            <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={100} onPress={() => setShowPenaltyModal(true)} />
+            <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={150} />
+            <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={200} onPress={() => setShowShiftModal(true)} />
+            <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={250} />
           </View>
 
           <Text style={styles.sectionTitle}>Today's Activity</Text>
@@ -829,6 +835,14 @@ export default function Dashboard() {
               <View style={[styles.modalTimeRow, { marginBottom: 6 }]}>
                 <Ionicons name="calendar-outline" size={12} color={COLORS.textMuted} />
                 <Text style={styles.modalTimeText}>{modalTime}</Text>
+              </View>
+              
+              <View style={[styles.currentLocBadge, { backgroundColor: COLORS.dangerLight, marginTop: 10 }]}>
+                <Ionicons name="resize-outline" size={14} color={COLORS.danger} />
+                <Text style={[styles.currentLocText, { color: COLORS.danger }]}>
+                   Detected Distance: {Math.round(getDistance(tempLocation?.latitude || 0, tempLocation?.longitude || 0, data?.stats?.branchCoords?.latitude || 0, data?.stats?.branchCoords?.longitude || 0))}m 
+                   (Limit: {data?.stats?.branchCoords?.radius || 200}m)
+                </Text>
               </View>
               
               {currentAddress ? (
@@ -1065,6 +1079,63 @@ export default function Dashboard() {
         </View>
       </Modal>
 
+      {/* Penalty Details Modal */}
+      <Modal visible={showPenaltyModal} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setShowPenaltyModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.sheetHeader}>
+              <View style={[styles.sheetIcon, { backgroundColor: COLORS.dangerLight }]}>
+                <Ionicons name="receipt" size={24} color={COLORS.danger} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitle}>Monthly Penalties</Text>
+                <Text style={styles.sheetSub}>Detailed list of deductions</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowPenaltyModal(false)}>
+                <Ionicons name="close-circle" size={28} color={COLORS.border} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+              {(!stats.penaltyHistory || stats.penaltyHistory.length === 0) ? (
+                <View style={styles.emptyActivity}>
+                  <View style={[styles.alertCircle, { backgroundColor: COLORS.successLight }]}>
+                    <Ionicons name="shield-checkmark" size={32} color={COLORS.success} />
+                  </View>
+                  <Text style={[styles.modalTitle, { fontSize: 16 }]}>No Penalties Recorded</Text>
+                  <Text style={styles.emptyText}>Great job! You haven't incurred any penalties this month.</Text>
+                </View>
+              ) : (
+                stats.penaltyHistory.map((p, i) => (
+                  <View key={i} style={styles.penaltyItem}>
+                    <View style={styles.penaltyLeft}>
+                      <View style={[styles.penaltyDot, { backgroundColor: p.type === 'Late In' ? COLORS.danger : COLORS.warning }]} />
+                      <View>
+                        <Text style={styles.penaltyDate}>{new Date(p.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                        <Text style={styles.penaltyType}>{p.type}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.penaltyAmount}>- ₹{p.amount}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <View style={styles.sheetFooter}>
+              <View style={[styles.totalPenaltyBox, { backgroundColor: COLORS.dangerLight, padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }]}>
+                <Text style={{ fontWeight: '800', color: COLORS.danger }}>Total Deduction</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: COLORS.danger }}>₹{stats.monthPenalty || 0}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={[styles.sheetButton, { backgroundColor: COLORS.danger }]} onPress={() => setShowPenaltyModal(false)}>
+              <Text style={styles.sheetButtonText}>Understood</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -1211,4 +1282,10 @@ const styles = StyleSheet.create({
   quotaText: { fontSize: 14, color: COLORS.textDark, fontWeight: '600' },
   sheetButton: { backgroundColor: COLORS.primary, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   sheetButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
+  penaltyItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
+  penaltyLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  penaltyDot: { width: 8, height: 8, borderRadius: 4 },
+  penaltyDate: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
+  penaltyType: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+  penaltyAmount: { fontSize: 15, fontWeight: '800', color: COLORS.danger },
 });
