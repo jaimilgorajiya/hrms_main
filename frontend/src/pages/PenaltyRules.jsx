@@ -257,9 +257,7 @@ const PenaltyRules = () => {
                                                             searchable={true}
                                                             required
                                                         />
-                                                        <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
-                                                            If employee logs in after this time, they will be marked as Half-Day
-                                                        </span>
+                                                       
                                                     </div>
                                                 </>
                                             ) : (

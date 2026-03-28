@@ -218,10 +218,6 @@ export default function AttendanceScreen() {
                     <Text style={styles.detailValue}>{selectedRecord.punchOut || '—'}</Text>
                   </View>
                   <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Working Hours</Text>
-                    <Text style={styles.detailValue}>{selectedRecord.workingFormatted || '—'}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Breaks</Text>
                     <Text style={styles.detailValue}>{selectedRecord.breakFormatted || '0h 0m'}</Text>
                   </View>

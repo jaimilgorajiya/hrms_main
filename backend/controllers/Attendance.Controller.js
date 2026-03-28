@@ -151,6 +151,7 @@ export const togglePunch = async (req, res) => {
 
         if (!record) {
             let latePenaltyAmount = 0;
+            let lateByMins = 0;
             const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
 
             if (shift) {
@@ -158,7 +159,8 @@ export const togglePunch = async (req, res) => {
                 if (shiftStartMins !== null) {
                     const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
                     const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
-                    const lateByMins = nowMins - shiftStartMins;
+                    const lateByMinsLocal = nowMins - shiftStartMins;
+                    lateByMins = lateByMinsLocal;
                     console.log(`[PENALTY_DEBUG] Punch In at ${istNow.getUTCHours()}:${istNow.getUTCMinutes()} IST. Shift Start: ${shiftStartMins}m, Late: ${lateByMins}m`);
                     
                     const maxAllowed = shift.maxLateInMinutes || 0;
@@ -170,7 +172,38 @@ export const togglePunch = async (req, res) => {
                         });
                     }
 
-                    // EVEN if they provide reason, calculate penalty if late
+                    // Check Half-Day penalty first — it takes priority over monetary late penalty
+                    const rule = await PenaltyRule.findOne({ shift: shift._id });
+                    const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                    if (halfDaySlab) {
+                        const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                        if (thresholdMins !== null && nowMins > thresholdMins) {
+                            console.log(`[PENALTY_DEBUG] Punch in at ${nowMins}m is after Half-Day threshold ${thresholdMins}m. Marking Half Day — skipping monetary penalty.`);
+                            record = new Attendance({
+                                employee: req.user._id,
+                                date,
+                                punches: [{ time: now, type: 'IN', latitude, longitude, geofenceReason, workSummary, lateReason, locationAddress }],
+                                status: 'Half Day',
+                                lateInPenalty: { amount: 0, isApplied: false, isLate: true }
+                            });
+                            await record.save();
+                            return res.status(200).json({
+                                success: true,
+                                message: 'Punched In successfully (Half Day)',
+                                action: 'IN',
+                                time: now,
+                                isPunchedIn: true,
+                                isOnBreak: false,
+                                workingMinutes: 0,
+                                workingFormatted: '0h 0m',
+                                lateInPenalty: record.lateInPenalty,
+                                status: 'Half Day',
+                                record
+                            });
+                        }
+                    }
+
+                    // Only apply monetary late penalty if Half-Day threshold was not triggered
                     if (lateByMins > 0) {
                         latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
                         console.log(`[PENALTY_DEBUG] Calculated late penalty: ${latePenaltyAmount} for ${lateByMins}m late.`);

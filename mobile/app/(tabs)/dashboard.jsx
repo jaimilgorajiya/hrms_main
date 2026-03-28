@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -183,16 +184,8 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
       ]}>
         <View style={{ padding: 20, gap: 12 }}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Total Working</Text>
-            <Text style={styles.detailValue}>{elapsed}</Text>
-          </View>
-          <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Break Duration</Text>
             <Text style={styles.detailValue}>{punchData.breakDuration || '00:00:00'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Remaining</Text>
-            <Text style={styles.detailValue}>{remaining}</Text>
           </View>
         </View>
       </Animated.View>
@@ -246,8 +239,8 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
         <View style={{ ...styles.prodIcon, backgroundColor: COLORS.primaryLight }}><Ionicons name="sparkles" size={16} color={COLORS.primary} /></View>
         <Text style={styles.prodText}>
           {punchData.punchedIn 
-            ? `Great job! You've clocked in ${elapsed.split(':')[0]}h ${elapsed.split(':')[1]}m so far today.` 
-            : "You haven't logged your working hours yet. Punched in?"}
+            ? `You are currently clocked in. Have a productive day!` 
+            : "Remember to log your attendance when you arrive."}
         </Text>
       </View>
     </View>
@@ -641,12 +634,12 @@ export default function Dashboard() {
           <PunchSystem punchData={punchData} onPunch={handlePunch} onBreak={handleBreak} />
           <Text style={styles.sectionTitle}>Monthly Overview</Text>
           <View style={styles.statsGrid}>
-            <StatCard icon="time-outline" label="Work Hours" value={`${stats.monthHours}h`} sub="This Month" color={COLORS.primary} bg={COLORS.primaryLight} onPress={() => router.push('/(tabs)/attendance')} delay={0} />
             <StatCard icon="calendar-outline" label="Attendance" value={`${stats.presentDays}d`} sub="Days Present" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/attendance')} delay={50} />
             <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={100} onPress={() => setShowPenaltyModal(true)} />
             <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={150} />
             <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={200} onPress={() => setShowShiftModal(true)} />
             <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={250} />
+            <StatCard icon="document-text-outline" label="Documents" value={stats.documentCount || 0} sub="Uploaded" color={COLORS.primary} bg={COLORS.primaryLight} delay={300} />
           </View>
 
           <Text style={styles.sectionTitle}>Today's Activity</Text>
@@ -1135,6 +1128,13 @@ export default function Dashboard() {
           </View>
         </View>
       </Modal>
+      
+      {/* Global Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size={50} color={COLORS.primary} />
+        </View>
+      )}
 
     </SafeAreaView>
   );
@@ -1288,4 +1288,11 @@ const styles = StyleSheet.create({
   penaltyDate: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
   penaltyType: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   penaltyAmount: { fontSize: 15, fontWeight: '800', color: COLORS.danger },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
 });
