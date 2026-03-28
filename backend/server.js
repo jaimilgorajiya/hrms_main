@@ -46,6 +46,7 @@ import retirementRoutes from './routes/Retirement.Routes.js';
 import promotionRoutes from './routes/Promotion.Routes.js';
 import employeeDashboardRoutes from './routes/EmployeeDashboard.Route.js';
 import attendanceRoutes from './routes/Attendance.Routes.js';
+import notificationRoutes from './routes/Notification.Routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -101,6 +102,7 @@ app.use('/api/retirement', retirementRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/employee-dashboard', employeeDashboardRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

@@ -275,6 +275,32 @@ export default function Dashboard() {
   const [filteredBreaks, setFilteredBreaks] = useState([]);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiFetch(ENDPOINTS.notifications);
+      const json = await res.json();
+      if (json.success) {
+        setNotifications(json.notifications);
+        setUnreadCount(json.unreadCount);
+      }
+    } catch (e) {
+      console.error('Fetch Notifications Error:', e);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      const res = await apiFetch(ENDPOINTS.readAllNotifications, { method: 'PUT' });
+      if (res.ok) {
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      }
+    } catch (e) { console.error(e); }
+  };
 
   const loadData = async () => {
     try {
@@ -316,6 +342,7 @@ export default function Dashboard() {
           lateInPenalty: attnJson.lateInPenalty?.amount || 0,
         });
         console.log('App Initial Load - Branch Coords:', statsJson.stats?.branchCoords);
+        fetchNotifications();
       }
     } catch (e) {
       console.error(e);
@@ -614,9 +641,9 @@ export default function Dashboard() {
             </Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notifBtn}>
+            <TouchableOpacity style={styles.notifBtn} onPress={() => { setShowNotifModal(true); markAllRead(); }}>
               <Ionicons name="notifications-outline" size={24} color={COLORS.textDark} />
-              <View style={styles.notifDot} />
+              {unreadCount > 0 && <View style={styles.notifDot} />}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
               <View style={styles.avatarBorder}>
@@ -1135,6 +1162,55 @@ export default function Dashboard() {
           <ActivityIndicator size={50} color={COLORS.primary} />
         </View>
       )}
+
+      {/* Notifications Modal */}
+      <Modal visible={showNotifModal} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setShowNotifModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.sheetHeader}>
+              <View style={[styles.sheetIcon, { backgroundColor: COLORS.primaryLight }]}>
+                <Ionicons name="notifications" size={24} color={COLORS.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitle}>Notifications</Text>
+                <Text style={styles.sheetSub}>Stay updated with your activities</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowNotifModal(false)}>
+                <Ionicons name="close-circle" size={28} color={COLORS.border} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
+              {notifications.length === 0 ? (
+                <View style={styles.emptyActivity}>
+                  <Ionicons name="notifications-off-outline" size={48} color={COLORS.border} />
+                  <Text style={styles.emptyText}>No notifications yet.</Text>
+                </View>
+              ) : (
+                notifications.map((n, i) => (
+                  <View key={i} style={[styles.penaltyItem, { borderBottomColor: COLORS.borderLight, opacity: n.isRead ? 0.7 : 1 }]}>
+                    <View style={styles.penaltyLeft}>
+                      <View style={[styles.penaltyDot, { backgroundColor: n.type === 'Attendance' ? COLORS.primary : (n.type === 'Leave' ? COLORS.purple : COLORS.warning) }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.penaltyDate, { fontSize: 13 }]}>{n.title}</Text>
+                        <Text style={[styles.penaltyType, { fontSize: 11 }]}>{n.message}</Text>
+                        <Text style={{ fontSize: 9, color: COLORS.textMuted, marginTop: 4 }}>
+                           {new Date(n.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity style={[styles.sheetButton, { marginTop: 20 }]} onPress={() => setShowNotifModal(false)}>
+              <Text style={styles.sheetButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
     </SafeAreaView>
   );

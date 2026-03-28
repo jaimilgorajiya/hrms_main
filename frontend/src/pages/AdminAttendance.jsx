@@ -12,6 +12,12 @@ const statusColors = {
   'On Leave': { color: '#8B5CF6', bg: '#F5F3FF' },
 };
 
+const approvalColors = {
+  Approved: { color: '#10B981', bg: '#ECFDF5', icon: <CheckCircle size={14} /> },
+  Rejected: { color: '#EF4444', bg: '#FEF2F2', icon: <XCircle size={14} /> },
+  Pending: { color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={14} /> },
+};
+
 const AdminAttendance = () => {
   const today = new Date();
   const [date, setDate] = useState(today.toISOString().split('T')[0]);
@@ -20,6 +26,8 @@ const AdminAttendance = () => {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState('day'); // 'day' | 'month'
   const [month, setMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -34,6 +42,18 @@ const AdminAttendance = () => {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
+  const handleApproval = async (attendanceId, status) => {
+    try {
+      const res = await authenticatedFetch(`${API_URL}/api/attendance/admin/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendanceId, status })
+      });
+      const json = await res.json();
+      if (json.success) fetchRecords();
+    } catch (e) { console.error(e); }
+  };
+
   const filtered = records.filter(r => {
     const q = search.toLowerCase();
     return (
@@ -45,8 +65,9 @@ const AdminAttendance = () => {
 
   const counts = records.reduce((acc, r) => {
     acc[r.status] = (acc[r.status] || 0) + 1;
+    acc.pending = (acc.pending || 0) + (r.approvalStatus === 'Pending' ? 1 : 0);
     return acc;
-  }, {});
+  }, { pending: 0 });
 
   const getPhotoUrl = (photo) => {
     if (!photo) return null;
@@ -103,6 +124,7 @@ const AdminAttendance = () => {
           { label: 'Absent', count: counts['Absent'] || 0, color: '#EF4444', bg: '#FEF2F2', icon: <XCircle size={18} /> },
           { label: 'Half Day', count: counts['Half Day'] || 0, color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={18} /> },
           { label: 'On Leave', count: counts['On Leave'] || 0, color: '#8B5CF6', bg: '#F5F3FF', icon: <Calendar size={18} /> },
+          { label: 'Pending', count: counts.pending, color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={18} /> },
         ].map((s, i) => (
           <div key={i} style={{
             background: s.bg, borderRadius: '14px', padding: '18px 20px',
@@ -149,29 +171,46 @@ const AdminAttendance = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                  {['Employee', 'Date', 'Status', 'Punch In', 'Punch Out', 'Working Hours', 'Breaks', 'Remarks/Logs'].map(h => (
+                  {['Employee', 'Date', 'Approval', 'Punch In', 'Punch Out', 'Working Hours', 'Breaks', 'Remarks/Logs'].map(h => (
                     <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map((r, i) => {
-                  const cfg = statusColors[r.status] || { color: '#64748b', bg: '#F8FAFC' };
-                  const photo = getPhotoUrl(r.employee?.profilePhoto);
-                  return (
-                    <tr key={r._id || i} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <tbody>
+                    {filtered.map((r, i) => {
+                      const cfg = statusColors[r.status] || { color: '#64748b', bg: '#F8FAFC' };
+                      const photo = getPhotoUrl(r.employee?.profilePhoto);
+                      return (
+                        <tr key={r._id || i} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s', cursor: 'pointer' }}
+                          onClick={() => { setSelectedRecord(r); setDrawerOpen(true); }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {photo ? (
-                            <img src={photo} alt="" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={e => e.stopPropagation()}>
+                          {r.approvalStatus === 'Pending' ? (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                <button onClick={() => handleApproval(r._id, 'Approved')} title="Approve" style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', background: '#ECFDF5', color: '#10B981', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                                    <CheckCircle size={16} />
+                                </button>
+                                <button onClick={() => handleApproval(r._id, 'Rejected')} title="Reject" style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
+                                    <XCircle size={16} />
+                                </button>
+                            </div>
                           ) : (
-                            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(r.employee?.name || 'E')}&background=2563EB&color=fff&size=36`}
-                              alt="" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                            photo ? (
+                              <img src={photo} alt="" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'cover' }} />
+                            ) : (
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(r.employee?.name || 'E')}&background=2563EB&color=fff&size=36`}
+                                alt="" style={{ width: '36px', height: '36px', borderRadius: '10px' }} />
+                            )
                           )}
                           <div>
-                            <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '14px' }}>{r.employee?.name || '—'}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '14px' }}>{r.employee?.name || '—'}</div>
+                                {r.isPunchedIn && (
+                                    <span style={{ background: '#ECFDF5', color: '#10B981', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: '700' }}>● Live</span>
+                                )}
+                            </div>
                             <div style={{ fontSize: '12px', color: '#94A3B8' }}>{r.employee?.employeeId} · {r.employee?.department || '—'}</div>
                           </div>
                         </div>
@@ -181,12 +220,14 @@ const AdminAttendance = () => {
                       </td>
                       <td style={{ padding: '14px 16px' }}>
                         <span style={{
-                          background: cfg.bg, color: cfg.color, padding: '4px 12px',
-                          borderRadius: '999px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap'
-                        }}>{r.status}</span>
-                        {r.isPunchedIn && (
-                          <span style={{ marginLeft: '6px', background: '#ECFDF5', color: '#10B981', padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: '600' }}>● Live</span>
-                        )}
+                          background: approvalColors[r.approvalStatus]?.bg || '#F8FAFC', 
+                          color: approvalColors[r.approvalStatus]?.color || '#64748b', 
+                          padding: '4px 12px', borderRadius: '999px', fontSize: '12px', 
+                          fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px'
+                        }}>
+                          {approvalColors[r.approvalStatus]?.icon}
+                          {r.approvalStatus || 'Pending'}
+                        </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
                         {r.punchIn ? <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogIn size={13} color="#10B981" />{r.punchIn}</span> : <span style={{ color: '#CBD5E1' }}>—</span>}
@@ -226,7 +267,123 @@ const AdminAttendance = () => {
         )}
       </div>
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      {/* Detail Drawer */}
+      {drawerOpen && selectedRecord && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', justifyContent: 'flex-end' }}>
+          <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }} />
+          <div style={{ 
+            position: 'relative', width: '500px', height: '100%', background: '#fff', 
+            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column',
+            animation: 'slideIn 0.3s ease-out'
+          }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontWeight: '800', fontSize: '18px' }}>Attendance Details</h3>
+              <button onClick={() => setDrawerOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+              {/* Employee Info */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', padding: '16px', background: '#F8FAFC', borderRadius: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '800' }}>
+                  {selectedRecord.employee?.name?.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '16px' }}>{selectedRecord.employee?.name}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{selectedRecord.employee?.employeeId} · {selectedRecord.employee?.department}</div>
+                </div>
+              </div>
+
+              {/* Logs */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ fontWeight: '700', fontSize: '14px', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Punch Timeline</div>
+                {selectedRecord.punches?.map((p, idx) => (
+                  <div key={idx} style={{ 
+                    padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0',
+                    borderLeft: `4px solid ${p.type === 'IN' ? '#10B981' : '#EF4444'}`,
+                    background: p.type === 'IN' ? '#F0FDF4' : '#FEF2F2'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: '800', fontSize: '14px', color: p.type === 'IN' ? '#10B981' : '#EF4444' }}>{p.type === 'IN' ? 'Punch In' : 'Punch Out'}</span>
+                      <span style={{ fontSize: '13px', fontWeight: '700' }}>{new Date(p.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {p.workSummary && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ fontWeight: '700', color: '#64748B' }}>Work Report: </span>
+                          <span style={{ color: '#334155' }}>{p.workSummary}</span>
+                        </div>
+                      )}
+                      {p.lateReason && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ fontWeight: '700', color: '#64748B' }}>Late Reason: </span>
+                          <span style={{ color: '#334155' }}>{p.lateReason}</span>
+                        </div>
+                      )}
+                      {p.earlyReason && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ fontWeight: '700', color: '#64748B' }}>Early Out Reason: </span>
+                          <span style={{ color: '#334155' }}>{p.earlyReason}</span>
+                        </div>
+                      )}
+                      {p.geofenceReason && (
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ fontWeight: '700', color: '#64748B' }}>Out of Range Reason: </span>
+                          <span style={{ color: '#334155', fontWeight: '600' }}>{p.geofenceReason}</span>
+                        </div>
+                      )}
+                      {p.locationAddress && (
+                        <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <Search size={12} /> {p.locationAddress}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {/* Breaks */}
+                {selectedRecord.breaks?.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
+                    <div style={{ fontWeight: '700', fontSize: '14px', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Breaks Taken</div>
+                    {selectedRecord.breaks.map((b, idx) => (
+                      <div key={idx} style={{ 
+                        padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #F1F5F9',
+                        background: '#FAF5FF', borderLeft: '4px solid #8B5CF6'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: '800', fontSize: '13px', color: '#8B5CF6' }}>{b.type || 'General'} Break</span>
+                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>
+                            {new Date(b.start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            {' - '}
+                            {b.end ? new Date(b.end).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Ongoing'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Approval Actions */}
+              {selectedRecord.approvalStatus === 'Pending' && (
+                <div style={{ marginTop: '32px', padding: '20px', borderRadius: '16px', background: '#F1F5F9', border: '1px dashed #CBD5E1' }}>
+                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '12px', textAlign: 'center' }}>Review this record</div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => handleApproval(selectedRecord._id, 'Approved')} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#10B981', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Approve</button>
+                    <button onClick={() => handleApproval(selectedRecord._id, 'Rejected')} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#EF4444', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Reject</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+      `}</style>
     </div>
   );
 };

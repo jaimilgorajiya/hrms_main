@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { generatePassword, sendWelcomeEmail } from "../utils/emailService.js";
 import { generateEmployeeId } from "../utils/employeeId.js";
 import DocumentType from "../models/DocumentType.Model.js";
+import Attendance from "../models/Attendance.Model.js";
 
 const createUser = async (req, res) => {
     try {
@@ -227,13 +228,20 @@ const getUsers = async (req, res) => {
         .select("-password")
         .sort({ createdAt: -1 });
 
-        const processedUsers = users.map(user => {
+        const processedUsers = await Promise.all(users.map(async user => {
             const userObj = user.toObject();
             if (userObj.workSetup && userObj.workSetup.shift) {
                 userObj.shift = userObj.workSetup.shift.shiftName;
             }
+
+            // check punch status for today
+            const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+            const todayStr = istNow.toISOString().split('T')[0];
+            const attendance = await Attendance.findOne({ employee: user._id, date: todayStr });
+            userObj.isPunchedIn = attendance?.punches?.[attendance.punches.length - 1]?.type === 'IN';
+
             return userObj;
-        });
+        }));
 
         res.status(200).json({ success: true, users: processedUsers });
     } catch (error) {

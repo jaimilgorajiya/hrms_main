@@ -4,6 +4,7 @@ import User from "../models/User.Model.js";
 import Shift from "../models/Shift.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import { computeWorkingMinutes, formatMinutes } from "../utils/attendance.js";
+import Notification from "../models/Notification.Model.js";
 
 // Helper: get today's date string YYYY-MM-DD in IST
 const getTodayStr = () => {
@@ -454,6 +455,7 @@ export const getAttendanceHistory = async (req, res) => {
                 breakFormatted: formatMinutes(breakMinutes),
                 punches: r.punches,
                 breaks: r.breaks,
+                approvalStatus: r.approvalStatus || "Pending",
             };
         });
 
@@ -500,13 +502,43 @@ export const getAdminAttendance = async (req, res) => {
                 breakCount: r.breaks.length,
                 isPunchedIn: r.punches[r.punches.length - 1]?.type === 'IN',
                 punches: r.punches,
-                breaks: r.breaks
+                breaks: r.breaks,
+                approvalStatus: r.approvalStatus || "Pending"
             };
         });
 
         res.status(200).json({ success: true, records: formatted, date: date || getTodayStr() });
     } catch (error) {
         console.error("getAdminAttendance error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// POST /api/attendance/admin/approve (admin only)
+export const updateApprovalStatus = async (req, res) => {
+    try {
+        const { attendanceId, status } = req.body;
+        if (!["Approved", "Rejected", "Pending"].includes(status)) {
+            return res.status(400).json({ success: false, message: "Invalid status" });
+        }
+
+        const record = await Attendance.findById(attendanceId);
+        if (!record) return res.status(404).json({ success: false, message: "Record not found" });
+
+        record.approvalStatus = status;
+        await record.save();
+
+        // Create In-App Notification
+        await Notification.create({
+            user: record.employee,
+            title: `Attendance ${status}`,
+            message: `Your attendance log for ${record.date} has been ${status.toLowerCase()} by an admin.`,
+            type: "Attendance"
+        });
+
+        res.status(200).json({ success: true, message: `Attendance ${status} successfully`, record });
+    } catch (error) {
+        console.error("updateApprovalStatus error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

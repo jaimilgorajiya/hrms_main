@@ -47,6 +47,9 @@ const otpLogin = async (req, res) => {
         // Generate JWT
         const token = generateTokenAndSetCookie(user._id, res);
 
+        // Update Online status
+        await User.findByIdAndUpdate(user._id, { isOnline: true });
+
         res.status(200).json({
             success: true,
             message: "OTP Login successful",
@@ -234,6 +237,9 @@ const login = async (req, res) => {
     // Generate JWT Cookie
     const token = generateTokenAndSetCookie(user._id, res);
 
+    // Update Online status
+    await User.findByIdAndUpdate(user._id, { isOnline: true });
+
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -268,6 +274,12 @@ const logout = async (req, res) => {
             expires: new Date(0),
             path: "/",
         });
+
+        // Update Online status
+        if (req.user) {
+            await User.findByIdAndUpdate(req.user._id, { isOnline: false });
+        }
+
         res.status(200).json({ success: true, message: "Logged out successfully" });
     } catch (error) {
         console.log("Error in logout controller", error.message);

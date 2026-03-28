@@ -35,6 +35,11 @@ const attendanceSchema = new mongoose.Schema({
         amount: { type: Number, default: 0 },
         isApplied: { type: Boolean, default: false },
         isLate: { type: Boolean, default: false }
+    },
+    approvalStatus: {
+        type: String,
+        enum: ["Pending", "Approved", "Rejected"],
+        default: "Pending"
     }
 }, { timestamps: true });
 

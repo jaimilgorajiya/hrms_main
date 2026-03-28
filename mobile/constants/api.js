@@ -18,4 +18,7 @@ export const ENDPOINTS = {
   togglePunch: '/api/attendance/toggle-punch',
   toggleBreak: '/api/attendance/toggle-break',
   attendanceHistory: '/api/attendance/history',
+  notifications: '/api/notifications/my',
+  readNotification: (id) => `/api/notifications/read/${id}`,
+  readAllNotifications: '/api/notifications/read-all',
 };

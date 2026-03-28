@@ -12,7 +12,7 @@ import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import Toast from 'react-native-toast-message';
 
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, approvalStatus }) => {
   const isPresent = status === 'Present';
   const isAbsent = status === 'Absent';
   const isLeave = status === 'Leave';
@@ -25,9 +25,18 @@ const StatusBadge = ({ status }) => {
   if (isLeave) { color = COLORS.purple; bg = COLORS.purpleLight; }
   if (isLate) { color = COLORS.warning; bg = COLORS.warningLight; }
 
+  const approvalIcon = approvalStatus === 'Approved' ? 'checkmark-circle' : (approvalStatus === 'Rejected' ? 'close-circle' : 'time');
+  const approvalColor = approvalStatus === 'Approved' ? COLORS.success : (approvalStatus === 'Rejected' ? COLORS.danger : COLORS.warning);
+
   return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Text style={[styles.badgeText, { color }]}>{status}</Text>
+    <View style={{ flexDirection: 'row', gap: 6 }}>
+      <View style={[styles.badge, { backgroundColor: bg }]}>
+        <Text style={[styles.badgeText, { color }]}>{status}</Text>
+      </View>
+      <View style={[styles.badge, { backgroundColor: approvalColor + '15', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+        <Ionicons name={approvalIcon} size={10} color={approvalColor} />
+        <Text style={[styles.badgeText, { color: approvalColor }]}>{approvalStatus || 'Pending'}</Text>
+      </View>
     </View>
   );
 };
@@ -39,7 +48,7 @@ export default function AttendanceScreen() {
   const [markedDates, setMarkedDates] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
   const [joiningDate, setJoiningDate] = useState(null);
-  const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, leaves: 0 });
+  const [stats, setStats] = useState({ present: 0, absent: 0, missingOut: 0, leaves: 0 });
 
   const loadData = async (m) => {
     try {
@@ -60,7 +69,7 @@ export default function AttendanceScreen() {
 
   const processAttendance = (records, jDate = joiningDate) => {
     const marked = {};
-    let sPresent = 0, sAbsent = 0, sLate = 0, sLeaves = 0;
+    let sPresent = 0, sAbsent = 0, sMissingOut = 0, sLeaves = 0;
 
     // Create a lookup map for existing records
     const lookup = {};
@@ -81,18 +90,16 @@ export default function AttendanceScreen() {
         const isPast = dateStr < today;
         const isPunchOutMissing = !r.punchOut || r.punchOut === '—';
 
-        if (r.status === 'Present') { 
-          // If past day and punch out missing -> Warning status (Orange)
+        if (r.status === 'Present' || r.status === 'Late') { 
           if (isPast && isPunchOutMissing) {
             dotColor = COLORS.warning; 
-            sLate++; // Use late or warning count
+            sMissingOut++; 
           } else {
-            dotColor = COLORS.success; 
+            dotColor = (r.status === 'Late') ? COLORS.warning : COLORS.success; 
             sPresent++; 
           }
         }
         else if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
-        else if (r.status === 'Late') { dotColor = COLORS.warning; sLate++; }
         else if (r.status === 'Leave') { dotColor = COLORS.purple; sLeaves++; }
 
         marked[dateStr] = {
@@ -119,7 +126,7 @@ export default function AttendanceScreen() {
 
     console.log(`Processing ${records.length} logs. Stats: Present: ${sPresent}, Absent: ${sAbsent}`);
     setMarkedDates(marked);
-    setStats({ present: sPresent, absent: sAbsent, late: sLate, leaves: sLeaves });
+    setStats({ present: sPresent, absent: sAbsent, missingOut: sMissingOut, leaves: sLeaves });
   };
 
   useEffect(() => { loadData(month); }, [month]);
@@ -151,8 +158,8 @@ export default function AttendanceScreen() {
               <Text style={styles.statLabel}>Absent</Text>
             </View>
             <View style={[styles.statItem, SHADOW.sm]}>
-              <Text style={[styles.statVal, { color: COLORS.warning }]}>{stats.late}</Text>
-              <Text style={styles.statLabel}>Late</Text>
+              <Text style={[styles.statVal, { color: COLORS.warning }]}>{stats.missingOut}</Text>
+              <Text style={styles.statLabel}>Missing Out</Text>
             </View>
             <View style={[styles.statItem, SHADOW.sm]}>
               <Text style={[styles.statVal, { color: COLORS.purple }]}>{stats.leaves}</Text>
@@ -195,14 +202,18 @@ export default function AttendanceScreen() {
               <View style={styles.detailHeader}>
                 <Text style={styles.detailTitle}>{format(new Date(selectedDate), 'dd MMMM yyyy')}</Text>
                 {selectedRecord ? (
-                  <StatusBadge status={
-                    (selectedRecord.status === 'Present' && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!selectedRecord.punchOut || selectedRecord.punchOut === '—')) 
-                    ? 'Incomplete' 
-                    : selectedRecord.status
-                  } />
+                  <StatusBadge 
+                    status={
+                      (selectedRecord.status === 'Present' && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!selectedRecord.punchOut || selectedRecord.punchOut === '—')) 
+                      ? 'Incomplete' 
+                      : selectedRecord.status
+                    } 
+                    approvalStatus={selectedRecord.approvalStatus}
+                  />
                 ) : (
                   <StatusBadge 
                     status={selectedDate < format(new Date(), 'yyyy-MM-dd') && (!joiningDate || selectedDate >= joiningDate) ? 'Absent' : 'Pending'} 
+                    approvalStatus="Pending"
                   />
                 )}
               </View>
