@@ -12,20 +12,56 @@ import {
   ChevronRight,
   MoreVertical,
   Search,
-  LayoutDashboard
+  LayoutDashboard,
+  Check,
+  X,
+  Clock,
+  RefreshCw
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingAttendance, setPendingAttendance] = useState([]);
   const navigate = useNavigate();
   
 
   useEffect(() => {
     fetchStats();
+    fetchPendingAttendance();
   }, []);
+
+  const fetchPendingAttendance = async () => {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/attendance/admin/all?approvalStatus=Pending`);
+      const result = await response.json();
+      if (result.success) {
+        setPendingAttendance(result.records?.slice(0, 5) || []);
+      }
+    } catch (error) {
+      console.error("Error fetching pending attendance:", error);
+    }
+  };
+
+  const handleApprovalAction = async (id, status) => {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/attendance/admin/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ attendanceId: id, status })
+      });
+      const result = await response.json();
+      if (result.success) {
+        Swal.fire({ title: `Attendance ${status}`, icon: 'success', timer: 1000, showConfirmButton: false });
+        fetchPendingAttendance();
+      }
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'Action failed', 'error');
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -138,36 +174,60 @@ const AdminDashboard = () => {
         <div className="main-grid-left">
           <div className="card-prem">
             <div className="card-header-prem">
-              <h2>Recent Employee Activity</h2>
-              <button className="icon-btn-prem"><MoreVertical size={18} /></button>
+              <h2>Attendance Approvals</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge-pending" style={{ background: '#FFFBEB', color: '#F59E0B', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '20px' }}>
+                  {pendingAttendance.length} Pending
+                </span>
+                <button className="icon-btn-prem" onClick={fetchPendingAttendance}><RefreshCw size={16} /></button>
+              </div>
             </div>
-            <div className="card-body-prem">
-              <div className="activity-list-prem">
-                {data?.recentUsers?.map((user, index) => (
-                  <div key={index} className="activity-item-prem" onClick={() => navigate(`/admin/employees/profile/${user._id}`)}>
-                    <div className="user-avatar-prem">
-                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} alt="" />
+            <div className="card-body-prem" style={{ padding: '0' }}>
+              <div className="attendance-list-dashboard">
+                {pendingAttendance.map((rec) => (
+                  <div key={rec._id} className="attendance-item-row" style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
+                    <div className="emp-brief" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: '#2563EB', fontSize: '14px' }}>
+                          {rec.employee?.name?.charAt(0)}
+                       </div>
+                       <div>
+                          <div style={{ fontWeight: '700', fontSize: '14px', color: '#1E293B' }}>{rec.employee?.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748B' }}>{rec.date} • {rec.status}</div>
+                       </div>
                     </div>
-                    <div className="activity-info-prem">
-                      <div className="info-top">
-                        <span className="user-name-prem">{user.name}</span>
-                        <span className="time-prem">{new Date(user.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="info-bottom">
-                        <span className="role-chip-prem">{user.role}</span>
-                        <span className="action-text-prem">joined the {user.department || 'Company'}</span>
-                      </div>
+                    
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginRight: '24px' }}>
+                        <Clock size={13} style={{ color: '#94A3B8' }} />
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{rec.punchIn || '--:--'} - {rec.punchOut || '--:--'}</span>
                     </div>
-                    <ChevronRight size={18} className="arrow-icon-prem" />
+
+                    <div className="action-buttons-dashboard" style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={() => handleApprovalAction(rec._id, 'Approved')}
+                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#DCFCE7', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                        title="Approve"
+                      >
+                        <Check size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleApprovalAction(rec._id, 'Rejected')}
+                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                        title="Reject"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
                   </div>
                 ))}
-                {(!data?.recentUsers || data.recentUsers.length === 0) && (
-                   <div className="empty-state-prem">No recent activity found.</div>
+                {pendingAttendance.length === 0 && (
+                  <div style={{ padding: '60px 40px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                     No pending attendance approvals.
+                  </div>
                 )}
               </div>
             </div>
-             <div className="card-footer-prem">
-              <button className="view-all-prem" onClick={() => navigate('/admin/attendance/records')}>View Full History</button>
+            <div className="card-footer-prem">
+               <button className="view-all-prem" onClick={() => navigate('/admin/attendance/records')}>Review All Records</button>
             </div>
           </div>
         </div>

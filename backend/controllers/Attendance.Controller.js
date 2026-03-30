@@ -1,3 +1,4 @@
+import Request from "../models/Request.Model.js";
 import PenaltyRule from '../models/PenaltyRule.Model.js';
 import { calculatePenaltyAmount } from './PenaltyRule.Controller.js';
 import User from "../models/User.Model.js";
@@ -430,6 +431,26 @@ export const getAttendanceHistory = async (req, res) => {
         }
 
         const records = await Attendance.find(filter).sort({ date: -1 });
+        
+        // Fetch user's shift to get weekOffDays
+        const user = await User.findById(req.user._id).populate('workSetup.shift');
+        const weekOffDays = user?.workSetup?.shift?.weekOffDays || [];
+
+        // Also fetch requests for this month to show "Request already sent"
+        const requests = await Request.find(filter).populate('leaveType', 'name').sort({ date: -1 });
+        const rqMap = {};
+        requests.forEach(rq => {
+            rqMap[rq.date] = {
+                id: rq._id,
+                type: rq.requestType,
+                status: rq.status,
+                reason: rq.reason,
+                leaveType: rq.leaveType?.name,
+                appliedAt: rq.appliedAt,
+                manualIn: rq.manualIn,
+                manualOut: rq.manualOut
+            };
+        });
 
         const formatted = records.map(r => {
             const workingMinutes = computeWorkingMinutes(r.punches, r.breaks);
@@ -456,6 +477,7 @@ export const getAttendanceHistory = async (req, res) => {
                 punches: r.punches,
                 breaks: r.breaks,
                 approvalStatus: r.approvalStatus || "Pending",
+                request: rqMap[r.date] || null
             };
         });
 
@@ -464,7 +486,9 @@ export const getAttendanceHistory = async (req, res) => {
         res.status(200).json({ 
             success: true, 
             records: formatted, 
+            requests: rqMap,
             totalPenalty,
+            weekOffDays,
             joiningDate: req.user?.dateJoined ? new Date(req.user.dateJoined).toISOString().split('T')[0] : null 
         });
     } catch (error) {
@@ -476,20 +500,35 @@ export const getAttendanceHistory = async (req, res) => {
 // GET /api/attendance/admin/all?date=YYYY-MM-DD  (admin only)
 export const getAdminAttendance = async (req, res) => {
     try {
-        const { date, month } = req.query;
+        const { date, month, approvalStatus } = req.query;
         let filter = {};
         if (date) filter.date = date;
         else if (month) filter.date = { $regex: `^${month}` };
-        else filter.date = getTodayStr();
+        
+        if (approvalStatus) filter.approvalStatus = approvalStatus;
 
         const records = await Attendance.find(filter)
-            .populate('employee', 'name employeeId department designation profilePhoto')
+            .populate({
+                path: 'employee',
+                select: 'name employeeId department designation profilePhoto workSetup',
+                populate: { path: 'workSetup.shift', select: 'weekOffDays' }
+            })
             .sort({ date: -1 });
 
         const formatted = records.map(r => {
             const workingMinutes = computeWorkingMinutes(r.punches, r.breaks);
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
+            
+            // Check if Extra Day (Worked on Week Off)
+            let isExtraDay = false;
+            if (r.employee?.workSetup?.shift?.weekOffDays?.length > 0) {
+                const dateObj = new Date(r.date);
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const dayName = days[dateObj.getUTCDay()];
+                isExtraDay = r.employee.workSetup.shift.weekOffDays.includes(dayName);
+            }
+
             return {
                 _id: r._id,
                 date: r.date,
@@ -503,7 +542,8 @@ export const getAdminAttendance = async (req, res) => {
                 isPunchedIn: r.punches[r.punches.length - 1]?.type === 'IN',
                 punches: r.punches,
                 breaks: r.breaks,
-                approvalStatus: r.approvalStatus || "Pending"
+                approvalStatus: r.approvalStatus || "Pending",
+                isExtraDay
             };
         });
 
@@ -539,6 +579,91 @@ export const updateApprovalStatus = async (req, res) => {
         res.status(200).json({ success: true, message: `Attendance ${status} successfully`, record });
     } catch (error) {
         console.error("updateApprovalStatus error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// POST /api/attendance/admin/add-manual (admin only)
+export const addManualAttendance = async (req, res) => {
+    try {
+        const { employeeId, date, status, inTime, outTime, remark } = req.body;
+        
+        if (!employeeId || !date || !status) {
+            return res.status(400).json({ success: false, message: "Missing required fields" });
+        }
+
+        // Prepare punches
+        let punches = [];
+        if (inTime) {
+            punches.push({ time: new Date(`${date}T${inTime}:00`), type: "IN", locationAddress: "Admin Manual Entry" });
+        }
+        if (outTime) {
+            punches.push({ time: new Date(`${date}T${outTime}:00`), type: "OUT", locationAddress: "Admin Manual Entry" });
+        }
+
+        const record = await Attendance.findOneAndUpdate(
+            { employee: employeeId, date },
+            {
+                $set: {
+                    status,
+                    approvalStatus: "Approved",
+                    punches,
+                    remark: remark || "Added by Admin"
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        // Notify employee
+        await Notification.create({
+            user: employeeId,
+            title: "Attendance Updated",
+            message: `Admin has updated your attendance for ${date} as ${status}.`,
+            type: "Attendance"
+        });
+
+        res.status(200).json({ success: true, message: "Attendance updated successfully", record });
+    } catch (error) {
+        console.error("addManualAttendance error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// GET /api/attendance/admin/missing (admin only)
+export const getMissingAttendance = async (req, res) => {
+    try {
+        const { date, month } = req.query;
+        let query = {
+            $or: [
+                { status: "Absent" },
+                { approvalStatus: "Rejected" }
+            ]
+        };
+
+        if (date) query.date = date;
+        else if (month) query.date = { $regex: `^${month}` };
+
+        const records = await Attendance.find(query)
+            .populate('employee', 'name employeeId department designation profilePhoto')
+            .sort({ date: -1 });
+
+        const formatted = records.map(r => {
+            const firstIn = r.punches.find(p => p.type === 'IN');
+            const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
+            return {
+                _id: r._id,
+                date: r.date,
+                status: r.status,
+                employee: r.employee,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                approvalStatus: r.approvalStatus || "Pending"
+            };
+        });
+
+        res.status(200).json({ success: true, records: formatted });
+    } catch (error) {
+        console.error("getMissingAttendance error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

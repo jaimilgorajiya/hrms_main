@@ -43,6 +43,8 @@ import RetirementSettings from './pages/RetirementSettings';
 import UpcomingRetirement from './pages/UpcomingRetirement';
 import EmployeePromotion from './pages/EmployeePromotion';
 import AdminAttendance from './pages/AdminAttendance';
+import AddAttendance from './pages/AddAttendance';
+import AdminRequests from './pages/AdminRequests';
 import UseMobileApp from './pages/employee/UseMobileApp';
 
 function App() {
@@ -73,6 +75,7 @@ function App() {
               <Route path="company/*" element={<ModulePlaceholder title="Company Management" />} />
               <Route path="attendance/break-type" element={<BreakType />} />
               <Route path="attendance/records" element={<AdminAttendance />} />
+              <Route path="attendance/add" element={<AddAttendance />} />
               <Route path="attendance-settings" element={<ModulePlaceholder title="Attendance Settings" />} />
               <Route path="attendance/*" element={<ModulePlaceholder title="Attendance Management" />} />
               <Route path="shift/add" element={<AddShift />} />
@@ -113,6 +116,7 @@ function App() {
               <Route path="employees/promotion" element={<EmployeePromotion />} />
               <Route path="employees/*" element={<ModulePlaceholder title="Employee Management" />} />
               <Route path="shifts/*" element={<ModulePlaceholder title="Shift Operations" />} />
+              <Route path="attendance/request" element={<AdminRequests />} />
               <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
               <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />
               <Route path="holidays/*" element={<ModulePlaceholder title="Holiday Management" />} />

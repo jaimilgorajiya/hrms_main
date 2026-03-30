@@ -21,4 +21,7 @@ export const ENDPOINTS = {
   notifications: '/api/notifications/my',
   readNotification: (id) => `/api/notifications/read/${id}`,
   readAllNotifications: '/api/notifications/read-all',
+  submitRequest: '/api/requests/submit',
+  myRequests: '/api/requests/my-requests',
+  leaveTypes: '/api/leave-types',
 };
