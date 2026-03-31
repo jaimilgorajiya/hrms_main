@@ -20,9 +20,16 @@ const requestSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "LeaveType"
     },
-    date: {
+    fromDate: {
         type: String, // YYYY-MM-DD
         required: true
+    },
+    toDate: {
+        type: String, // YYYY-MM-DD
+        required: true
+    },
+    date: {
+        type: String, // YYYY-MM-DD
     },
     reason: {
         type: String,
@@ -40,6 +47,17 @@ const requestSchema = new mongoose.Schema({
     appliedAt: {
         type: Date,
         default: Date.now
+    },
+    // For Leave requests
+    leaveDuration: {
+        type: String,
+        enum: ["Full Day", "First Half", "Second Half"],
+        default: "Full Day"
+    },
+    leaveCategory: {
+        type: String,
+        enum: ["Paid", "Unpaid"],
+        default: "Paid"
     },
     actionDate: {
         type: Date

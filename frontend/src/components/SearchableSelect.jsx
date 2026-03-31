@@ -9,15 +9,20 @@ const SearchableSelect = ({
     label = "", 
     searchable = false,
     multiple = false,
-    required = false
+    required = false,
+    disabled = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef(null);
 
-    const toggleDropdown = () => setIsOpen(!isOpen);
+    const toggleDropdown = () => {
+        if (disabled) return;
+        setIsOpen(!isOpen);
+    };
 
     const handleSelect = (optionValue) => {
+        if (disabled) return;
         if (multiple) {
             const newValue = Array.isArray(value) ? [...value] : [];
             const index = newValue.indexOf(optionValue);
@@ -36,6 +41,7 @@ const SearchableSelect = ({
 
     const removeOption = (e, optionValue) => {
         e.stopPropagation();
+        if (disabled) return;
         if (multiple && Array.isArray(value)) {
             const newValue = value.filter(v => v !== optionValue);
             onChange(newValue);
@@ -75,20 +81,21 @@ const SearchableSelect = ({
             )}
             
             <div 
-                className={`select-trigger ${isOpen ? 'active' : ''}`}
+                className={`select-trigger ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
                 onClick={toggleDropdown}
                 style={{
                     minHeight: '48px',
                     padding: '8px 16px',
                     border: isOpen ? '1.5px solid #3B648B' : '1.5px solid #E2E8F0',
                     borderRadius: '12px',
-                    backgroundColor: '#fff',
+                    backgroundColor: disabled ? '#F8FAFC' : '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    cursor: 'pointer',
+                    cursor: disabled ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     boxShadow: isOpen ? '0 0 0 4px rgba(59, 100, 139, 0.08)' : 'none',
+                    opacity: disabled ? 0.7 : 1
                 }}
             >
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', flex: 1 }}>

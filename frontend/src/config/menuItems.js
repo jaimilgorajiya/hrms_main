@@ -106,8 +106,6 @@ export const menuItems = [
         path: "/admin/attendance",
         children: [
           { title: "Attendance Records", path: "/admin/attendance/records" },
-          { title: "Attendance Dashboard", path: "/admin/attendance/dashboard" },
-          { title: "View Attendance", path: "/admin/attendance/view" },
           { title: "Add Attendance", path: "/admin/attendance/add" },
           { title: "Monthly Attendance", path: "/admin/attendance/monthly" },
           { title: "Pending Attendance", path: "/admin/attendance/pending" },
@@ -118,6 +116,18 @@ export const menuItems = [
           { title: "Delete Attendance", path: "/admin/attendance/delete" },
         ],
       },
+    ],
+  },
+  {
+    title: "Leave Management",
+    icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+    subItems: [
+      { title: "Assign Bulk Leave", path: "/admin/leave/bulk-assign" },
+      { title: "Leave Balance", path: "/admin/leave/balance" },
+      { title: "Leave Request", path: "/admin/leave/request" },
+      { title: "Leave Request History", path: "/admin/leave/history" },
+      { title: "Auto Leaves", path: "/admin/leave/auto" },
+      { title: "Leave Pay Out", path: "/admin/leave/payout" },
     ],
   },
 ];

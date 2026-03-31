@@ -148,6 +148,18 @@ const userSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'LeaveGroup'
         },
+        noOfPaidLeaves: {
+            type: Number,
+            default: 0
+        },
+        maxPLMonth: {
+            type: Number,
+            default: 0
+        },
+        canApplyUnpaidLeave: {
+            type: Boolean,
+            default: false
+        },
         dateJoined: {
             type: Date
         },

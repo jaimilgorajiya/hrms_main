@@ -1,10 +1,20 @@
 import LeaveType from '../models/LeaveType.Model.js';
+import User from '../models/User.Model.js';
 
 export const getLeaveTypes = async (req, res) => {
     try {
-        const adminId = req.user._id;
-        const leaveTypes = await LeaveType.find({ adminId });
-        res.status(200).json(leaveTypes);
+        let adminId = req.user._id;
+        
+        // If employee, find their assigned admin
+        if (req.user.role !== 'Admin') {
+            const user = await User.findById(req.user._id);
+            if (user && user.adminId) {
+                adminId = user.adminId;
+            }
+        }
+
+        const leaveTypes = await LeaveType.find({ adminId, status: 'Active' });
+        res.status(200).json({ success: true, leaveTypes });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -432,9 +432,10 @@ export const getAttendanceHistory = async (req, res) => {
 
         const records = await Attendance.find(filter).sort({ date: -1 });
         
-        // Fetch user's shift to get weekOffDays
-        const user = await User.findById(req.user._id).populate('workSetup.shift');
+        // Fetch user's shift and leaveGroup
+        const user = await User.findById(req.user._id).populate('workSetup.shift').populate('leaveGroup');
         const weekOffDays = user?.workSetup?.shift?.weekOffDays || [];
+        const leavePolicy = user?.leaveGroup?.leaveBalanceVisibility || 'Default (Multiple of 0.5)';
 
         // Also fetch requests for this month to show "Request already sent"
         const requests = await Request.find(filter).populate('leaveType', 'name').sort({ date: -1 });
@@ -489,6 +490,7 @@ export const getAttendanceHistory = async (req, res) => {
             requests: rqMap,
             totalPenalty,
             weekOffDays,
+            leavePolicy,
             joiningDate: req.user?.dateJoined ? new Date(req.user.dateJoined).toISOString().split('T')[0] : null 
         });
     } catch (error) {

@@ -103,6 +103,8 @@ export default function AttendanceScreen() {
   const [joiningDate, setJoiningDate] = useState(null);
   const [stats, setStats] = useState({ present: 0, absent: 0, halfDay: 0, leaves: 0 });
   const [weekOffDays, setWeekOffDays] = useState([]);
+  const [leavePolicy, setLeavePolicy] = useState('Default (Multiple of 0.5)');
+  const [leaveDuration, setLeaveDuration] = useState('Full Day');
 
   const loadData = async (m = month) => {
     try {
@@ -113,6 +115,7 @@ export default function AttendanceScreen() {
         setAllRequests(json.requests || {});
         setJoiningDate(json.joiningDate);
         setWeekOffDays(json.weekOffDays || []);
+        setLeavePolicy(json.leavePolicy || 'Default (Multiple of 0.5)');
         processAttendance(json.records, m, json.joiningDate, json.requests, json.weekOffDays || []);
       }
     } catch (e) {
@@ -233,6 +236,7 @@ export default function AttendanceScreen() {
         leaveType: reqType === 'Leave' ? selectedLeaveType : undefined,
         manualIn: reqType === 'Attendance Correction' ? new Date(`${reqDate}T${manualIn}:00`) : undefined,
         manualOut: reqType === 'Attendance Correction' ? new Date(`${reqDate}T${manualOut}:00`) : undefined,
+        leaveDuration: reqType === 'Leave' ? leaveDuration : undefined,
       };
       const res = await apiFetch(ENDPOINTS.submitRequest, {
         method: 'POST',
@@ -412,6 +416,27 @@ export default function AttendanceScreen() {
                 </View>
               )}
 
+              {reqType === 'Leave' && (
+                <View style={{ marginBottom: 16 }}>
+                  <Text style={styles.inputLabel}>Duration</Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Full Day' && styles.durBtnActive]} onPress={() => setLeaveDuration('Full Day')}>
+                      <Text style={[styles.durBtnText, leaveDuration === 'Full Day' && styles.durBtnTextActive]}>Full Day</Text>
+                    </TouchableOpacity>
+                    {leavePolicy !== 'Multiple of 1' && (
+                      <>
+                        <TouchableOpacity style={[styles.durBtn, leaveDuration === 'First Half' && styles.durBtnActive]} onPress={() => setLeaveDuration('First Half')}>
+                          <Text style={[styles.durBtnText, leaveDuration === 'First Half' && styles.durBtnTextActive]}>1st Half</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Second Half' && styles.durBtnActive]} onPress={() => setLeaveDuration('Second Half')}>
+                          <Text style={[styles.durBtnText, leaveDuration === 'Second Half' && styles.durBtnTextActive]}>2nd Half</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {reqType === 'Attendance Correction' && (
                 <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                   <TouchableOpacity style={[styles.timeDisplay, { flex: 1 }]} onPress={() => setShowInPicker(true)}><Text style={styles.timeValue}>In: {manualIn}</Text></TouchableOpacity>
@@ -484,6 +509,10 @@ const styles = StyleSheet.create({
   timeValue: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
   submitBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
   submitBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
+  durBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.bgMain, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderLight },
+  durBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  durBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
+  durBtnTextActive: { color: COLORS.white },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { fontSize: 10, fontWeight: '700' },
   leaveTypesScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

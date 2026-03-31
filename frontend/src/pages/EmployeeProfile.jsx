@@ -1013,8 +1013,8 @@ const EmployeeProfile = () => {
                                         <SearchableSelect 
                                             label="Leave Group"
                                             searchable={true}
-                                            options={leaveGroups.map(lg => ({ value: lg._id, label: lg.leaveGroupName }))}
-                                            value={formData.leaveGroup}
+                                            options={[{ value: '', label: 'None (Unassign)' }, ...leaveGroups.map(lg => ({ value: lg._id, label: lg.leaveGroupName }))]}
+                                            value={typeof formData.leaveGroup === 'object' ? formData.leaveGroup?._id : (formData.leaveGroup || '')}
                                             onChange={(val) => setFormData(prev => ({ ...prev, leaveGroup: val }))}
                                         />
                                     </div>

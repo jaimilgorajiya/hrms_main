@@ -297,7 +297,7 @@ const EmployeeOnboarding = () => {
                 if (!formData.designation.trim()) errors.push('Designation is required');
                 if (!formData.branch.trim()) errors.push('Branch is required');
                 if (!formData.department.trim()) errors.push('Department is required');
-                if (!formData.leaveGroup.trim()) errors.push('Leave Group is required');
+                // if (!formData.leaveGroup.trim()) errors.push('Leave Group is required');
                 if (!formData.employmentType.trim()) errors.push('Employment Type is required');
                 if (!formData.email.trim()) errors.push('Email ID is required');
                 if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push('Please enter a valid email address');

@@ -6,7 +6,7 @@ import Notification from "../models/Notification.Model.js";
 // POST /api/requests/submit
 export const submitRequest = async (req, res) => {
     try {
-        const { requestType, leaveType, date, reason, manualIn, manualOut } = req.body;
+        const { requestType, leaveType, date, reason, manualIn, manualOut, leaveDuration, fromDate, toDate, leaveCategory } = req.body;
         const employeeId = req.user._id;
 
         // Get adminId for this employee
@@ -15,12 +15,38 @@ export const submitRequest = async (req, res) => {
 
         const adminId = employee.adminId || employeeId; // Fallback to self if no admin assigned (e.g. root admin)
 
+        // Prevent Duplicate/Overlapping Leave Requests
+        if (requestType === 'Leave') {
+            const startStr = fromDate || date;
+            const endStr = toDate || date;
+
+            const existingOverlap = await Request.findOne({
+                employee: employeeId,
+                requestType: 'Leave',
+                status: { $ne: 'Rejected' },
+                $or: [
+                    { fromDate: { $lte: endStr }, toDate: { $gte: startStr } }
+                ]
+            });
+
+            if (existingOverlap) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Conflict: You already have a ${existingOverlap.status.toLowerCase()} leave request for these dates (${existingOverlap.fromDate} to ${existingOverlap.toDate}).` 
+                });
+            }
+        }
+
         const newRequest = new Request({
             employee: employeeId,
             adminId,
             requestType,
             leaveType: leaveType || undefined,
-            date,
+            leaveDuration: leaveDuration || "Full Day",
+            leaveCategory: leaveCategory || "Paid",
+            fromDate: fromDate || date,
+            toDate: toDate || date,
+            date: date || fromDate, // Fallback for old records
             reason,
             manualIn,
             manualOut
@@ -49,10 +75,36 @@ export const getEmployeeRequests = async (req, res) => {
 // GET /api/requests/admin/all (admin only)
 export const getAdminRequests = async (req, res) => {
     try {
-        const { status, requestType } = req.query;
-        let filter = { adminId: req.user._id };
-        if (status) filter.status = status;
-        if (requestType) filter.requestType = requestType;
+        const { status, requestType, employee, startDate, endDate } = req.query;
+        let filter = {};
+        
+        // If not super admin, only show assigned employees
+        if (req.user.role !== 'Admin') {
+            filter.adminId = req.user._id;
+        }
+        
+        if (status && status !== 'All') filter.status = status;
+        if (requestType && requestType !== 'All') filter.requestType = requestType;
+        if (employee) filter.employee = employee;
+
+        if (startDate && endDate) {
+            filter.$or = [
+                { fromDate: { $lte: endDate }, toDate: { $gte: startDate } },
+                { date: { $gte: startDate, $lte: endDate } }
+            ];
+        } else if (startDate) {
+            filter.$or = [
+                { fromDate: { $gte: startDate } },
+                { toDate: { $gte: startDate } },
+                { date: { $gte: startDate } }
+            ];
+        } else if (endDate) {
+            filter.$or = [
+                { fromDate: { $lte: endDate } },
+                { toDate: { $lte: endDate } },
+                { date: { $lte: endDate } }
+            ];
+        }
 
         const requests = await Request.find(filter)
             .populate('employee', 'name employeeId profilePhoto department designation')
@@ -100,18 +152,24 @@ export const updateRequestStatus = async (req, res) => {
                     { upsert: true, new: true }
                 );
             } else if (request.requestType === "Leave") {
-                // Upsert attendance record as On Leave
-                await Attendance.findOneAndUpdate(
-                    { employee: request.employee, date: request.date },
-                    {
-                        $set: {
-                            status: "On Leave",
-                            approvalStatus: "Approved",
-                            punches: [] // Clear punches for leave day
-                        }
-                    },
-                    { upsert: true, new: true }
-                );
+                // Loop through all dates from fromDate to toDate
+                const start = new Date(request.fromDate);
+                const end = new Date(request.toDate);
+                
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().split('T')[0];
+                    await Attendance.findOneAndUpdate(
+                        { employee: request.employee, date: dateStr },
+                        {
+                            $set: {
+                                status: "On Leave",
+                                approvalStatus: "Approved",
+                                punches: [] // Clear punches for leave day
+                            }
+                        },
+                        { upsert: true, new: true }
+                    );
+                }
             }
         }
 

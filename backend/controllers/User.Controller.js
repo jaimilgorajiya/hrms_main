@@ -5,6 +5,7 @@ import { generatePassword, sendWelcomeEmail } from "../utils/emailService.js";
 import { generateEmployeeId } from "../utils/employeeId.js";
 import DocumentType from "../models/DocumentType.Model.js";
 import Attendance from "../models/Attendance.Model.js";
+import Request from "../models/Request.Model.js";
 
 const createUser = async (req, res) => {
     try {
@@ -382,6 +383,11 @@ const updateUser = async (req, res) => {
             }
         });
 
+        // Convert empty string leaveGroup to null for MongoDB ObjectId compatibility
+        if (updateData.leaveGroup === "") {
+            updateData.leaveGroup = null;
+        }
+
         const user = await User.findByIdAndUpdate(
             req.params.id, 
             { $set: updateData }, 
@@ -570,4 +576,57 @@ const changeBranch = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch };
+const getLeaveBalances = async (req, res) => {
+    try {
+        const users = await User.find({ status: { $ne: "Ex-Employee" }, role: { $ne: "Admin" } })
+            .populate('leaveGroup')
+            .select('name employeeId leaveGroup noOfPaidLeaves');
+
+        const balances = await Promise.all(users.map(async (user) => {
+            // Calculate Entitlement
+            let entitlement = Number(user.noOfPaidLeaves || user.leaveGroup?.noOfPaidLeaves || 0);
+            
+            // Calculate Used Leaves
+            // We need to count days between fromDate and toDate for each approved request
+            const approvedRequests = await Request.find({
+                employee: user._id,
+                requestType: 'Leave',
+                status: 'Approved',
+                leaveCategory: 'Paid'
+            });
+
+            let used = 0;
+            approvedRequests.forEach(req => {
+                const start = new Date(req.fromDate);
+                const end = new Date(req.toDate);
+                // Difference in days + 1
+                const diffTime = Math.abs(end - start);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                
+                if (req.leaveDuration === "Full Day") {
+                    used += diffDays;
+                } else {
+                    // Half day is always on a single date, so diffDays is 1
+                    used += 0.5;
+                }
+            });
+
+            return {
+                id: user._id,
+                name: user.name,
+                employeeId: user.employeeId,
+                leaveGroup: user.leaveGroup?.leaveGroupName || "None",
+                totalEntitlement: entitlement,
+                used: used,
+                balance: entitlement - used
+            };
+        }));
+
+        res.status(200).json({ success: true, balances });
+    } catch (error) {
+        console.error("Error in getLeaveBalances:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances };

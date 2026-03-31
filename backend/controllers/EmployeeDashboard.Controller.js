@@ -2,6 +2,7 @@ import User from "../models/User.Model.js";
 import Branch from "../models/Branch.Model.js";
 import BreakType from "../models/BreakType.Model.js";
 import Attendance from "../models/Attendance.Model.js";
+import Request from "../models/Request.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
@@ -88,9 +89,18 @@ export const getEmployeeStats = async (req, res) => {
         const schedule = shift?.schedule?.[todayName] || null;
         const isWeekOff = shift?.weekOffDays?.includes(todayName.charAt(0).toUpperCase() + todayName.slice(1)) || false;
 
-        // Build leave balance info from leaveGroup
+        // Build leave balance info from leaveGroup or direct user field
         const leaveGroup = emp.leaveGroup || null;
-        const totalLeaves = leaveGroup?.noOfPaidLeaves || 0;
+        const totalLeaves = emp.noOfPaidLeaves || leaveGroup?.noOfPaidLeaves || 0;
+        const hasLeaveGroup = !!emp.leaveGroup;
+        
+        // Count total approved leave days
+        const usedLeaves = await Request.countDocuments({
+            employee: userId,
+            requestType: 'Leave',
+            status: 'Approved',
+            leaveCategory: 'Paid'
+        });
 
         // Document count
         const documentCount = emp.documents?.length || 0;
@@ -168,7 +178,10 @@ export const getEmployeeStats = async (req, res) => {
                 employeeLevel: emp.employeeLevel,
             },
             stats: {
+                hasLeaveGroup,
                 totalLeaves,
+                maxPLMonth: emp.maxPLMonth || leaveGroup?.maxPLMonth || totalLeaves,
+                usedLeaves,
                 documentCount,
                 daysSinceJoining,
                 monthHours,
@@ -200,7 +213,8 @@ export const getEmployeeStats = async (req, res) => {
                 availableBreaks: await BreakType.find({ 
                     adminId: emp.adminId || emp._id, 
                     isActive: true 
-                }).sort({ order: 1 })
+                }).sort({ order: 1 }),
+                canApplyUnpaidLeave: emp.canApplyUnpaidLeave || false
             }
         });
     } catch (error) {

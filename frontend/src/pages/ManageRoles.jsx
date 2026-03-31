@@ -202,7 +202,7 @@ const ManageRoles = () => {
             const response = await authenticatedFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roleName, description, permissions })
+                body: JSON.stringify({ roleName, description, permissions, autoAssignToAdmin: true })
             });
 
             const data = await response.json();

@@ -105,15 +105,7 @@ const AddLeaveGroup = () => {
                             />
                         </div>
 
-                        <div className="hrm-form-group">
-                            <SearchableSelect
-                                label="Generate Penalty on Leave Request Pending"
-                                required={true}
-                                options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]}
-                                value={formData.generatePenaltyOnLeaveRequestPending}
-                                onChange={(val) => handleSelect('generatePenaltyOnLeaveRequestPending', val)}
-                            />
-                        </div>
+                      
 
                         {/* Paid Leave Checkbox */}
                         <div className="hrm-form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '30px' }}>

@@ -45,6 +45,10 @@ import EmployeePromotion from './pages/EmployeePromotion';
 import AdminAttendance from './pages/AdminAttendance';
 import AddAttendance from './pages/AddAttendance';
 import AdminRequests from './pages/AdminRequests';
+import AssignBulkLeave from './pages/AssignBulkLeave';
+import AddLeaveAssign from './pages/AddLeaveAssign';
+import LeaveBalance from './pages/LeaveBalance';
+import LeaveHistory from './pages/LeaveHistory';
 import UseMobileApp from './pages/employee/UseMobileApp';
 
 function App() {
@@ -88,6 +92,13 @@ function App() {
               <Route path="leave/group" element={<LeaveGroup />} />
               <Route path="leave/group/add" element={<AddLeaveGroup />} />
               <Route path="leave/group/edit/:id" element={<EditLeaveGroup />} />
+              <Route path="leave/bulk-assign" element={<AssignBulkLeave />} />
+              <Route path="leave/assign/add" element={<AddLeaveAssign />} />
+              <Route path="leave/balance" element={<LeaveBalance />} />
+              <Route path="leave/request" element={<AdminRequests />} />
+              <Route path="leave/history" element={<LeaveHistory />} />
+              <Route path="leave/auto" element={<ModulePlaceholder title="Auto Leaves" />} />
+              <Route path="leave/payout" element={<ModulePlaceholder title="Leave Pay Out" />} />
               <Route path="leave/*" element={<ModulePlaceholder title="Leave Management" />} />
               <Route path="payroll-settings" element={<ModulePlaceholder title="Payroll Settings" />} />
               <Route path="payroll/tax-setting" element={<PayrollTaxSetting />} />

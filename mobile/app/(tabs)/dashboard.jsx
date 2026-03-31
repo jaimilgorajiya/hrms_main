@@ -665,7 +665,9 @@ export default function Dashboard() {
             <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={100} onPress={() => setShowPenaltyModal(true)} />
             <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={150} />
             <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={200} onPress={() => setShowShiftModal(true)} />
-            <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={250} />
+            {stats.hasLeaveGroup && (
+              <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={250} />
+            )}
             <StatCard icon="document-text-outline" label="Documents" value={stats.documentCount || 0} sub="Uploaded" color={COLORS.primary} bg={COLORS.primaryLight} delay={300} />
           </View>
 

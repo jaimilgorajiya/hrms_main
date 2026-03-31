@@ -14,6 +14,82 @@ const typeColors = {
   'Attendance Correction': { color: '#2563EB', bg: '#EFF6FF' },
 };
 
+const MiniCalendar = ({ fromDate, toDate }) => {
+  const start = new Date(fromDate);
+  const end = new Date(toDate || fromDate);
+  const month = start.getMonth();
+  const year = start.getFullYear();
+  
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  
+  const days = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const isInRange = (day) => {
+    if (!day) return false;
+    const current = new Date(year, month, day);
+    return current >= start && current <= end;
+  };
+
+  const isStart = (day) => {
+    if (!day) return false;
+    const current = new Date(year, month, day);
+    return current.getTime() === start.getTime();
+  };
+
+  const isEnd = (day) => {
+    if (!day) return false;
+    const current = new Date(year, month, day);
+    return current.getTime() === end.getTime();
+  };
+
+  return (
+    <div style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
+      <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b', marginBottom: '12px', textAlign: 'center' }}>
+        {monthNames[month]} {year}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+          <div key={d} style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textAlign: 'center', padding: '4px' }}>{d}</div>
+        ))}
+        {days.map((d, i) => {
+          const active = isInRange(d);
+          const startDay = isStart(d);
+          const endDay = isEnd(d);
+          
+          return (
+            <div 
+              key={i} 
+              style={{
+                fontSize: '12px',
+                fontWeight: active ? '800' : '600',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '8px',
+                color: active ? 'white' : d ? '#475569' : 'transparent',
+                background: active ? '#8B5CF6' : 'transparent',
+                opacity: d ? 1 : 0,
+                border: startDay || endDay ? '2px solid rgba(255,255,255,0.5)' : 'none'
+              }}
+            >
+              {d}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>
+         Duration: {Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1} Day(s) Selected
+      </div>
+    </div>
+  );
+};
+
 const AdminRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +246,11 @@ const AdminRequests = () => {
                       </span>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontWeight: '600', fontSize: '14px' }}>{r.date}</div>
+                      <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                        {r.requestType === 'Leave' && r.fromDate && r.toDate && r.fromDate !== r.toDate 
+                          ? `${r.fromDate} to ${r.toDate}` 
+                          : (r.date || r.fromDate)}
+                      </div>
                     </td>
                     <td style={tdStyle}>
                       <div style={{ maxWidth: '250px' }}>
@@ -228,76 +308,130 @@ const AdminRequests = () => {
 
       {/* Review Modal */}
       {modalOpen && selectedRequest && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div onClick={() => setModalOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
-          <div style={{ position: 'relative', background: '#fff', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '20px', fontWeight: '800' }}>Review Request</h3>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={() => setModalOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }} />
+          <div style={{ position: 'relative', background: '#fff', borderRadius: '32px', width: '100%', maxWidth: '750px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
             
-            <div style={{ marginBottom: '20px', padding: '16px', background: '#F8FAFC', borderRadius: '16px' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '12px', borderBottom: '1px solid #E2E8F0', paddingBottom: '8px' }}>Request Details</div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ padding: '32px', borderBottom: '1.5px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#0F172A' }}>Review Request</h3>
+              <button 
+                onClick={() => setModalOpen(false)} 
+                style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '8px', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '32px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
+                
+                {/* Left Column: Information */}
                 <div>
-                  <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Employee</div>
-                  <div style={{ fontWeight: '700', fontSize: '14px' }}>{selectedRequest.employee?.name}</div>
+                  <div style={{ marginBottom: '24px', padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '10px' }}>
+                      Core Details
+                    </div>
+                    
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Employee</div>
+                      <div style={{ fontWeight: '800', fontSize: '16px', color: '#0F172A' }}>{selectedRequest.employee?.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>{selectedRequest.employee?.employeeId}</div>
+                    </div>
+
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Period</div>
+                      <div style={{ fontWeight: '800', fontSize: '14px', color: '#312E81' }}>
+                        {selectedRequest.requestType === 'Leave' && selectedRequest.fromDate && selectedRequest.toDate && selectedRequest.fromDate !== selectedRequest.toDate 
+                          ? `${selectedRequest.fromDate} — ${selectedRequest.toDate}` 
+                          : (selectedRequest.date || selectedRequest.fromDate)}
+                      </div>
+                    </div>
+
+                    {selectedRequest.requestType === 'Leave' && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Leave Type</div>
+                          <div style={{ marginTop: '4px', padding: '6px 12px', background: '#F5F3FF', color: '#7C3AED', borderRadius: '10px', fontWeight: '800', fontSize: '12px', display: 'inline-block' }}>
+                            {selectedRequest.leaveType?.name || 'N/A'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Category</div>
+                          <div style={{ 
+                            marginTop: '4px', padding: '6px 12px', 
+                            background: selectedRequest.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB', 
+                            color: selectedRequest.leaveCategory === 'Paid' ? '#059669' : '#D97706', 
+                            borderRadius: '10px', fontWeight: '800', fontSize: '12px', display: 'inline-block',
+                            border: `0.5px solid ${selectedRequest.leaveCategory === 'Paid' ? '#10B981' : '#F59E0B'}30`
+                          }}>
+                            {selectedRequest.leaveCategory || 'Paid'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '10px' }}>Admin Remark</label>
+                    <textarea 
+                      value={adminRemark} 
+                      onChange={e => setAdminRemark(e.target.value)}
+                      placeholder="Share your thoughts with the employee..."
+                      style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid #E2E8F0', outline: 'none', minHeight: '120px', fontSize: '14px', color: '#334155', background: '#fff', transition: 'border-color 0.2s', resize: 'none' }}
+                    />
+                  </div>
                 </div>
+
+                {/* Right Column: Visual Auditing */}
                 <div>
-                  <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Date</div>
-                  <div style={{ fontWeight: '700', fontSize: '14px' }}>{selectedRequest.date}</div>
+                   {selectedRequest.requestType === 'Leave' ? (
+                     <div style={{ height: '100%' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '12px' }}>Visual Audit</div>
+                        <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} />
+                        
+                        <div style={{ marginTop: '20px', padding: '16px', background: '#F0F9FF', borderRadius: '16px', border: '1px solid #BAE6FD' }}>
+                           <div style={{ fontSize: '11px', fontWeight: '800', color: '#0369A1', textTransform: 'uppercase', marginBottom: '4px' }}>Reason</div>
+                           <p style={{ margin: 0, fontSize: '13px', color: '#0C4A6E', fontWeight: '600', lineHeight: '1.5' }}>{selectedRequest.reason}</p>
+                        </div>
+                     </div>
+                   ) : (
+                     <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0', height: '100%' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '16px' }}>Correction Details</div>
+                        <div style={{ display: 'grid', gap: '16px' }}>
+                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                             <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Requested In</div>
+                             <div style={{ fontWeight: '800', fontSize: '18px', color: '#2563EB' }}>{selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          </div>
+                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                             <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Requested Out</div>
+                             <div style={{ fontWeight: '800', fontSize: '18px', color: '#2563EB' }}>{selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          </div>
+                          <div style={{ marginTop: '10px' }}>
+                             <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Reason</div>
+                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#334155', fontWeight: '600' }}>{selectedRequest.reason}</p>
+                          </div>
+                        </div>
+                     </div>
+                   )}
                 </div>
               </div>
 
-              {selectedRequest.requestType === 'Attendance Correction' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px', padding: '10px', background: '#fff', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Requested In</div>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#2563EB' }}>{selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Requested Out</div>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#2563EB' }}>{selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                  </div>
-                </div>
-              )}
-
-              {selectedRequest.leaveType && (
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Leave Type</div>
-                  <div style={{ fontWeight: '700', fontSize: '14px', color: '#8B5CF6' }}>{selectedRequest.leaveType.name}</div>
-                </div>
-              )}
-
-              <div style={{ marginTop: '12px' }}>
-                <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase' }}>Employee Reason</div>
-                <div style={{ fontSize: '13px', color: '#334155', fontWeight: '500', marginTop: '4px' }}>{selectedRequest.reason}</div>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '40px' }}>
+                <button 
+                  disabled={actionLoading}
+                  onClick={() => handleAction(selectedRequest._id, 'Approved')}
+                  style={{ flex: 1.2, padding: '16px', borderRadius: '18px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '800', fontSize: '16px', cursor: 'pointer', transition: 'transform 0.1s, opacity 0.2s', opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                >
+                  Confirm Approval
+                </button>
+                <button 
+                  disabled={actionLoading}
+                  onClick={() => handleAction(selectedRequest._id, 'Rejected')}
+                  style={{ flex: 1, padding: '16px', borderRadius: '18px', border: '1.5px solid #F1F5F9', background: '#fff', color: '#EF4444', fontWeight: '800', fontSize: '16px', cursor: 'pointer', transition: 'background 0.2s', opacity: actionLoading ? 0.7 : 1 }}
+                >
+                  Reject
+                </button>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '700', marginBottom: '8px' }}>Admin Remark</label>
-              <textarea 
-                value={adminRemark} 
-                onChange={e => setAdminRemark(e.target.value)}
-                placeholder="Add a remark for the employee..."
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1.5px solid #E2E8F0', outline: 'none', minHeight: '100px', fontSize: '14px' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                disabled={actionLoading}
-                onClick={() => handleAction(selectedRequest._id, 'Approved')}
-                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
-              >
-                Approve
-              </button>
-              <button 
-                disabled={actionLoading}
-                onClick={() => handleAction(selectedRequest._id, 'Rejected')}
-                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#EF4444', color: '#fff', fontWeight: '700', cursor: 'pointer' }}
-              >
-                Reject
-              </button>
             </div>
           </div>
         </div>

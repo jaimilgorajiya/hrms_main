@@ -1,4 +1,5 @@
 import Role from "../models/Role.Model.js";
+import User from "../models/User.Model.js";
 
 export const createRole = async (req, res) => {
     try {
@@ -17,6 +18,12 @@ export const createRole = async (req, res) => {
         });
 
         await role.save();
+
+        // Auto-assign to Admin if requested (common for Sidebar Setup)
+        if (req.body.autoAssignToAdmin) {
+            await User.findByIdAndUpdate(adminId, { managementRole: role._id });
+        }
+
         res.status(201).json({ success: true, message: "Role created successfully", role });
     } catch (error) {
         console.error("Error creating role:", error);
@@ -51,7 +58,7 @@ export const getRoleById = async (req, res) => {
 
 export const updateRole = async (req, res) => {
     try {
-        const { roleName, description, permissions, isActive } = req.body;
+        const { roleName, description, permissions, isActive, autoAssignToAdmin } = req.body;
         const adminId = req.user._id;
         const role = await Role.findOneAndUpdate(
             { _id: req.params.id, admin: adminId },
@@ -61,6 +68,11 @@ export const updateRole = async (req, res) => {
 
         if (!role) {
             return res.status(404).json({ success: false, message: "Role not found" });
+        }
+
+        // Auto-assign to Admin if requested
+        if (autoAssignToAdmin) {
+            await User.findByIdAndUpdate(adminId, { managementRole: role._id });
         }
 
         res.status(200).json({ success: true, message: "Role updated successfully", role });

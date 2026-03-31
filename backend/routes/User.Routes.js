@@ -1,5 +1,5 @@
 import express from "express";
-import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch } from "../controllers/User.Controller.js";
+import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances } from "../controllers/User.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
 import upload from "../middleware/Upload.Middleware.js";
 
@@ -11,6 +11,7 @@ router.get("/", verifyToken, isAdmin, getUsers);
 router.get("/ex-employees", verifyToken, isAdmin, getExEmployees);
 router.get("/next-id", verifyToken, isAdmin, getNextEmployeeId);
 router.post("/bulk-update-ids", verifyToken, isAdmin, bulkUpdateEmployeeIds);
+router.get("/leave-balance", verifyToken, isAdmin, getLeaveBalances);
 router.get("/:id", verifyToken, isAdmin, getUser);
 router.put("/:id", verifyToken, isAdmin, upload.single('profilePhoto'), updateUser);
 router.delete("/:id", verifyToken, isAdmin, deleteUser);
