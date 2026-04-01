@@ -11,6 +11,8 @@ const statusConfig = {
   'Half Day': { label: 'Half Day', color: '#F59E0B', bg: '#FFFBEB' },
   Absent: { label: 'Absent', color: '#EF4444', bg: '#FEF2F2' },
   'On Leave': { label: 'On Leave', color: '#8B5CF6', bg: '#F5F3FF' },
+  Incomplete: { label: 'Incomplete', color: '#F97316', bg: '#FFF7ED' },
+  'Clocked In': { label: 'Clocked In', color: '#F97316', bg: '#FFF7ED' },
   weekend: { label: 'Weekend', color: '#94A3B8', bg: '#F8FAFC' },
 };
 
@@ -77,6 +79,7 @@ const EmployeeAttendance = () => {
       <div className="ep-att-summary">
         {[
           { label: 'Present',  count: counts['Present']  || 0, color: '#10B981', bg: '#ECFDF5' },
+          { label: 'Incomplete', count: counts['Incomplete'] || 0, color: '#F97316', bg: '#FFF7ED' },
           { label: 'Absent',   count: counts['Absent']   || 0, color: '#EF4444', bg: '#FEF2F2' },
           { label: 'Half Day', count: counts['Half Day'] || 0, color: '#F59E0B', bg: '#FFFBEB' },
           { label: 'On Leave', count: counts['On Leave'] || 0, color: '#8B5CF6', bg: '#F5F3FF' },

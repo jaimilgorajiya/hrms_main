@@ -64,11 +64,19 @@ const EmployeeDashboard = () => {
       path: null,
     },
     {
+      title: 'Punch Fix',
+      value: stats.missingPunchCount ?? 0,
+      sub: 'Pending corrections',
+      icon: <Clock size={20} />,
+      color: 'orange',
+      path: '/employee/attendance',
+    },
+    {
       title: 'Current Shift',
       value: stats.shiftName || '—',
       sub: stats.shiftStart && stats.shiftEnd ? `${stats.shiftStart} – ${stats.shiftEnd}` : 'Not assigned',
-      icon: <Clock size={20} />,
-      color: 'orange',
+      icon: <Briefcase size={20} />,
+      color: 'blue',
       path: '/employee/shift',
     },
   ];

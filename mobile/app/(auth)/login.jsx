@@ -136,9 +136,13 @@ export default function LoginScreen() {
             
             <Animated.View style={[styles.headerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.logoBox}>
-                <LinearGradient colors={GRADIENTS.primary} style={styles.logoGrad}>
-                  <Ionicons name="people" size={32} color={COLORS.white} />
-                </LinearGradient>
+                <View style={styles.logoGrad}>
+                  <Animated.Image 
+                    source={require('../../assets/icon.png')} 
+                    style={{ width: '100%', height: '100%', borderRadius: 24 }} 
+                    resizeMode="contain"
+                  />
+                </View>
               </View>
               <Text style={styles.appName}>HRMS Portal</Text>
               <Text style={styles.appSub}>Employee Management System</Text>

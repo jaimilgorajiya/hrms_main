@@ -66,27 +66,22 @@ const StatusBadge = ({ status, approvalStatus }) => {
   const isPresent = status === 'Present';
   const isAbsent = status === 'Absent';
   const isLeave = status === 'Leave' || status === 'Week Off';
-  const isLate = status === 'Late' || status === 'Incomplete';
+  const isLate = status === 'Late' || status === 'Incomplete' || status === 'Clocked In';
+  const isMissing = status === 'Missing' || status === 'Ghost';
 
   let color = COLORS.textMuted;
   let bg = COLORS.bgMain;
   if (isPresent) { color = COLORS.success; bg = COLORS.successLight; }
-  if (isAbsent) { color = COLORS.danger; bg = COLORS.dangerLight; }
-  if (isLeave) { color = COLORS.purple; bg = COLORS.purpleLight; }
-  if (isLate) { color = COLORS.warning; bg = COLORS.warningLight; }
+  else if (isAbsent) { color = COLORS.danger; bg = COLORS.dangerLight; }
+  else if (isLeave) { color = COLORS.purple; bg = COLORS.purpleLight; }
+  else if (isLate || isMissing) { color = COLORS.warning; bg = COLORS.warningLight; }
 
   const approvalIcon = approvalStatus === 'Approved' ? 'checkmark-circle' : (approvalStatus === 'Rejected' ? 'close-circle' : 'time');
   const approvalColor = approvalStatus === 'Approved' ? COLORS.success : (approvalStatus === 'Rejected' ? COLORS.danger : COLORS.warning);
 
   return (
-    <View style={{ flexDirection: 'row', gap: 6 }}>
-      <View style={[styles.badge, { backgroundColor: bg }]}>
-        <Text style={[styles.badgeText, { color }]}>{status}</Text>
-      </View>
-      <View style={[styles.badge, { backgroundColor: approvalColor + '15', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-        <Ionicons name={approvalIcon} size={10} color={approvalColor} />
-        <Text style={[styles.badgeText, { color: approvalColor }]}>{approvalStatus || 'Pending'}</Text>
-      </View>
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      <Text style={[styles.badgeText, { color }]}>{status}</Text>
     </View>
   );
 };
@@ -146,7 +141,10 @@ export default function AttendanceScreen() {
 
       if (r) {
         let dotColor = COLORS.textMuted;
-        if (r.status === 'Present') { dotColor = COLORS.success; sPresent++; }
+        const isMissingOut = r.punchIn && !r.punchOut;
+        
+        if (isMissingOut) { dotColor = COLORS.warning; } // Orange for missing punch out
+        else if (r.status === 'Present') { dotColor = COLORS.success; sPresent++; }
         else if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
         else if (r.status === 'Leave') { dotColor = COLORS.purple; sLeaves++; }
         else { dotColor = COLORS.warning; sHalfDay++; }
@@ -203,6 +201,11 @@ export default function AttendanceScreen() {
   const currentRequest = allRequests[selectedDate];
   const isAbsent = !selectedRecord && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!joiningDate || selectedDate >= joiningDate);
   const isRedDate = (markedDates[selectedDate]?.dotColor === COLORS.danger) || isAbsent;
+  
+  // Allow request if absent OR if punch out is missing
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const isMissingPunchOut = selectedRecord && selectedRecord.punchIn && !selectedRecord.punchOut && selectedDate !== todayStr;
+  const canRequest = isRedDate || isMissingPunchOut;
 
   const [showApply, setShowApply] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -211,6 +214,7 @@ export default function AttendanceScreen() {
   const [selectedLeaveType, setSelectedLeaveType] = useState('');
   const [reqDate, setReqDate] = useState('');
   const [reason, setReason] = useState('');
+  const [workSummary, setWorkSummary] = useState('');
   const [manualIn, setManualIn] = useState('09:00');
   const [manualOut, setManualOut] = useState('18:00');
   const [showInPicker, setShowInPicker] = useState(false);
@@ -226,13 +230,24 @@ export default function AttendanceScreen() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!reason.trim()) return Toast.show({ type: 'error', text1: 'Please provide a reason' });
+    if (reqType === 'Leave' && !selectedLeaveType) return Toast.show({ type: 'info', text1: 'Highlight', text2: 'Please select a leave type' });
+    if (isMissingPunchOut && !workSummary.trim()) return Toast.show({ type: 'info', text1: 'Required', text2: 'Please provide a work report' });
+    if (!reason.trim()) return Toast.show({ type: 'info', text1: 'Required', text2: 'Please provide a reason' });
     setSubmitting(true);
     try {
+      if (reqType === 'Attendance Correction') {
+        const inDate = new Date(`${reqDate}T${manualIn}:00`);
+        const outDate = new Date(`${reqDate}T${manualOut}:00`);
+        if (outDate <= inDate) {
+          return Toast.show({ type: 'error', text1: 'Validation Error', text2: 'Out time must be after in time' });
+        }
+      }
+
       const payload = {
         requestType: reqType,
         date: reqDate,
         reason,
+        workSummary: reqType === 'Attendance Correction' ? workSummary : undefined,
         leaveType: reqType === 'Leave' ? selectedLeaveType : undefined,
         manualIn: reqType === 'Attendance Correction' ? new Date(`${reqDate}T${manualIn}:00`) : undefined,
         manualOut: reqType === 'Attendance Correction' ? new Date(`${reqDate}T${manualOut}:00`) : undefined,
@@ -261,6 +276,17 @@ export default function AttendanceScreen() {
 
   const openRequest = () => {
     setReqDate(selectedDate);
+    if (isMissingPunchOut) {
+      setReqType('Attendance Correction');
+      // Pre-fill manualIn if possible
+      if (selectedRecord?.punchIn) {
+        // Assume punchIn is "HH:MM AM/PM" or similar, we need HH:MM
+        const match = selectedRecord.punchIn.match(/(\d{1,2}):(\d{2})/);
+        if (match) setManualIn(`${match[1].padStart(2, '0')}:${match[2]}`);
+      }
+    } else {
+      setReqType('Leave');
+    }
     setShowApply(true);
   };
 
@@ -329,9 +355,34 @@ export default function AttendanceScreen() {
               </View>
 
               {selectedRecord ? (
-                <View style={styles.detailGrid}>
-                  <View style={styles.detailItem}><Text style={styles.detailLabel}>In</Text><Text style={styles.detailValue}>{selectedRecord.punchIn || '—'}</Text></View>
-                  <View style={styles.detailItem}><Text style={styles.detailLabel}>Out</Text><Text style={styles.detailValue}>{selectedRecord.punchOut || '—'}</Text></View>
+                <View>
+                  <View style={styles.detailGrid}>
+                    <View style={styles.detailItem}><Text style={styles.detailLabel}>In</Text><Text style={styles.detailValue}>{selectedRecord.punchIn || '—'}</Text></View>
+                    <View style={styles.detailItem}><Text style={styles.detailLabel}>Out</Text><Text style={styles.detailValue}>{selectedRecord.punchOut || '—'}</Text></View>
+                  </View>
+                  {isMissingPunchOut && (
+                    currentRequest ? (
+                      <View style={[styles.sentRequestCard, { marginTop: 20 }]}>
+                        <View style={styles.sentRequestHeader}>
+                          <Ionicons name="checkmark-done-circle" size={18} color={COLORS.primary} />
+                          <Text style={styles.sentRequestTitle}>Punch out missing request is already sent</Text>
+                        </View>
+                        <View style={styles.sentRequestRow}>
+                           <Text style={styles.sentRequestLabel}>Requested Out:</Text>
+                           <Text style={styles.sentRequestValue}>{new Date(currentRequest.manualOut || currentRequest.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                        </View>
+                        <View style={styles.sentRequestRow}>
+                           <Text style={styles.sentRequestLabel}>Reason:</Text>
+                           <Text style={styles.sentRequestValue}>{currentRequest.reason}</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={[styles.requestBtn, { marginTop: 20 }]} onPress={openRequest}>
+                        <Ionicons name="build-outline" size={18} color={COLORS.white} />
+                        <Text style={styles.requestBtnText}>Request Punch Out Correction</Text>
+                      </TouchableOpacity>
+                    )
+                  )}
                 </View>
               ) : currentRequest ? (
                 <View style={styles.sentRequestCard}>
@@ -347,9 +398,9 @@ export default function AttendanceScreen() {
                     <View style={styles.sentRequestRow}>
                       <Text style={styles.sentRequestLabel}>Time:</Text>
                       <Text style={styles.sentRequestValue}>
-                        {currentRequest.manualIn ? new Date(currentRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
+                        {(currentRequest.manualIn || currentRequest.inTime) ? new Date(currentRequest.manualIn || currentRequest.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
                         {' - '} 
-                        {currentRequest.manualOut ? new Date(currentRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                        {(currentRequest.manualOut || currentRequest.outTime) ? new Date(currentRequest.manualOut || currentRequest.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                       </Text>
                     </View>
                   )}
@@ -363,10 +414,10 @@ export default function AttendanceScreen() {
               ) : (
                 <View>
                   <Text style={styles.emptyText}>No logs recorded for this day.</Text>
-                  {isRedDate && (
+                  {canRequest && (
                     <TouchableOpacity style={styles.requestBtn} onPress={openRequest}>
-                      <Ionicons name="paper-plane-outline" size={18} color={COLORS.white} />
-                      <Text style={styles.requestBtnText}>Request Attendance / Leave</Text>
+                      <Ionicons name={isMissingPunchOut ? "build-outline" : "paper-plane-outline"} size={18} color={COLORS.white} />
+                      <Text style={styles.requestBtnText}>{isMissingPunchOut ? "Request Punch Out Correction" : "Request Attendance / Leave"}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -384,21 +435,24 @@ export default function AttendanceScreen() {
               <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={COLORS.textDark} /></TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Request For: {reqDate}</Text>
-              <View style={styles.typeSelector}>
-                <TouchableOpacity 
-                  style={[styles.typeBtn, reqType === 'Leave' && styles.typeBtnActive]} 
-                  onPress={() => setReqType('Leave')}
-                >
-                  <Text style={[styles.typeBtnText, reqType === 'Leave' && styles.typeBtnTextActive]}>Leave</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.typeBtn, reqType === 'Attendance Correction' && styles.typeBtnActive]} 
-                  onPress={() => setReqType('Attendance Correction')}
-                >
-                  <Text style={[styles.typeBtnText, reqType === 'Attendance Correction' && styles.typeBtnTextActive]}>Attendance</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>
+              
+              {!isMissingPunchOut && (
+                <View style={styles.typeSelector}>
+                  <TouchableOpacity 
+                    style={[styles.typeBtn, reqType === 'Leave' && styles.typeBtnActive]} 
+                    onPress={() => setReqType('Leave')}
+                  >
+                    <Text style={[styles.typeBtnText, reqType === 'Leave' && styles.typeBtnTextActive]}>Leave</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.typeBtn, reqType === 'Attendance Correction' && styles.typeBtnActive]} 
+                    onPress={() => setReqType('Attendance Correction')}
+                  >
+                    <Text style={[styles.typeBtnText, reqType === 'Attendance Correction' && styles.typeBtnTextActive]}>Attendance</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               {reqType === 'Leave' && leaveTypes.length > 0 && (
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.inputLabel}>Leave Type</Text>
@@ -438,13 +492,44 @@ export default function AttendanceScreen() {
               )}
 
               {reqType === 'Attendance Correction' && (
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-                  <TouchableOpacity style={[styles.timeDisplay, { flex: 1 }]} onPress={() => setShowInPicker(true)}><Text style={styles.timeValue}>In: {manualIn}</Text></TouchableOpacity>
-                  <TouchableOpacity style={[styles.timeDisplay, { flex: 1 }]} onPress={() => setShowOutPicker(true)}><Text style={styles.timeValue}>Out: {manualOut}</Text></TouchableOpacity>
+                <View style={{ marginBottom: 16 }}>
+                  <TouchableOpacity 
+                    style={[styles.timeDisplay, { width: '100%', flexDirection: 'row', justifyContent: 'flex-start' }, 
+                      (new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && { borderColor: COLORS.danger }]} 
+                    onPress={() => setShowOutPicker(true)}
+                  >
+                    <View style={{ backgroundColor: COLORS.primary + '10', padding: 8, borderRadius: 10, marginRight: 12 }}>
+                      <Ionicons name="time" size={20} color={COLORS.primary} />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>Missing Punch Out</Text>
+                      <Text style={[styles.timeValue, { marginTop: 2 }]}>{manualOut}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={COLORS.border} style={{ marginLeft: 'auto' }} />
+                  </TouchableOpacity>
+                  {(new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && (
+                    <Text style={{ color: COLORS.danger, fontSize: 11, fontWeight: '700', marginTop: 6, marginLeft: 4 }}>
+                      <Ionicons name="warning" size={12} color={COLORS.danger} /> Must be after In-time ({manualIn})
+                    </Text>
+                  )}
                 </View>
               )}
 
-              <Text style={styles.inputLabel}>Reason</Text>
+              {reqType === 'Attendance Correction' && (
+                <View style={{ marginBottom: 16 }}>
+                   <Text style={styles.inputLabel}>Work Report <Text style={{ color: COLORS.danger }}>*</Text></Text>
+                   <TextInput 
+                    style={[styles.input, { minHeight: 80 }]} 
+                    multiline 
+                    numberOfLines={4} 
+                    value={workSummary} 
+                    onChangeText={setWorkSummary} 
+                    placeholder="Describe your work for this day..." 
+                  />
+                </View>
+              )}
+
+              <Text style={styles.inputLabel}>Reason <Text style={{ color: COLORS.danger }}>*</Text></Text>
               <TextInput style={styles.input} multiline numberOfLines={3} value={reason} onChangeText={setReason} placeholder="Explain why..." />
               <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
                 {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>Submit Request</Text>}

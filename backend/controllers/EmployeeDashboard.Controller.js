@@ -1,3 +1,4 @@
+import PenaltyRule from "../models/PenaltyRule.Model.js";
 import User from "../models/User.Model.js";
 import Branch from "../models/Branch.Model.js";
 import BreakType from "../models/BreakType.Model.js";
@@ -21,6 +22,10 @@ export const getEmployeeStats = async (req, res) => {
         }
 
         const emp = employee.toObject();
+        const shift = emp.workSetup?.shift || null;
+
+        // Fetch Penalty Rule once if shift exists
+        const penaltyRule = shift ? await PenaltyRule.findOne({ shift: shift._id }) : null;
 
         // Month stats
         const start = new Date();
@@ -28,21 +33,21 @@ export const getEmployeeStats = async (req, res) => {
         const monthAttendance = await Attendance.find({ 
             employee: userId,
             date: { $gte: start.toISOString().split('T')[0] }
-        });
+        }).sort({ date: 1 }); // Sort by date to maintain grace count order
 
         let monthWorkMins = 0;
         let monthPenalty = 0;
+        let lateInMonthCount = 0; // Local tracker for grace periods
         const penaltyHistory = [];
-
-        const shift = emp.workSetup?.shift || null;
 
         for (const a of monthAttendance) {
             monthWorkMins += computeWorkingMinutes(a.punches, a.breaks);
 
-            // Recalculate late penalty live to respect grace count
-            // Also handles old records that don't have isLate field yet
+            // Calculate/Verify late penalty
             let lateAmount = a.lateInPenalty?.amount || 0;
-            if ((a.lateInPenalty?.isLate || lateAmount > 0) && shift) {
+            const isLate = a.lateInPenalty?.isLate || false;
+
+            if (isLate && shift) {
                 const firstIn = a.punches?.find(p => p.type === 'IN');
                 if (firstIn) {
                     const days2 = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
@@ -55,18 +60,14 @@ export const getEmployeeStats = async (req, res) => {
                         const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
                         const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
                         const lateByMins = inMins - shiftStartMins;
+                        
                         if (lateByMins > 0) {
-                            lateAmount = await calculatePenaltyAmount(shift._id, lateByMins, userId);
-                            // Patch DB if stale
-                            if (lateAmount !== a.lateInPenalty?.amount) {
-                                await Attendance.updateOne(
-                                    { _id: a._id },
-                                    { $set: { 'lateInPenalty.amount': lateAmount, 'lateInPenalty.isApplied': lateAmount > 0 } }
-                                );
-                            }
+                            // Use cached penaltyRule and local lateCount for high performance
+                            lateAmount = await calculatePenaltyAmount(shift._id, lateByMins, userId, penaltyRule, lateInMonthCount);
                         }
                     }
                 }
+                lateInMonthCount++; // Increment count for next iteration
             }
 
             if (lateAmount > 0) {
@@ -208,6 +209,11 @@ export const getEmployeeStats = async (req, res) => {
                 lateEarlyType: shift?.lateEarlyType || 'Combined',
                 maxLateInMinutes: shift?.maxLateInMinutes || 0,
                 maxEarlyOutMinutes: shift?.maxEarlyOutMinutes || 0,
+                missingPunchCount: monthAttendance.filter(a => 
+                    a.punches.some(p => p.type === 'IN') && 
+                    !a.punches.some(p => p.type === 'OUT') && 
+                    a.date !== istNow.toISOString().split('T')[0]
+                ).length,
                 leaveGroupName: leaveGroup?.leaveGroupName || null,
                 branchCoords,
                 availableBreaks: await BreakType.find({ 

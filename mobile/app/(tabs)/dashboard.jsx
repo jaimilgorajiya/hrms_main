@@ -302,15 +302,22 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
+  const [missingPunches, setMissingPunches] = useState(0);
+
   const loadData = async () => {
     try {
       setRefreshing(true);
-      const [statsRes, attnRes] = await Promise.all([
+      const [statsRes, attnRes, notifRes, histRes] = await Promise.all([
         apiFetch(ENDPOINTS.employeeStats),
-        apiFetch(ENDPOINTS.attendanceToday)
+        apiFetch(ENDPOINTS.attendanceToday),
+        apiFetch(ENDPOINTS.notifications),
+        apiFetch(`${ENDPOINTS.attendanceHistory}?month=${new Date().toISOString().slice(0, 7)}`)
       ]);
+
       const statsJson = await statsRes.json();
       const attnJson = await attnRes.json();
+      const notifJson = await notifRes.json();
+      const histJson = await histRes.json();
 
       if (statsJson.success) {
         setData(statsJson);
@@ -341,11 +348,20 @@ export default function Dashboard() {
           shiftEnd: statsJson.stats?.shiftEnd,
           lateInPenalty: attnJson.lateInPenalty?.amount || 0,
         });
-        console.log('App Initial Load - Branch Coords:', statsJson.stats?.branchCoords);
-        fetchNotifications();
+      }
+
+      if (notifJson.success) {
+        setNotifications(notifJson.notifications);
+        setUnreadCount(notifJson.unreadCount);
+      }
+
+      if (histJson && histJson.success) {
+        const todayStr = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+        const missingCount = (histJson.records || []).filter(r => r.punchIn && !r.punchOut && r.date !== todayStr).length;
+        setMissingPunches(missingCount);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Dashboard loadData error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -523,9 +539,10 @@ export default function Dashboard() {
       setEarlyReason('');
       setLateReason('');
       Toast.show({ type: 'success', text1: 'Success', text2: json.message });
-      loadData();
+      await loadData();
     } else {
       Toast.show({ type: 'error', text1: 'Oops', text2: json.message });
+      setLoading(false);
     }
   };
 
@@ -662,13 +679,13 @@ export default function Dashboard() {
           <Text style={styles.sectionTitle}>Monthly Overview</Text>
           <View style={styles.statsGrid}>
             <StatCard icon="calendar-outline" label="Attendance" value={`${stats.presentDays}d`} sub="Days Present" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/attendance')} delay={50} />
-            <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={100} onPress={() => setShowPenaltyModal(true)} />
-            <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={150} />
-            <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={200} onPress={() => setShowShiftModal(true)} />
+            <StatCard icon="alert-circle-outline" label="Punch Fix" value={missingPunches} sub="Missing Out" color={COLORS.warning} bg={COLORS.warningLight} onPress={() => router.push('/punch-missing')} delay={100} />
+            <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={150} onPress={() => setShowPenaltyModal(true)} />
+            <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={200} />
+            <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={250} onPress={() => setShowShiftModal(true)} />
             {stats.hasLeaveGroup && (
-              <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={250} />
+              <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={300} />
             )}
-            <StatCard icon="document-text-outline" label="Documents" value={stats.documentCount || 0} sub="Uploaded" color={COLORS.primary} bg={COLORS.primaryLight} delay={300} />
           </View>
 
           <Text style={styles.sectionTitle}>Today's Activity</Text>

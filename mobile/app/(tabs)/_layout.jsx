@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform, Text } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { COLORS, SHADOW, RADIUS } from '../../constants/theme';
+import { COLORS, SHADOW } from '../../constants/theme';
 
 function TabIcon({ name, focused }) {
   return (

@@ -143,11 +143,15 @@ export default function LeavesScreen() {
 
   const loadData = async () => {
     try {
-      const statsRes = await apiFetch(ENDPOINTS.employeeStats);
+      const [statsRes, res, ltRes] = await Promise.all([
+        apiFetch(ENDPOINTS.employeeStats),
+        apiFetch(ENDPOINTS.myRequests),
+        leaveTypes.length === 0 ? apiFetch(ENDPOINTS.leaveTypes) : Promise.resolve(null)
+      ]);
+
       const statsJson = await statsRes.json();
       if (statsJson.success) setStats(statsJson.stats);
 
-      const res = await apiFetch(ENDPOINTS.myRequests);
       const json = await res.json();
       if (json.success) {
         const leaveRequests = json.requests.filter(r => r.requestType === 'Leave');
@@ -177,13 +181,12 @@ export default function LeavesScreen() {
         setBaseMarkedDates(historical);
       }
 
-      if (leaveTypes.length === 0) {
-        const ltRes = await apiFetch(ENDPOINTS.leaveTypes);
+      if (ltRes) {
         const ltJson = await ltRes.json();
         if (ltJson.success) setLeaveTypes(ltJson.leaveTypes || ltJson.data || []);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Leaves loadData error:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);

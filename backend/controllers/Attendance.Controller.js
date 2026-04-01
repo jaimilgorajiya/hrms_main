@@ -151,10 +151,17 @@ export const togglePunch = async (req, res) => {
 
         let record = await Attendance.findOne({ employee: req.user._id, date });
 
-        if (!record) {
+        if (record?.status === 'On Leave') {
+            return res.status(400).json({ success: false, message: "You are marked as 'On Leave' for today. Attendance cannot be logged." });
+        }
+
+        const lastPunch = record?.punches?.length > 0 ? record.punches[record.punches.length - 1] : null;
+
+        if (!record || !lastPunch) {
             let latePenaltyAmount = 0;
             let lateByMins = 0;
             const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+            let punchStatus = 'Present';
 
             if (shift) {
                 const shiftStartMins = parseTimeToMinutes(daySchedule?.shiftStart);
@@ -163,7 +170,6 @@ export const togglePunch = async (req, res) => {
                     const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
                     const lateByMinsLocal = nowMins - shiftStartMins;
                     lateByMins = lateByMinsLocal;
-                    console.log(`[PENALTY_DEBUG] Punch In at ${istNow.getUTCHours()}:${istNow.getUTCMinutes()} IST. Shift Start: ${shiftStartMins}m, Late: ${lateByMins}m`);
                     
                     const maxAllowed = shift.maxLateInMinutes || 0;
                     if (lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
@@ -174,89 +180,77 @@ export const togglePunch = async (req, res) => {
                         });
                     }
 
-                    // Check Half-Day penalty first — it takes priority over monetary late penalty
+                    // Check Half-Day penalty
                     const rule = await PenaltyRule.findOne({ shift: shift._id });
                     const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
                     if (halfDaySlab) {
                         const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
                         if (thresholdMins !== null && nowMins > thresholdMins) {
-                            console.log(`[PENALTY_DEBUG] Punch in at ${nowMins}m is after Half-Day threshold ${thresholdMins}m. Marking Half Day — skipping monetary penalty.`);
-                            record = new Attendance({
-                                employee: req.user._id,
-                                date,
-                                punches: [{ time: now, type: 'IN', latitude, longitude, geofenceReason, workSummary, lateReason, locationAddress }],
-                                status: 'Half Day',
-                                lateInPenalty: { amount: 0, isApplied: false, isLate: true }
-                            });
-                            await record.save();
-                            return res.status(200).json({
-                                success: true,
-                                message: 'Punched In successfully (Half Day)',
-                                action: 'IN',
-                                time: now,
-                                isPunchedIn: true,
-                                isOnBreak: false,
-                                workingMinutes: 0,
-                                workingFormatted: '0h 0m',
-                                lateInPenalty: record.lateInPenalty,
-                                status: 'Half Day',
-                                record
-                            });
+                            punchStatus = 'Half Day';
                         }
                     }
 
                     // Only apply monetary late penalty if Half-Day threshold was not triggered
-                    if (lateByMins > 0) {
+                    if (lateByMins > 0 && punchStatus !== 'Half Day') {
                         latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
-                        console.log(`[PENALTY_DEBUG] Calculated late penalty: ${latePenaltyAmount} for ${lateByMins}m late.`);
                     }
                 }
             }
 
-            record = new Attendance({
-                employee: req.user._id,
-                date,
-                punches: [{
-                    time: now,
-                    type: 'IN',
-                    latitude,
-                    longitude,
-                    geofenceReason,
-                    workSummary,
-                    lateReason,
-                    locationAddress
-                }],
-                status: 'Present',
-                lateInPenalty: {
-                    amount: latePenaltyAmount,
-                    isApplied: latePenaltyAmount > 0,
-                    isLate: lateByMins > 0
-                }
-            });
+            const newPunch = {
+                time: now,
+                type: 'IN',
+                latitude,
+                longitude,
+                geofenceReason,
+                workSummary,
+                lateReason,
+                locationAddress
+            };
+
+            const lateInPenalty = {
+                amount: latePenaltyAmount,
+                isApplied: latePenaltyAmount > 0,
+                isLate: lateByMins > 0
+            };
+
+            if (!record) {
+                record = new Attendance({
+                    employee: req.user._id,
+                    date,
+                    punches: [newPunch],
+                    status: punchStatus,
+                    lateInPenalty
+                });
+            } else {
+                record.punches = [newPunch];
+                record.status = punchStatus;
+                record.lateInPenalty = lateInPenalty;
+                record.approvalStatus = 'Pending'; // Reset if it was On Leave
+            }
+
             await record.save();
 
             return res.status(200).json({
                 success: true,
-                message: 'Punched In successfully',
+                message: punchStatus === 'Half Day' ? 'Punched In successfully (Half Day)' : 'Punched In successfully',
                 action: 'IN',
                 time: now,
                 isPunchedIn: true,
                 isOnBreak: false,
                 workingMinutes: 0,
                 workingFormatted: '0h 0m',
-                lateInPenalty: record.lateInPenalty || { amount: 0, isApplied: false },
+                lateInPenalty: record.lateInPenalty,
+                status: record.status,
                 record
             });
         }
-
-        // If record exists, we must handle the next action
-        const lastPunch = record.punches[record.punches.length - 1];
 
         // RULE: If last punch was OUT, they cannot punch in again today.
         if (lastPunch.type === 'OUT') {
             return res.status(400).json({ 
                 success: false, 
-                message: "You have already completed your punch for today. You cannot punch in again until tomorrow." 
+                message: "You have already completed your punch for today. You cannot punch again until tomorrow." 
             });
         }
 
@@ -439,8 +433,12 @@ export const getAttendanceHistory = async (req, res) => {
 
         // Also fetch requests for this month to show "Request already sent"
         const requests = await Request.find(filter).populate('leaveType', 'name').sort({ date: -1 });
+        const todayStr = getTodayStr();
         const rqMap = {};
         requests.forEach(rq => {
+            // Hide 'Attendance Correction' requests for the current day
+            if (rq.requestType === 'Attendance Correction' && rq.date === todayStr) return;
+
             rqMap[rq.date] = {
                 id: rq._id,
                 type: rq.requestType,
@@ -466,9 +464,14 @@ export const getAttendanceHistory = async (req, res) => {
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
             
+            let status = r.status || "Present";
+            if (firstIn && !lastOut && r.status !== 'On Leave') {
+                status = (r.date === todayStr) ? 'Clocked In' : 'Incomplete';
+            }
+
             return {
                 date: r.date,
-                status: r.status,
+                status,
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
                 workingMinutes,
@@ -666,6 +669,107 @@ export const getMissingAttendance = async (req, res) => {
         res.status(200).json({ success: true, records: formatted });
     } catch (error) {
         console.error("getMissingAttendance error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// GET /api/attendance/admin/monthly-stats?month=YYYY-MM&employeeId=...
+export const getMonthlyAttendanceStats = async (req, res) => {
+    try {
+        const { month, employeeId } = req.query;
+        if (!month || !employeeId) {
+            return res.status(400).json({ success: false, message: "Month and EmployeeId are required" });
+        }
+
+        const user = await User.findById(employeeId).populate('workSetup.shift');
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+        const shift = user.workSetup?.shift;
+        const weekOffDays = shift?.weekOffDays || [];
+
+        const records = await Attendance.find({
+            employee: employeeId,
+            date: { $regex: `^${month}` }
+        });
+
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
+        let workingDaysCount = 0;
+        let weekOffCount = 0;
+        let totalExpectedMins = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, monthNum - 1, d);
+            const dayName = days[dateObj.getDay()];
+            const isWeekOff = weekOffDays.includes(dayName);
+            
+            if (isWeekOff) {
+                weekOffCount++;
+            } else {
+                workingDaysCount++;
+                const schedule = shift?.schedule?.[dayName.toLowerCase()];
+                if (schedule) {
+                    const start = parseTimeToMinutes(schedule.shiftStart);
+                    const end = parseTimeToMinutes(schedule.shiftEnd);
+                    if (start !== null && end !== null) {
+                        const dur = end > start ? end - start : (end + 1440 - start);
+                        totalExpectedMins += dur;
+                    } else {
+                        totalExpectedMins += 480; 
+                    }
+                } else {
+                    totalExpectedMins += 480;
+                }
+            }
+        }
+
+        const presentDays = records.filter(r => r.status === 'Present').length;
+        const halfDays = records.filter(r => r.status === 'Half Day').length;
+        const absentDays = records.filter(r => r.status === 'Absent').length;
+        const leaveDays = records.filter(r => r.status === 'On Leave').length;
+        const totalWorkedMins = records.reduce((acc, r) => acc + (computeWorkingMinutes(r.punches, r.breaks) || 0), 0);
+        
+        const stats = {
+            workingDays: workingDaysCount,
+            presentDays: presentDays + (halfDays * 0.5),
+            absentDays,
+            weekOff: weekOffCount,
+            leaves: leaveDays,
+            lateIn: records.filter(r => r.lateInPenalty?.isLate).length,
+            earlyOut: records.filter(r => r.earlyOutPenalty?.amount > 0).length,
+            missingPunch: records.filter(r => r.punches.find(p => p.type === 'IN') && !r.punches.find(p => p.type === 'OUT')).length,
+            totalExpectedHours: Math.round(totalExpectedMins / 60),
+            totalWorkedHours: Math.floor(totalWorkedMins / 60),
+            totalWorkedMins: totalWorkedMins % 60,
+            efficiency: Math.round((totalWorkedMins / (totalExpectedMins || 1)) * 100) || 0,
+            totalExpectedMins
+        };
+
+        const formattedRecords = records.map(r => {
+            const firstIn = r.punches.find(p => p.type === 'IN');
+            const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
+            const workingMins = computeWorkingMinutes(r.punches, r.breaks);
+
+            return {
+                date: r.date,
+                status: r.status,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                workingFormatted: formatMinutes(workingMins),
+                approvalStatus: r.approvalStatus || 'Pending'
+            };
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            stats, 
+            records: formattedRecords,
+            weekOffDays 
+        });
+    } catch (error) {
+        console.error("getMonthlyAttendanceStats error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

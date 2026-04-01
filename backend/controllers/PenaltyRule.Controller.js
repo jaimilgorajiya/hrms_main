@@ -75,13 +75,13 @@ export const deletePenaltyRule = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to delete penalty rule' });
     }
 };
-export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = null) => {
+export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = null, existingRule = null, lateCount = null) => {
     try {
         const cleanLateMins = Math.floor(lateByMins);
         const searchId = shiftId?._id || shiftId;
 
         console.log(`[PENALTY_DEBUG] Fetching rule for shift: ${searchId}`);
-        const rule = await PenaltyRule.findOne({ shift: searchId });
+        const rule = existingRule || await PenaltyRule.findOne({ shift: searchId });
         
         if (!rule) {
             console.log(`[PENALTY_DEBUG] No rule record found in database for shift ${searchId}`);
@@ -106,16 +106,19 @@ export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = n
         // Grace count check — skip penalty if employee hasn't exceeded allowed late entries this month
         const graceCount = matchingSlab.grace_count || 0;
         if (graceCount > 0 && employeeId) {
-            const Attendance = (await import('../models/Attendance.Model.js')).default;
-            const monthStart = new Date();
-            monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-            const monthStartStr = monthStart.toISOString().split('T')[0];
+            let lateThisMonth = lateCount;
+            if (lateThisMonth === null) {
+                const Attendance = (await import('../models/Attendance.Model.js')).default;
+                const monthStart = new Date();
+                monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+                const monthStartStr = monthStart.toISOString().split('T')[0];
 
-            const lateThisMonth = await Attendance.countDocuments({
-                employee: employeeId,
-                date: { $gte: monthStartStr },
-                'lateInPenalty.isLate': true
-            });
+                lateThisMonth = await Attendance.countDocuments({
+                    employee: employeeId,
+                    date: { $gte: monthStartStr },
+                    'lateInPenalty.isLate': true
+                });
+            }
 
             console.log(`[PENALTY_DEBUG] Grace count: ${graceCount}, Late entries this month (with penalty): ${lateThisMonth}`);
 

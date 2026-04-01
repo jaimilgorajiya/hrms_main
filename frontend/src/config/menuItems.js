@@ -107,10 +107,9 @@ export const menuItems = [
         children: [
           { title: "Attendance Records", path: "/admin/attendance/records" },
           { title: "Add Attendance", path: "/admin/attendance/add" },
-          { title: "Monthly Attendance", path: "/admin/attendance/monthly" },
+          { title: "Monthly Attendances", path: "/admin/attendance/monthly" },
           { title: "Pending Attendance", path: "/admin/attendance/pending" },
           { title: "Punch Out Request", path: "/admin/attendance/punch-request" },
-          { title: "Punch Out Missing", path: "/admin/attendance/punch-missing" },
           { title: "Attendance Request", path: "/admin/attendance/request" },
           { title: "Absent Emp", path: "/admin/attendance/absent" },
           { title: "Delete Attendance", path: "/admin/attendance/delete" },

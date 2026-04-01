@@ -64,7 +64,15 @@ export const submitRequest = async (req, res) => {
 // GET /api/requests/my-requests
 export const getEmployeeRequests = async (req, res) => {
     try {
-        const requests = await Request.find({ employee: req.user._id }).sort({ createdAt: -1 }).populate('leaveType', 'name');
+        const todayStr = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+        const allRequests = await Request.find({ employee: req.user._id }).sort({ createdAt: -1 }).populate('leaveType', 'name');
+        
+        // Hide 'Attendance Correction' for Today
+        const requests = allRequests.filter(r => {
+            if (r.requestType === 'Attendance Correction' && r.date === todayStr) return false;
+            return true;
+        });
+
         res.status(200).json({ success: true, requests });
     } catch (error) {
         console.error("getEmployeeRequests error:", error);
@@ -136,21 +144,42 @@ export const updateRequestStatus = async (req, res) => {
 
         if (status === "Approved") {
             if (request.requestType === "Attendance Correction") {
-                // Upsert attendance record
-                await Attendance.findOneAndUpdate(
-                    { employee: request.employee, date: request.date },
-                    {
-                        $set: {
-                            status: "Present",
-                            approvalStatus: "Approved",
-                            punches: [
-                                { time: request.manualIn, type: "IN", locationAddress: "Manual Entry" },
-                                { time: request.manualOut, type: "OUT", locationAddress: "Manual Entry" }
-                            ]
+                // Find existing record
+                const existing = await Attendance.findOne({ employee: request.employee, date: request.date });
+                
+                if (existing && existing.punches.length > 0 && !existing.punches.some(p => p.type === 'OUT')) {
+                    // It's a ghost punch correction: just append the OUT
+                    await Attendance.findOneAndUpdate(
+                        { _id: existing._id },
+                        {
+                            $set: { status: "Present", approvalStatus: "Approved" },
+                            $push: {
+                                punches: { 
+                                    time: request.manualOut, 
+                                    type: "OUT", 
+                                    locationAddress: "Manual Entry (Correction)", 
+                                    workSummary: request.workSummary || "Missed Punch Correction" 
+                                }
+                            }
                         }
-                    },
-                    { upsert: true, new: true }
-                );
+                    );
+                } else {
+                    // No existing record or already has OUT: replace/set fully
+                    await Attendance.findOneAndUpdate(
+                        { employee: request.employee, date: request.date },
+                        {
+                            $set: {
+                                status: "Present",
+                                approvalStatus: "Approved",
+                                punches: [
+                                    { time: request.manualIn, type: "IN", locationAddress: "Manual Entry" },
+                                    { time: request.manualOut, type: "OUT", locationAddress: "Manual Entry", workSummary: request.workSummary }
+                                ]
+                            }
+                        },
+                        { upsert: true, new: true }
+                    );
+                }
             } else if (request.requestType === "Leave") {
                 // Loop through all dates from fromDate to toDate
                 const start = new Date(request.fromDate);

@@ -50,6 +50,8 @@ import AddLeaveAssign from './pages/AddLeaveAssign';
 import LeaveBalance from './pages/LeaveBalance';
 import LeaveHistory from './pages/LeaveHistory';
 import UseMobileApp from './pages/employee/UseMobileApp';
+import MonthlyAttendance from './pages/MonthlyAttendance';
+import PunchOutRequests from './pages/PunchOutRequests';
 
 function App() {
   return (
@@ -80,6 +82,7 @@ function App() {
               <Route path="attendance/break-type" element={<BreakType />} />
               <Route path="attendance/records" element={<AdminAttendance />} />
               <Route path="attendance/add" element={<AddAttendance />} />
+              <Route path="attendance/monthly" element={<MonthlyAttendance />} />
               <Route path="attendance-settings" element={<ModulePlaceholder title="Attendance Settings" />} />
               <Route path="attendance/*" element={<ModulePlaceholder title="Attendance Management" />} />
               <Route path="shift/add" element={<AddShift />} />
@@ -127,6 +130,8 @@ function App() {
               <Route path="employees/promotion" element={<EmployeePromotion />} />
               <Route path="employees/*" element={<ModulePlaceholder title="Employee Management" />} />
               <Route path="shifts/*" element={<ModulePlaceholder title="Shift Operations" />} />
+              <Route path="attendance/punch-request" element={<PunchOutRequests />} />
+              <Route path="attendance/punch-missing" element={<PunchOutRequests />} />
               <Route path="attendance/request" element={<AdminRequests />} />
               <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
               <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />

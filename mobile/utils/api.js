@@ -14,7 +14,10 @@ export const apiFetch = async (endpoint, options = {}) => {
   console.log('[apiFetch] Fetching:', url, 'with method:', options.method || 'GET');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  const timeoutId = setTimeout(() => {
+    console.warn(`[apiFetch] Request to ${url} timed out after 30s`);
+    controller.abort();
+  }, 30000); // Increased to 30s timeout
 
   try {
     const response = await fetch(url, { 
@@ -33,7 +36,12 @@ export const apiFetch = async (endpoint, options = {}) => {
 
     return response;
   } catch (error) {
-    console.error('API Fetch Error:', error);
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`[apiFetch] Timeout Error: Request to ${url} was aborted.`);
+      throw new Error('Request timed out. Please check your connection or try again.');
+    }
+    console.error(`[apiFetch] Fetch Error for ${url}:`, error);
     throw error;
   }
 };
