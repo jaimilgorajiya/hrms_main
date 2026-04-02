@@ -26,6 +26,7 @@ import LeaveGroup from './pages/LeaveGroup';
 import AddLeaveGroup from './pages/AddLeaveGroup';
 import EditLeaveGroup from './pages/EditLeaveGroup';
 import EarningDeductionType from './pages/EarningDeductionType';
+import SalaryGroups from './pages/SalaryGroups';
 import EmployeeOnboarding from './pages/EmployeeOnboarding';
 import EmployeeOffboarding from './pages/EmployeeOffboarding';
 import PayrollTaxSetting from './pages/PayrollTaxSetting';
@@ -44,7 +45,9 @@ import UpcomingRetirement from './pages/UpcomingRetirement';
 import EmployeePromotion from './pages/EmployeePromotion';
 import AdminAttendance from './pages/AdminAttendance';
 import AddAttendance from './pages/AddAttendance';
+import AbsentEmployees from './pages/AbsentEmployees';
 import AdminRequests from './pages/AdminRequests';
+import AdminDeleteAttendance from './pages/AdminDeleteAttendance';
 import AssignBulkLeave from './pages/AssignBulkLeave';
 import AddLeaveAssign from './pages/AddLeaveAssign';
 import LeaveBalance from './pages/LeaveBalance';
@@ -83,6 +86,8 @@ function App() {
               <Route path="attendance/records" element={<AdminAttendance />} />
               <Route path="attendance/add" element={<AddAttendance />} />
               <Route path="attendance/monthly" element={<MonthlyAttendance />} />
+              <Route path="attendance/absent" element={<AbsentEmployees />} />
+              <Route path="attendance/delete" element={<AdminDeleteAttendance />} />
               <Route path="attendance-settings" element={<ModulePlaceholder title="Attendance Settings" />} />
               <Route path="attendance/*" element={<ModulePlaceholder title="Attendance Management" />} />
               <Route path="shift/add" element={<AddShift />} />
@@ -105,6 +110,7 @@ function App() {
               <Route path="leave/*" element={<ModulePlaceholder title="Leave Management" />} />
               <Route path="payroll-settings" element={<ModulePlaceholder title="Payroll Settings" />} />
               <Route path="payroll/tax-setting" element={<PayrollTaxSetting />} />
+              <Route path="payroll/salary-group" element={<SalaryGroups />} />
               <Route path="payroll/earning-deduction" element={<EarningDeductionType />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />

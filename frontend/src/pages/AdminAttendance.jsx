@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -20,11 +21,13 @@ const approvalColors = {
 };
 
 const AdminAttendance = () => {
+  const [searchParams] = useSearchParams();
   const today = new Date();
   const [date, setDate] = useState(today.toISOString().split('T')[0]);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'All');
   const [viewMode, setViewMode] = useState('day'); // 'day' | 'month'
   const [month, setMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -98,11 +101,13 @@ const AdminAttendance = () => {
 
   const filtered = records.filter(r => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch = (
       r.employee?.name?.toLowerCase().includes(q) ||
       r.employee?.employeeId?.toLowerCase().includes(q) ||
       r.employee?.department?.toLowerCase().includes(q)
     );
+    const matchesStatus = statusFilter === 'All' || r.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const counts = records.reduce((acc, r) => {
@@ -189,18 +194,31 @@ const AdminAttendance = () => {
         ))}
       </div>
 
-      {/* Search */}
-      <div style={{ position: 'relative', marginBottom: '20px', maxWidth: '360px' }}>
-        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-        <input
-          type="text" placeholder="Search by name, ID, department..."
-          value={search} onChange={e => setSearch(e.target.value)}
-          style={{
-            width: '100%', padding: '10px 12px 10px 38px', border: '1.5px solid #E2E8F0',
-            borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-            color: '#334155'
-          }}
-        />
+      {/* Search & Filter */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text" placeholder="Search by name, ID, department..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', padding: '10px 12px 10px 38px', border: '1.5px solid #E2E8F0',
+              borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+              color: '#334155'
+            }}
+          />
+        </div>
+        <select 
+          value={statusFilter} 
+          onChange={e => setStatusFilter(e.target.value)}
+          style={{ padding: '9px 15px', border: '1.5px solid #E2E8F0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: '#fff', fontWeight: '600', color: '#475569' }}
+        >
+          <option value="All">All Status</option>
+          <option value="Present">Present</option>
+          <option value="Absent">Absent</option>
+          <option value="Half Day">Half Day</option>
+          <option value="On Leave">On Leave</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -286,10 +304,36 @@ const AdminAttendance = () => {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {r.punchIn ? <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogIn size={13} color="#10B981" />{r.punchIn}</span> : <span style={{ color: '#CBD5E1' }}>—</span>}
+                        {r.punchIn ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogIn size={13} color="#10B981" />{r.punchIn}</span>
+                            {r.punches?.find(p => p.type === 'IN')?.latitude && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${r.punches.find(p => p.type === 'IN').latitude},${r.punches.find(p => p.type === 'IN').longitude}`, '_blank'); }} 
+                                  title="View punch-in location"
+                                  style={{ padding: '3px', borderRadius: '5px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
+                                >
+                                  <MapPin size={12} />
+                                </button>
+                            )}
+                          </div>
+                        ) : <span style={{ color: '#CBD5E1' }}>—</span>}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {r.punchOut ? <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogOut size={13} color="#EF4444" />{r.punchOut}</span> : <span style={{ color: '#CBD5E1' }}>—</span>}
+                        {r.punchOut ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogOut size={13} color="#EF4444" />{r.punchOut}</span>
+                            {[...(r.punches || [])].reverse().find(p => p.type === 'OUT')?.latitude && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${[...r.punches].reverse().find(p => p.type === 'OUT').latitude},${[...r.punches].reverse().find(p => p.type === 'OUT').longitude}`, '_blank'); }} 
+                                  title="View punch-out location"
+                                  style={{ padding: '3px', borderRadius: '5px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
+                                >
+                                  <MapPin size={12} />
+                                </button>
+                            )}
+                          </div>
+                        ) : <span style={{ color: '#CBD5E1' }}>—</span>}
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#2563EB', whiteSpace: 'nowrap' }}>
                         {r.workingFormatted || '—'}
@@ -362,7 +406,18 @@ const AdminAttendance = () => {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                       <span style={{ fontWeight: '800', fontSize: '14px', color: p.type === 'IN' ? '#10B981' : '#EF4444' }}>{p.type === 'IN' ? 'Punch In' : 'Punch Out'}</span>
-                      <span style={{ fontSize: '13px', fontWeight: '700' }}>{new Date(p.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700' }}>{new Date(p.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                        {(p.latitude && p.longitude) && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${p.latitude},${p.longitude}`, '_blank'); }} 
+                            title="View location on map"
+                            style={{ padding: '4px', borderRadius: '6px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
+                          >
+                            <MapPin size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -141,7 +141,8 @@ const createUser = async (req, res) => {
             dateJoined: bodyContent.dateOfJoining || bodyContent.dateJoined,
             workSetup: {
                 location: bodyContent.jobLocation || bodyContent.branch || (bodyContent.workSetup ? bodyContent.workSetup.location : ''),
-                shift: shiftId
+                shift: shiftId,
+                salaryGroup: bodyContent.salaryGroup || null
             },
             profilePhoto,
             name,
@@ -226,6 +227,7 @@ const getUsers = async (req, res) => {
         })
         .populate('workSetup.shift')
         .populate('leaveGroup')
+        .populate('workSetup.salaryGroup')
         .select("-password")
         .sort({ createdAt: -1 });
 
@@ -233,6 +235,9 @@ const getUsers = async (req, res) => {
             const userObj = user.toObject();
             if (userObj.workSetup && userObj.workSetup.shift) {
                 userObj.shift = userObj.workSetup.shift.shiftName;
+            }
+            if (userObj.workSetup && userObj.workSetup.salaryGroup) {
+                userObj.salaryGroupId = userObj.workSetup.salaryGroup._id || userObj.workSetup.salaryGroup;
             }
 
             // check punch status for today
@@ -292,6 +297,7 @@ const getUser = async (req, res) => {
         const user = await User.findById(req.params.id)
             .populate('workSetup.shift')
             .populate('leaveGroup')
+            .populate('workSetup.salaryGroup')
             .populate('documents.documentType')
             .select("-password");
 
@@ -303,6 +309,9 @@ const getUser = async (req, res) => {
         const userObj = user.toObject();
         if (userObj.workSetup && userObj.workSetup.shift) {
             userObj.shift = userObj.workSetup.shift.shiftName;
+        }
+        if (userObj.workSetup && userObj.workSetup.salaryGroup) {
+            userObj.salaryGroupId = userObj.workSetup.salaryGroup._id || userObj.workSetup.salaryGroup;
         }
 
         res.status(200).json({ success: true, user: userObj });
@@ -344,6 +353,12 @@ const updateUser = async (req, res) => {
                 updateData['workSetup.shift'] = shiftObj._id;
             }
             delete updateData.shift; // Remove root field as it's not in schema
+        }
+
+        // Handle Salary Group update
+        if (updateData.salaryGroup) {
+            updateData['workSetup.salaryGroup'] = updateData.salaryGroup;
+            delete updateData.salaryGroup;
         }
 
         // Handle Branch/Location update
@@ -392,7 +407,7 @@ const updateUser = async (req, res) => {
             req.params.id, 
             { $set: updateData }, 
             { new: true, runValidators: true }
-        ).select("-password").populate('workSetup.shift').populate('leaveGroup');
+        ).select("-password").populate('workSetup.shift').populate('leaveGroup').populate('workSetup.salaryGroup');
 
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -402,6 +417,9 @@ const updateUser = async (req, res) => {
         const userObj = user.toObject();
         if (userObj.workSetup && userObj.workSetup.shift) {
             userObj.shift = userObj.workSetup.shift.shiftName;
+        }
+        if (userObj.workSetup && userObj.workSetup.salaryGroup) {
+            userObj.salaryGroupId = userObj.workSetup.salaryGroup._id || userObj.workSetup.salaryGroup;
         }
 
         res.status(200).json({ success: true, message: "User updated successfully", user: userObj });
@@ -506,6 +524,7 @@ const uploadUserDocument = async (req, res) => {
 
         const populatedUser = await User.findById(req.params.id)
             .populate('workSetup.shift')
+            .populate('workSetup.salaryGroup')
             .populate('documents.documentType')
             .select("-password");
         
@@ -529,6 +548,7 @@ const deleteUserDocument = async (req, res) => {
         
         const populatedUser = await User.findById(req.params.id)
             .populate('workSetup.shift')
+            .populate('workSetup.salaryGroup')
             .populate('documents.documentType')
             .select("-password");
             

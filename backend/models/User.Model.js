@@ -176,6 +176,10 @@ const userSchema = new mongoose.Schema(
             shift: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Shift'
+            },
+            salaryGroup: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'SalaryGroup'
             }
         },
         salaryDetails: {

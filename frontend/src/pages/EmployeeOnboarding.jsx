@@ -16,6 +16,7 @@ const EmployeeOnboarding = () => {
     const [designations, setDesignations] = useState([]);
     const [shifts, setShifts] = useState([]);
     const [leaveGroups, setLeaveGroups] = useState([]);
+    const [salaryGroups, setSalaryGroups] = useState([]);
     const [countries, setCountries] = useState([]);
     const [documentTypes, setDocumentTypes] = useState([]);
     
@@ -34,6 +35,7 @@ const EmployeeOnboarding = () => {
         department: '',
         shift: '',
         leaveGroup: '',
+        salaryGroup: '',
         firstName: '',
         lastName: '',
         countryCode: '+91',
@@ -118,12 +120,13 @@ const EmployeeOnboarding = () => {
 
     const fetchDropdownData = async () => {
         try {
-            const [branchRes, deptRes, desigRes, shiftRes, leaveGroupRes, docTypeRes] = await Promise.all([
+            const [branchRes, deptRes, desigRes, shiftRes, leaveGroupRes, salaryGroupRes, docTypeRes] = await Promise.all([
                 authenticatedFetch(`${API_URL}/api/branches`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/departments`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/designations`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/shifts`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/leave-groups`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                authenticatedFetch(`${API_URL}/api/salary-groups/all`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/document-types`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
@@ -132,6 +135,7 @@ const EmployeeOnboarding = () => {
             const deData = await desigRes.json();
             const sData = await shiftRes.json();
             const lgData = await leaveGroupRes.json();
+            const sgData = await salaryGroupRes.json();
             const dtData = await docTypeRes.json();
 
             if (bData.success) setBranches(bData.branches);
@@ -139,6 +143,7 @@ const EmployeeOnboarding = () => {
             if (deData.success) setDesignations(deData.designations);
             if (sData.success) setShifts(sData.shifts);
             if (lgData.success) setLeaveGroups(lgData.leaveGroups);
+            if (sgData.success) setSalaryGroups(sgData.groups);
             if (dtData.success) setDocumentTypes(dtData.documentTypes.filter(d => d.status === true));
 
         } catch (error) {
@@ -297,7 +302,7 @@ const EmployeeOnboarding = () => {
                 if (!formData.designation.trim()) errors.push('Designation is required');
                 if (!formData.branch.trim()) errors.push('Branch is required');
                 if (!formData.department.trim()) errors.push('Department is required');
-                // if (!formData.leaveGroup.trim()) errors.push('Leave Group is required');
+                if (!formData.salaryGroup.trim()) errors.push('Salary Group is required');
                 if (!formData.employmentType.trim()) errors.push('Employment Type is required');
                 if (!formData.email.trim()) errors.push('Email ID is required');
                 if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.push('Please enter a valid email address');
@@ -726,6 +731,18 @@ const EmployeeOnboarding = () => {
                                         options={leaveGroups.map(lg => ({ value: lg._id, label: lg.leaveGroupName }))}
                                         value={formData.leaveGroup}
                                         onChange={(val) => setFormData(prev => ({ ...prev, leaveGroup: val }))}
+                                    />
+                                </div>
+
+                                <div className="hrm-form-group">
+                                    <SearchableSelect 
+                                        label="Salary Group"
+                                        required={true}
+                                        searchable={true}
+                                        placeholder="Select Salary Group"
+                                        options={salaryGroups.map(sg => ({ value: sg._id, label: sg.groupName }))}
+                                        value={formData.salaryGroup}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, salaryGroup: val }))}
                                     />
                                 </div>
                                 

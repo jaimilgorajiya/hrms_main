@@ -16,7 +16,9 @@ import {
   Check,
   X,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -43,23 +45,6 @@ const AdminDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching pending attendance:", error);
-    }
-  };
-
-  const handleApprovalAction = async (id, status) => {
-    try {
-      const response = await authenticatedFetch(`${API_URL}/api/attendance/admin/approve`, {
-        method: 'POST',
-        body: JSON.stringify({ attendanceId: id, status })
-      });
-      const result = await response.json();
-      if (result.success) {
-        Swal.fire({ title: `Attendance ${status}`, icon: 'success', timer: 1000, showConfirmButton: false });
-        fetchPendingAttendance();
-      }
-    } catch (err) {
-      console.error(err);
-      Swal.fire('Error', 'Action failed', 'error');
     }
   };
 
@@ -98,37 +83,64 @@ const AdminDashboard = () => {
       title: 'Total Employees', 
       value: stats.totalUsers || 0, 
       icon: <Users size={20} />, 
-      trend: '+12%', 
+      trend: `${stats.activeUsers || 0} Active`, 
       positive: true,
       color: 'blue',
       link: '/admin/employees/list'
     },
     { 
-      title: 'Active Now', 
-      value: stats.activeUsers || 0, 
-      icon: <Briefcase size={20} />, 
-      trend: '+4%', 
+      title: 'Present Today', 
+      value: stats.presentToday || 0, 
+      icon: <Check size={20} />, 
+      trend: 'Today', 
       positive: true,
-      color: 'green',
-      link: '/admin/attendance/records'
+      color: 'emerald',
+      link: '/admin/attendance/records?status=Present'
     },
     { 
-      title: 'Monthly Onboarding', 
-      value: stats.activeOnboarding || 0, 
-      icon: <UserPlus size={20} />, 
-      trend: '+4', 
-      positive: true,
-      color: 'purple',
-      link: '/admin/employees/onboarding'
-    },
-    { 
-      title: 'Active Offboarding', 
-      value: stats.activeOffboarding || 0, 
-      icon: <UserMinus size={20} />, 
-      trend: '-2', 
+      title: 'Absent Today', 
+      value: stats.absentToday || 0, 
+      icon: <AlertCircle size={20} />, 
+      trend: 'Today', 
       positive: false,
       color: 'red',
-      link: '/admin/employees/offboarding'
+      link: '/admin/attendance/absent'
+    },
+    { 
+      title: 'On Leave Today', 
+      value: stats.onLeaveToday || 0, 
+      icon: <Calendar size={20} />, 
+      trend: 'Today', 
+      positive: true,
+      color: 'purple',
+      link: '/admin/attendance/records?status=On Leave'
+    },
+    { 
+      title: 'Half Day Today', 
+      value: stats.halfDayToday || 0, 
+      icon: <Clock size={20} />, 
+      trend: 'Today', 
+      positive: false,
+      color: 'orange',
+      link: '/admin/attendance/records?status=Half Day'
+    },
+    { 
+      title: 'Pending Leaves', 
+      value: stats.pendingLeaveRequests || 0, 
+      icon: <Calendar size={20} />, 
+      trend: 'Requests', 
+      positive: true,
+      color: 'blue',
+      link: '/admin/leave/request'
+    },
+    { 
+      title: 'Punch Out Request', 
+      value: stats.pendingAttendanceRequests || 0, 
+      icon: <Clock size={20} />, 
+      trend: 'Requests', 
+      positive: true,
+      color: 'orange',
+      link: '/admin/attendance/punch-request'
     }
   ];
 
@@ -174,13 +186,8 @@ const AdminDashboard = () => {
         <div className="main-grid-left">
           <div className="card-prem">
             <div className="card-header-prem">
-              <h2>Attendance Approvals</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="badge-pending" style={{ background: '#FFFBEB', color: '#F59E0B', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '20px' }}>
-                  {pendingAttendance.length} Pending
-                </span>
-                <button className="icon-btn-prem" onClick={fetchPendingAttendance}><RefreshCw size={16} /></button>
-              </div>
+              <h2>Recent Attendance</h2>
+              <button className="icon-btn-prem" onClick={fetchPendingAttendance}><RefreshCw size={16} /></button>
             </div>
             <div className="card-body-prem" style={{ padding: '0' }}>
               <div className="attendance-list-dashboard">
@@ -200,28 +207,11 @@ const AdminDashboard = () => {
                         <Clock size={13} style={{ color: '#94A3B8' }} />
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{rec.punchIn || '--:--'} - {rec.punchOut || '--:--'}</span>
                     </div>
-
-                    <div className="action-buttons-dashboard" style={{ display: 'flex', gap: '8px' }}>
-                      <button 
-                        onClick={() => handleApprovalAction(rec._id, 'Approved')}
-                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#DCFCE7', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                        title="Approve"
-                      >
-                        <Check size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleApprovalAction(rec._id, 'Rejected')}
-                        style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                        title="Reject"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
                   </div>
                 ))}
                 {pendingAttendance.length === 0 && (
                   <div style={{ padding: '60px 40px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
-                     No pending attendance approvals.
+                     No recent attendance records.
                   </div>
                 )}
               </div>

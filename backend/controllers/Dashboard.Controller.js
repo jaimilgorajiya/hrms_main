@@ -3,6 +3,14 @@ import Department from "../models/Department.Model.js";
 import Designation from "../models/Designation.Model.js";
 import Onboarding from "../models/Onboarding.Model.js";
 import Offboarding from "../models/Offboarding.Model.js";
+import Request from "../models/Request.Model.js";
+import Attendance from "../models/Attendance.Model.js";
+
+const getTodayStr = () => {
+    const now = new Date();
+    const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    return ist.toISOString().split('T')[0];
+};
 
 export const getAdminStats = async (req, res) => {
     try {
@@ -15,7 +23,16 @@ export const getAdminStats = async (req, res) => {
         };
 
         const totalUsers = await User.countDocuments(adminFilter); 
-        const activeUsers = await User.countDocuments({ ...adminFilter, status: 'Active' });
+        const activeUsersCount = await User.countDocuments({ ...adminFilter, status: 'Active' });
+        
+        // Attendance Stats for Today
+        const todayStr = getTodayStr();
+        const presentToday = await Attendance.countDocuments({ date: todayStr, status: 'Present' });
+        const halfDayToday = await Attendance.countDocuments({ date: todayStr, status: 'Half Day' });
+        const onLeaveToday = await Attendance.countDocuments({ date: todayStr, status: 'On Leave' });
+        const totalAttendanceToday = await Attendance.countDocuments({ date: todayStr });
+        const absentToday = Math.max(0, activeUsersCount - totalAttendanceToday);
+
         const totalDepartments = await Department.countDocuments({ adminId });
         const totalDesignations = await Designation.countDocuments({ adminId });
         const activeOnboarding = await User.countDocuments({ 
@@ -23,6 +40,18 @@ export const getAdminStats = async (req, res) => {
             status: 'Onboarding' 
         });
         const activeOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' }, adminId });
+        
+        // Request Stats
+        const pendingLeaveRequests = await Request.countDocuments({ 
+            adminId, 
+            requestType: 'Leave', 
+            status: 'Pending' 
+        });
+        const pendingAttendanceRequests = await Request.countDocuments({ 
+            adminId, 
+            requestType: 'Attendance Correction', 
+            status: 'Pending' 
+        });
 
         // Department Distribution
         const departmentStats = await User.aggregate([
@@ -70,11 +99,17 @@ export const getAdminStats = async (req, res) => {
             success: true,
             stats: {
                 totalUsers,
-                activeUsers,
+                activeUsers: activeUsersCount,
+                presentToday,
+                halfDayToday,
+                onLeaveToday,
+                absentToday,
                 totalDepartments,
                 totalDesignations,
                 activeOnboarding,
-                activeOffboarding
+                activeOffboarding,
+                pendingLeaveRequests,
+                pendingAttendanceRequests
             },
             departmentStats,
             roleStats,

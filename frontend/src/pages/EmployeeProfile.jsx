@@ -61,6 +61,7 @@ const EmployeeProfile = () => {
     const [designations, setDesignations] = useState([]);
     const [shifts, setShifts] = useState([]);
     const [leaveGroups, setLeaveGroups] = useState([]);
+    const [salaryGroups, setSalaryGroups] = useState([]);
     const [documentTypes, setDocumentTypes] = useState([]);
     const [countries, setCountries] = useState([]);
 
@@ -318,12 +319,13 @@ const EmployeeProfile = () => {
     const fetchDropdownData = async () => {
         const token = localStorage.getItem('token');
         try {
-            const [branchRes, deptRes, desigRes, shiftRes, leaveGroupRes, docTypeRes] = await Promise.all([
+            const [branchRes, deptRes, desigRes, shiftRes, leaveGroupRes, salaryGroupRes, docTypeRes] = await Promise.all([
                 authenticatedFetch(`${API_URL}/api/branches`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/departments`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/designations`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/shifts`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/leave-groups`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                authenticatedFetch(`${API_URL}/api/salary-groups/all`, { headers: { 'Authorization': `Bearer ${token}` } }),
                 authenticatedFetch(`${API_URL}/api/document-types`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
@@ -332,6 +334,7 @@ const EmployeeProfile = () => {
             const deData = await desigRes.json();
             const sData = await shiftRes.json();
             const lgData = await leaveGroupRes.json();
+            const sgData = await salaryGroupRes.json();
             const docData = await docTypeRes.json();
 
             if (bData.success) setBranches(bData.branches);
@@ -339,7 +342,9 @@ const EmployeeProfile = () => {
             if (deData.success) setDesignations(deData.designations);
             if (sData.success) setShifts(sData.shifts);
             if (lgData.success) setLeaveGroups(lgData.leaveGroups);
-            if (docData.success) setDocumentTypes(docData.documentTypes.filter(d => d.status)); // Only keep active
+            if (sgData.success) setSalaryGroups(sgData.groups);
+            if (docData.success) setDocumentTypes(docData.documentTypes.filter(d => d.status));
+// Only keep active
         } catch (error) {
             console.error("Error fetching dropdowns:", error);
         }
@@ -1016,6 +1021,16 @@ const EmployeeProfile = () => {
                                             options={[{ value: '', label: 'None (Unassign)' }, ...leaveGroups.map(lg => ({ value: lg._id, label: lg.leaveGroupName }))]}
                                             value={typeof formData.leaveGroup === 'object' ? formData.leaveGroup?._id : (formData.leaveGroup || '')}
                                             onChange={(val) => setFormData(prev => ({ ...prev, leaveGroup: val }))}
+                                        />
+                                    </div>
+                                    <div className="ss-form-group">
+                                        <SearchableSelect 
+                                            label="Salary Group"
+                                            searchable={true}
+                                            placeholder="Assign Salary Group"
+                                            options={salaryGroups.map(sg => ({ value: sg._id, label: sg.groupName }))}
+                                            value={formData.salaryGroupId || ''}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, salaryGroupId: val, salaryGroup: val }))}
                                         />
                                     </div>
                                 </>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, Search, RefreshCw, CheckCircle, XCircle, FileText, User, MessageSquare } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 
@@ -91,6 +92,7 @@ const MiniCalendar = ({ fromDate, toDate }) => {
 };
 
 const AdminRequests = () => {
+  const location = useLocation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -100,6 +102,11 @@ const AdminRequests = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [adminRemark, setAdminRemark] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname.includes('/leave')) setFilterType('Leave');
+    else if (location.pathname.includes('/attendance')) setFilterType('Attendance Correction');
+  }, [location.pathname]);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);

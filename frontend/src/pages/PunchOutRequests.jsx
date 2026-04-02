@@ -70,7 +70,7 @@ const PunchOutRequests = () => {
     <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Punch Out Corrections</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Punch Out Request</h2>
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px', fontWeight: '500' }}>Review and approve missing punch out or attendance adjustment requests</p>
         </div>
         <button onClick={fetchRequests} style={{

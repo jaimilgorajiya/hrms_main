@@ -588,6 +588,48 @@ export const updateApprovalStatus = async (req, res) => {
     }
 };
 
+// DELETE /api/attendance/admin/delete (admin only)
+export const deleteAttendance = async (req, res) => {
+    try {
+        const { attendanceId } = req.body;
+        if (!attendanceId) return res.status(400).json({ success: false, message: "Attendance ID is required" });
+
+        const record = await Attendance.findById(attendanceId);
+        if (!record) return res.status(404).json({ success: false, message: "Record not found" });
+
+        // Update to Absent instead of deleting
+        record.status = "Absent";
+        record.punches = [];
+        record.breaks = [];
+        record.lateInPenalty = { amount: 0, isApplied: false, isLate: false };
+        record.earlyOutPenalty = { amount: 0, isApplied: false };
+        record.approvalStatus = "Approved"; // Mark as final
+        record.remark = "Marked as Absent by Admin";
+        
+        await record.save();
+
+        // Also delete any pending 'Attendance Correction' requests for this date
+        await Request.deleteMany({
+            employee: record.employee,
+            date: record.date,
+            requestType: 'Attendance Correction'
+        });
+
+        // Notify employee about marking absent
+        await Notification.create({
+            user: record.employee,
+            title: "Attendance Updated: Absent",
+            message: `Admin has updated your attendance for ${record.date} to 'Absent'.`,
+            type: "Attendance"
+        });
+
+        res.status(200).json({ success: true, message: "Attendance record marked as Absent successfully" });
+    } catch (error) {
+        console.error("deleteAttendance error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
 // POST /api/attendance/admin/add-manual (admin only)
 export const addManualAttendance = async (req, res) => {
     try {
@@ -669,6 +711,63 @@ export const getMissingAttendance = async (req, res) => {
         res.status(200).json({ success: true, records: formatted });
     } catch (error) {
         console.error("getMissingAttendance error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// GET /api/attendance/admin/absent-list?date=YYYY-MM-DD (admin only)
+export const getAbsentEmployees = async (req, res) => {
+    try {
+        const { date = getTodayStr() } = req.query;
+
+        // 1. Get all attendance records for this date
+        const presentRecords = await Attendance.find({ date }).select('employee status');
+        const presentEmployeeIds = presentRecords.map(r => r.employee.toString());
+
+        // 2. Get all active employees
+        const employees = await User.find({ 
+            role: 'Employee', 
+            status: 'Active' 
+        })
+        .select('name employeeId department designation profilePhoto workSetup phone branch')
+        .populate('workSetup.shift', 'weekOffDays');
+
+        // 3. Identify who is NOT present
+        const absentees = employees.filter(emp => !presentEmployeeIds.includes(emp._id.toString()));
+
+        // 4. Categorize by shift/week-off
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dateObj = new Date(date);
+        const dayName = days[dateObj.getUTCDay()];
+
+        const formatted = absentees.map(emp => {
+            const weekOffDays = emp.workSetup?.shift?.weekOffDays || [];
+            const isWeekOff = weekOffDays.includes(dayName);
+            
+            return {
+                _id: emp._id,
+                name: emp.name,
+                employeeId: emp.employeeId,
+                department: emp.department,
+                designation: emp.designation,
+                profilePhoto: emp.profilePhoto,
+                phone: emp.phone,
+                branch: emp.branch,
+                isWeekOff,
+                shiftName: emp.workSetup?.shift?.name || 'Not Assigned'
+            };
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            absentees: formatted,
+            date,
+            dayName,
+            totalActive: employees.length,
+            presentCount: presentEmployeeIds.length
+        });
+    } catch (error) {
+        console.error("getAbsentEmployees error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

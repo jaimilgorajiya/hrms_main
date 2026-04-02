@@ -124,7 +124,7 @@ export default function AttendanceScreen() {
 
   const processAttendance = (records, targetMonth, jDate, requests = {}, woDays = []) => {
     const marked = {};
-    let sPresent = 0, sAbsent = 0, sHalfDay = 0, sLeaves = 0;
+    let sPresent = 0, sAbsent = 0, sHalfDay = 0, sLeaves = 0, sMissingOut = 0;
     const lookup = {};
     records.forEach(r => lookup[r.date] = r);
 
@@ -143,7 +143,7 @@ export default function AttendanceScreen() {
         let dotColor = COLORS.textMuted;
         const isMissingOut = r.punchIn && !r.punchOut;
         
-        if (isMissingOut) { dotColor = COLORS.warning; } // Orange for missing punch out
+        if (isMissingOut) { dotColor = COLORS.warning; sMissingOut++; } // Orange for missing punch out
         else if (r.status === 'Present') { dotColor = COLORS.success; sPresent++; }
         else if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
         else if (r.status === 'Leave') { dotColor = COLORS.purple; sLeaves++; }
@@ -185,7 +185,7 @@ export default function AttendanceScreen() {
     });
 
     setMarkedDates(marked);
-    setStats({ present: sPresent, absent: sAbsent, halfDay: sHalfDay, leaves: sLeaves });
+    setStats({ present: sPresent, absent: sAbsent, halfDay: sHalfDay, leaves: sLeaves, missingOut: sMissingOut });
   };
 
   useEffect(() => { loadData(); }, []);
@@ -312,8 +312,8 @@ export default function AttendanceScreen() {
               <Text style={styles.statLabel}>Absent</Text>
             </View>
             <View style={[styles.statItem, SHADOW.sm]}>
-              <Text style={[styles.statVal, { color: COLORS.warning }]}>{stats.halfDay}</Text>
-              <Text style={styles.statLabel}>Half Day</Text>
+              <Text style={[styles.statVal, { color: COLORS.warning }]}>{stats.missingOut || 0}</Text>
+              <Text style={styles.statLabel}>Punch Out Miss</Text>
             </View>
           </View>
 

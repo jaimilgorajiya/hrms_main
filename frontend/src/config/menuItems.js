@@ -56,6 +56,7 @@ export const menuItems = [
         children: [
           { title: "Payroll & Tax Setting", path: "/admin/payroll/tax-setting" },
           { title: "Earning & Deduction Type", path: "/admin/payroll/earning-deduction" },
+          { title: "Salary Group", path: "/admin/payroll/salary-group" },
         ],
       },
       {
@@ -108,7 +109,6 @@ export const menuItems = [
           { title: "Attendance Records", path: "/admin/attendance/records" },
           { title: "Add Attendance", path: "/admin/attendance/add" },
           { title: "Monthly Attendances", path: "/admin/attendance/monthly" },
-          { title: "Pending Attendance", path: "/admin/attendance/pending" },
           { title: "Punch Out Request", path: "/admin/attendance/punch-request" },
           { title: "Attendance Request", path: "/admin/attendance/request" },
           { title: "Absent Emp", path: "/admin/attendance/absent" },

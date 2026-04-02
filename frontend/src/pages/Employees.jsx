@@ -424,6 +424,23 @@ const Employees = () => {
                                                 </div>
                                             </div>
 
+                                            {/* Payroll Policy */}
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Payroll Policy</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ 
+                                                        fontSize: '12.5px', 
+                                                        color: emp.workSetup?.salaryGroup ? '#0F172A' : '#94A3B8', 
+                                                        fontWeight: '750' 
+                                                    }}>
+                                                        {emp.workSetup?.salaryGroup?.groupName || 'Unassigned'}
+                                                    </span>
+                                                    {emp.workSetup?.salaryGroup && (
+                                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB' }} />
+                                                    )}
+                                                </div>
+                                            </div>
+
                                             {/* Contact Details */}
                                             <div style={{ flex: 1, display: 'flex', gap: '30px' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
