@@ -27,6 +27,7 @@ import AddLeaveGroup from './pages/AddLeaveGroup';
 import EditLeaveGroup from './pages/EditLeaveGroup';
 import EarningDeductionType from './pages/EarningDeductionType';
 import SalaryGroups from './pages/SalaryGroups';
+import EmployeeCTC from './pages/EmployeeCTC';
 import EmployeeOnboarding from './pages/EmployeeOnboarding';
 import EmployeeOffboarding from './pages/EmployeeOffboarding';
 import PayrollTaxSetting from './pages/PayrollTaxSetting';
@@ -111,6 +112,7 @@ function App() {
               <Route path="payroll-settings" element={<ModulePlaceholder title="Payroll Settings" />} />
               <Route path="payroll/tax-setting" element={<PayrollTaxSetting />} />
               <Route path="payroll/salary-group" element={<SalaryGroups />} />
+              <Route path="payroll/employee-ctc" element={<EmployeeCTC />} />
               <Route path="payroll/earning-deduction" element={<EarningDeductionType />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />

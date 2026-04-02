@@ -42,6 +42,7 @@ import documentTypeRoutes from './routes/DocumentType.Routes.js';
 import onboardingDocSettingRoutes from './routes/OnboardingDocSetting.Routes.js';
 import leaveGroupRoutes from './routes/LeaveGroup.Routes.js';
 import salaryGroupRoutes from './routes/SalaryGroup.Routes.js';
+import employeeCTCRoutes from './routes/EmployeeCTC.Routes.js';
 
 import payrollSettingRoutes from './routes/PayrollSetting.Routes.js';
 import roleRoutes from './routes/Role.Routes.js';
@@ -105,6 +106,7 @@ app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/onboarding-doc-settings', onboardingDocSettingRoutes);
 app.use('/api/leave-groups', leaveGroupRoutes);
 app.use('/api/salary-groups', salaryGroupRoutes);
+app.use('/api/employee-ctc', employeeCTCRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/retirement', retirementRoutes);
 app.use('/api/promotions', promotionRoutes);

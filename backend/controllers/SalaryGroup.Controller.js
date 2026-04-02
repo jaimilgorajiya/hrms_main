@@ -4,7 +4,7 @@ import User from "../models/User.Model.js";
 // POST /api/salary-groups/add
 export const createSalaryGroup = async (req, res) => {
     try {
-        const { groupName, payrollFrequency, workingDaysType, salaryCycleStartDate, roundedSalary, status } = req.body;
+        const { groupName, payrollFrequency, workingDaysType, salaryCycleStartDate, fixedDays, roundedSalary, status } = req.body;
         const adminId = req.user._id;
 
         const existing = await SalaryGroup.findOne({ adminId, groupName });
@@ -15,6 +15,7 @@ export const createSalaryGroup = async (req, res) => {
             payrollFrequency,
             workingDaysType,
             salaryCycleStartDate,
+            fixedDays,
             roundedSalary,
             status,
             adminId

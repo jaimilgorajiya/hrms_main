@@ -107,7 +107,8 @@ const Sidebar = ({ isCollapsed }) => {
 
   const isAllowed = (permissions, module, subModule = null, childModule = null) => {
     // Force allow Sidebar Setup for Admin safety
-    if (childModule === "Sidebar Setup" || childModule === "Monthly Attendances") return true;
+    const safetyList = ["Sidebar Setup"];
+    if (safetyList.includes(childModule) || safetyList.includes(subModule)) return true;
 
     return permissions?.some(
       (p) =>

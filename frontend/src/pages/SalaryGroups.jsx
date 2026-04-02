@@ -45,16 +45,15 @@ const EliteSelect = ({ label, value, options, onChange, placeholder = "Select Op
                     justifyContent: 'space-between',
                     background: isOpen ? '#fff' : '#F8FAFC',
                     borderColor: isOpen ? '#2563EB' : '#E2E8F0',
-                    boxShadow: isOpen ? '0 0 0 5px rgba(37, 99, 235, 0.1)' : '0 2px 4px rgba(0,0,0,0.02)',
-                    padding: '16px 20px',
+                    boxShadow: isOpen ? '0 0 0 4px rgba(37, 99, 235, 0.08)' : 'none',
                     cursor: 'pointer',
                     userSelect: 'none'
                 }}
             >
-                <span style={{ color: value ? '#0F172A' : '#94A3B8', fontWeight: '800', fontSize: '14.5px' }}>
+                <span style={{ color: value ? '#0F172A' : '#94A3B8', fontWeight: '800', fontSize: '13.5px' }}>
                     {displayLabel || placeholder}
                 </span>
-                <ChevronDown size={20} style={{ color: isOpen ? '#2563EB' : '#64748B', transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
+                <ChevronDown size={18} style={{ color: isOpen ? '#2563EB' : '#64748B', transition: 'transform 0.3s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
             </div>
 
             {isOpen && (
@@ -108,6 +107,7 @@ const SalaryGroups = () => {
         payrollFrequency: 'Monthly Pay',
         workingDaysType: 'Calendar days (Paid Week Off & Holiday)',
         salaryCycleStartDate: 1,
+        fixedDays: 26,
         roundedSalary: 'No',
         status: 'Active'
     });
@@ -127,7 +127,7 @@ const SalaryGroups = () => {
     const resetForm = () => {
         setForm({
             groupName: '', payrollFrequency: 'Monthly Pay', workingDaysType: 'Calendar days (Paid Week Off & Holiday)',
-            salaryCycleStartDate: 1, roundedSalary: 'No', status: 'Active'
+            salaryCycleStartDate: 1, fixedDays: 26, roundedSalary: 'No', status: 'Active'
         });
         setEditingId(null);
         setShowForm(false);
@@ -172,7 +172,7 @@ const SalaryGroups = () => {
             {/* Minimalist Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '45px' }}>
                 <div>
-                    <h2 style={{ fontSize: '36px', fontWeight: '950', color: '#0F172A', margin: '0 0 10px', letterSpacing: '-0.04em' }}>Salary Common Value</h2>
+                    <h2 style={{ fontSize: '36px', fontWeight: '950', color: '#0F172A', margin: '0 0 10px', letterSpacing: '-0.04em' }}>Salary Group</h2>
                     <p style={{ color: '#64748B', fontWeight: '600', fontSize: '15.5px' }}>Core Payroll Configuration</p>
                 </div>
                 <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '18px 36px', background: '#2563EB', border: 'none', borderRadius: '22px', fontSize: '15px', fontWeight: '900', cursor: 'pointer', color: '#fff', boxShadow: '0 15px 25px -5px rgba(37, 99, 235, 0.45)' }}><Plus size={22} /> Add Salary Group</button>
@@ -205,20 +205,26 @@ const SalaryGroups = () => {
             {showForm && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
                     <div onClick={resetForm} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(16px)' }} />
-                    <div style={{ position: 'relative', background: '#fff', borderRadius: '54px', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.3)' }}>
-                        <form onSubmit={handleSubmit} style={{ padding: '54px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '50px' }}>
-                                <div><h3 style={{ margin: 0, fontSize: '32px', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.04em' }}>Setup Salary Group</h3><p style={{ margin: '6px 0 0', color: '#64748B', fontWeight: '700', fontSize: '15px' }}>Configuration window for core payroll drivers.</p></div>
-                                <button type="button" onClick={resetForm} style={{ background: '#F8FAFC', border: '1.5px solid #F1F5F9', padding: '14px', borderRadius: '22px', cursor: 'pointer', color: '#64748B' }}><XCircle size={30} /></button>
+                    <div style={{ position: 'relative', background: '#fff', borderRadius: '32px', width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 70px -10px rgba(0,0,0,0.3)' }}>
+                        <form onSubmit={handleSubmit} style={{ padding: '35px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px' }}>
+                                <div><h3 style={{ margin: 0, fontSize: '24px', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em' }}>Setup Salary Group</h3><p style={{ margin: '4px 0 0', color: '#64748B', fontWeight: '700', fontSize: '13.5px' }}>Configuration window for core payroll drivers.</p></div>
+                                <button type="button" onClick={resetForm} style={{ background: '#F8FAFC', border: '1.2px solid #F1F5F9', padding: '10px', borderRadius: '14px', cursor: 'pointer', color: '#64748B' }}><XCircle size={24} /></button>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '32px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
                                 <div style={{ gridColumn: 'span 2' }}>
                                     <label style={labelStyle}>Salary Group Name *</label>
-                                    <input type="text" required placeholder="e.g. Core Engineering" value={form.groupName} onChange={e => setForm({...form, groupName: e.target.value})} style={{ ...inputStyle, padding: '16px 20px', fontWeight: '800' }} />
+                                    <input type="text" required placeholder="e.g. Core Engineering" value={form.groupName} onChange={e => setForm({...form, groupName: e.target.value})} style={{ ...inputStyle, fontWeight: '800' }} />
                                 </div>
                                 <EliteSelect label="Payroll Frequency *" value={form.payrollFrequency} options={freqOptions} onChange={v => setForm({...form, payrollFrequency: v})} />
                                 <EliteSelect label="Working Days Type *" value={form.workingDaysType} options={wdOptions} onChange={v => setForm({...form, workingDaysType: v})} />
+                                {form.workingDaysType === 'Fixed Working Days' && (
+                                    <div>
+                                        <label style={labelStyle}>Fixed Days / Month *</label>
+                                        <input type="number" min="1" max="31" value={form.fixedDays} onChange={e => setForm({...form, fixedDays: parseInt(e.target.value)})} style={inputStyle} />
+                                    </div>
+                                )}
                                 <EliteSelect label="Salary Cycle Start Date" value={form.salaryCycleStartDate} options={dateOptions} onChange={v => setForm({...form, salaryCycleStartDate: v})} />
                                 <EliteSelect label="Round Off Salary?" value={form.roundedSalary} options={yesNoOptions} onChange={v => setForm({...form, roundedSalary: v})} />
                             </div>
@@ -227,7 +233,7 @@ const SalaryGroups = () => {
                                 <button type="submit" style={submitBtnStyle}>{editingId ? 'Save Core Settings' : 'Add New Salary Group'}</button>
                                 <button type="button" onClick={resetForm} style={cancelBtnStyle}>Discard</button>
                             </div>
-                        </form>
+                        </form>     
                     </div>
                 </div>
             )}
@@ -236,12 +242,12 @@ const SalaryGroups = () => {
     );
 };
 
-const thStyle = { padding: '28px 36px', textAlign: 'left', fontSize: '12.5px', fontWeight: '950', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.12em' };
-const tdStyle = { padding: '28px 36px' };
-const labelStyle = { display: 'block', marginBottom: '12px', fontSize: '13.5px', fontWeight: '900', color: '#475569' };
-const inputStyle = { width: '100%', borderRadius: '20px', border: '2px solid #E2E8F0', fontSize: '15px', color: '#0F172A', outline: 'none', background: '#F8FAFC', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' };
-const actionBtn = (bg, color) => ({ padding: '14px', borderRadius: '20px', border: 'none', background: bg, color: color, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' });
-const submitBtnStyle = { flex: 1, padding: '22px', borderRadius: '26px', border: 'none', background: '#2563EB', color: '#fff', fontSize: '16px', fontWeight: '950', cursor: 'pointer', boxShadow: '0 15px 30px -5px rgba(37, 99, 235, 0.55)' };
-const cancelBtnStyle = { padding: '22px 50px', borderRadius: '26px', border: '2.5px solid #E2E8F0', background: 'transparent', color: '#64748B', fontSize: '16px', fontWeight: '900', cursor: 'pointer' };
+const thStyle = { padding: '20px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '950', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.1em' };
+const tdStyle = { padding: '20px 24px' };
+const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '900', color: '#475569' };
+const inputStyle = { width: '100%', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '14px', color: '#0F172A', outline: 'none', background: '#F8FAFC', transition: 'all 0.2s', padding: '12px 16px' };
+const actionBtn = (bg, color) => ({ padding: '10px', borderRadius: '12px', border: 'none', background: bg, color: color, cursor: 'pointer', display: 'flex', transition: 'all 0.2s' });
+const submitBtnStyle = { flex: 1, padding: '15px', borderRadius: '16px', border: 'none', background: '#2563EB', color: '#fff', fontSize: '15px', fontWeight: '950', cursor: 'pointer', boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.4)' };
+const cancelBtnStyle = { padding: '15px 35px', borderRadius: '16px', border: '1.5px solid #E2E8F0', background: 'transparent', color: '#64748B', fontSize: '15px', fontWeight: '900', cursor: 'pointer' };
 
 export default SalaryGroups;

@@ -356,8 +356,8 @@ const updateUser = async (req, res) => {
         }
 
         // Handle Salary Group update
-        if (updateData.salaryGroup) {
-            updateData['workSetup.salaryGroup'] = updateData.salaryGroup;
+        if (updateData.salaryGroup !== undefined) {
+            updateData['workSetup.salaryGroup'] = updateData.salaryGroup === '' ? null : updateData.salaryGroup;
             delete updateData.salaryGroup;
         }
 

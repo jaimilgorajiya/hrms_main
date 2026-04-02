@@ -115,6 +115,13 @@ export const menuItems = [
           { title: "Delete Attendance", path: "/admin/attendance/delete" },
         ],
       },
+      {
+        title: "Payroll",
+        path: "/admin/payroll",
+        children: [
+          { title: "Employee CTC", path: "/admin/payroll/employee-ctc" },
+        ],
+      },
     ],
   },
   {

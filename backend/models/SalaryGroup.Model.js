@@ -20,6 +20,10 @@ const salaryGroupSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    fixedDays: {
+        type: Number,
+        default: 26
+    },
     roundedSalary: {
         type: String,
         enum: ['Yes', 'No'],

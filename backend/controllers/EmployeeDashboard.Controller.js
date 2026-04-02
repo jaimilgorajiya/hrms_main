@@ -4,6 +4,7 @@ import Branch from "../models/Branch.Model.js";
 import BreakType from "../models/BreakType.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import Request from "../models/Request.Model.js";
+import EmployeeCTC from "../models/EmployeeCTC.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
@@ -13,6 +14,7 @@ export const getEmployeeStats = async (req, res) => {
 
         const employee = await User.findById(userId)
             .populate('workSetup.shift')
+            .populate('workSetup.salaryGroup')
             .populate('leaveGroup')
             .populate('documents.documentType')
             .select('-password');
@@ -23,17 +25,27 @@ export const getEmployeeStats = async (req, res) => {
 
         const emp = employee.toObject();
         const shift = emp.workSetup?.shift || null;
+        const salaryGroup = emp.workSetup?.salaryGroup || null;
 
         // Fetch Penalty Rule once if shift exists
         const penaltyRule = shift ? await PenaltyRule.findOne({ shift: shift._id }) : null;
 
-        // Month stats
-        const start = new Date();
-        start.setDate(1); start.setHours(0,0,0,0);
+        // Month stats based on Salary Cycle Start Date
+        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+        const cycleStartDay = salaryGroup?.salaryCycleStartDate || 1;
+        
+        let cycleStart = new Date(istNow);
+        cycleStart.setUTCHours(0,0,0,0);
+        
+        if (istNow.getUTCDate() < cycleStartDay) {
+            cycleStart.setUTCMonth(cycleStart.getUTCMonth() - 1);
+        }
+        cycleStart.setUTCDate(cycleStartDay);
+
         const monthAttendance = await Attendance.find({ 
             employee: userId,
-            date: { $gte: start.toISOString().split('T')[0] }
-        }).sort({ date: 1 }); // Sort by date to maintain grace count order
+            date: { $gte: cycleStart.toISOString().split('T')[0] }
+        }).sort({ date: 1 });
 
         let monthWorkMins = 0;
         let monthPenalty = 0;
@@ -83,7 +95,6 @@ export const getEmployeeStats = async (req, res) => {
 
         // Get day name (IST)
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
         const todayName = days[istNow.getUTCDay()];
 
         // Build shift info
@@ -95,12 +106,21 @@ export const getEmployeeStats = async (req, res) => {
         const totalLeaves = emp.noOfPaidLeaves || leaveGroup?.noOfPaidLeaves || 0;
         const hasLeaveGroup = !!emp.leaveGroup;
         
-        // Count total approved leave days
-        const usedLeaves = await Request.countDocuments({
+        // Count approved leaves (Paid and Unpaid)
+        const usedPaidLeaves = await Request.countDocuments({
             employee: userId,
             requestType: 'Leave',
             status: 'Approved',
-            leaveCategory: 'Paid'
+            leaveCategory: 'Paid',
+            date: { $gte: cycleStart.toISOString().split('T')[0] }
+        });
+
+        const usedUnpaidLeaves = await Request.countDocuments({
+            employee: userId,
+            requestType: 'Leave',
+            status: 'Approved',
+            leaveCategory: 'Unpaid',
+            date: { $gte: cycleStart.toISOString().split('T')[0] }
         });
 
         // Document count
@@ -144,6 +164,57 @@ export const getEmployeeStats = async (req, res) => {
             }
         }
 
+        // --- CALCULATE ACCRUED SALARY AS PER VALUES ---
+        const ctc = await EmployeeCTC.findOne({ employeeId: userId, status: 'Active' });
+        let accruedGross = 0;
+        let accruedNet = 0;
+        let unpaidLeaveDeduction = 0;
+
+        if (ctc) {
+            // Determine working days base
+            const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
+            const baseDays = isFixed ? (salaryGroup?.fixedDays || 26) : new Date(cycleStart.getUTCFullYear(), cycleStart.getUTCMonth() + 1, 0).getDate();
+
+            const perDayGross = (ctc.monthlyGross || 0) / baseDays;
+            const perDayNet = (ctc.netSalary || 0) / baseDays;
+
+            if (isFixed) {
+                // FIXED LOGIC: Gross - (Unpaid Days * perDayRate)
+                unpaidLeaveDeduction = perDayGross * usedUnpaidLeaves;
+                
+                // Also deduct Absents if any (days neither worked, nor on leave, nor weekoff/holiday)
+                const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
+                const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
+                
+                // We use presentDays + PaidLeaves + WeekOffs + Holidays + UnpaidToCount
+                // If the month is 31 days and employee is present every day, they get FULL 26 pay.
+                // If they take an unpaid leave, they get 25 pay.
+                accruedGross = Math.max(0, (ctc.monthlyGross || 0) - unpaidLeaveDeduction);
+                accruedNet = Math.max(0, (ctc.netSalary || 0) - unpaidLeaveDeduction - monthPenalty);
+                
+            } else {
+                // CALENDAR DAYS LOGIC: (Gross / monthDays) * Total Payable Days
+                const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
+                const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
+                const payableDays = presentDays + weekOffs + holidays + usedPaidLeaves;
+                
+                unpaidLeaveDeduction = perDayGross * usedUnpaidLeaves;
+                accruedGross = perDayGross * payableDays;
+                accruedNet = (perDayNet * payableDays) - monthPenalty;
+            }
+
+            // Apply Rounding if policy set to "Yes"
+            if (salaryGroup?.roundedSalary === 'Yes') {
+                accruedGross = Math.round(accruedGross);
+                accruedNet = Math.round(accruedNet);
+                unpaidLeaveDeduction = Math.round(unpaidLeaveDeduction);
+            } else {
+                accruedGross = parseFloat(accruedGross.toFixed(2));
+                accruedNet = parseFloat(accruedNet.toFixed(2));
+                unpaidLeaveDeduction = parseFloat(unpaidLeaveDeduction.toFixed(2));
+            }
+        }
+
         res.status(200).json({
             success: true,
             employee: {
@@ -182,13 +253,21 @@ export const getEmployeeStats = async (req, res) => {
                 hasLeaveGroup,
                 totalLeaves,
                 maxPLMonth: emp.maxPLMonth || leaveGroup?.maxPLMonth || totalLeaves,
-                usedLeaves,
+                usedLeaves: usedPaidLeaves,
+                usedUnpaidLeaves,
                 documentCount,
                 daysSinceJoining,
                 monthHours,
                 monthPenalty,
+                unpaidLeaveDeduction,
+                accruedGross,
+                accruedNet,
                 penaltyHistory,
                 presentDays,
+                salaryCycle: {
+                    start: cycleStart.toISOString().split('T')[0],
+                    today: istNow.toISOString().split('T')[0]
+                },
                 shiftName: shift?.shiftName || null,
                 shiftStart: schedule?.shiftStart || null,
                 shiftEnd: schedule?.shiftEnd || null,
