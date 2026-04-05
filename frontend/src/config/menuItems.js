@@ -120,6 +120,7 @@ export const menuItems = [
         path: "/admin/payroll",
         children: [
           { title: "Employee CTC", path: "/admin/payroll/employee-ctc" },
+          { title: "Monthly Payout Summary", path: "/admin/monthly-payout" },
         ],
       },
     ],

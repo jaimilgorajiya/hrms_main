@@ -92,6 +92,9 @@ export const getEmployeeStats = async (req, res) => {
         }
         const monthHours = Math.floor(monthWorkMins / 60);
         const presentDays = monthAttendance.filter(a => a.status === 'Present').length;
+        const halfDays = monthAttendance.filter(a => a.status === 'Half Day').length;
+        const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
+        const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
 
         // Get day name (IST)
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -178,26 +181,22 @@ export const getEmployeeStats = async (req, res) => {
             const perDayGross = (ctc.monthlyGross || 0) / baseDays;
             const perDayNet = (ctc.netSalary || 0) / baseDays;
 
+            // 6. Calculate Payable Days (The core for both logic types)
+            const payableDays = presentDays + (halfDays * 0.5) + weekOffs + holidays + usedPaidLeaves;
+
             if (isFixed) {
-                // FIXED LOGIC: Gross - (Unpaid Days * perDayRate)
-                unpaidLeaveDeduction = perDayGross * usedUnpaidLeaves;
+                // FIXED LOGIC (e.g., Fixed 28)
+                // We multiply the 'Daily Rate' by the 'Payable Days' found in the month.
+                // If they worked 28+ days, they get full 28 pay.
+                // If they worked less, they get (Worked/28) * Gross.
+                const cappedPayable = Math.min(baseDays, payableDays);
+                const lopDays = baseDays - cappedPayable;
                 
-                // Also deduct Absents if any (days neither worked, nor on leave, nor weekoff/holiday)
-                const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
-                const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
-                
-                // We use presentDays + PaidLeaves + WeekOffs + Holidays + UnpaidToCount
-                // If the month is 31 days and employee is present every day, they get FULL 26 pay.
-                // If they take an unpaid leave, they get 25 pay.
-                accruedGross = Math.max(0, (ctc.monthlyGross || 0) - unpaidLeaveDeduction);
-                accruedNet = Math.max(0, (ctc.netSalary || 0) - unpaidLeaveDeduction - monthPenalty);
-                
+                unpaidLeaveDeduction = perDayGross * (lopDays + usedUnpaidLeaves);
+                accruedGross = perDayGross * cappedPayable;
+                accruedNet = (perDayNet * cappedPayable) - monthPenalty;
             } else {
-                // CALENDAR DAYS LOGIC: (Gross / monthDays) * Total Payable Days
-                const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
-                const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
-                const payableDays = presentDays + weekOffs + holidays + usedPaidLeaves;
-                
+                // CALENDAR DAYS LOGIC
                 unpaidLeaveDeduction = perDayGross * usedUnpaidLeaves;
                 accruedGross = perDayGross * payableDays;
                 accruedNet = (perDayNet * payableDays) - monthPenalty;

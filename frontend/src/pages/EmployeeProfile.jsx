@@ -11,6 +11,72 @@ import API_URL from '../config/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
 
+const PhoneInput = ({ 
+    label, 
+    name, 
+    countryCode, 
+    value, 
+    onCodeChange, 
+    handlePhoneInputChange, 
+    placeholder, 
+    required = false,
+    activePhoneDropdown,
+    setActivePhoneDropdown,
+    countries,
+    codeSearch,
+    setCodeSearch,
+    dropdownRef
+}) => {
+    const isOpen = activePhoneDropdown === name;
+    const selectedCountry = countries.find(c => c.code === (countryCode || '+91')) || { name: 'India', code: '+91' };
+    const filteredCountries = countries.filter(c => 
+        c.name.toLowerCase().includes(codeSearch.toLowerCase()) || 
+        c.code.includes(codeSearch)
+    );
+
+    return (
+        <div className="ss-form-group">
+            <label className="ss-label">{label} {required && <span style={{ color: '#ef4444' }}>*</span>}</label>
+            <div className="phone-input-group">
+                <div className="select-wrapper" ref={isOpen ? dropdownRef : null}>
+                    <div 
+                        className={`custom-select-trigger ${isOpen ? 'active' : ''}`}
+                        onClick={() => {
+                            if (isOpen) { setActivePhoneDropdown(null); } 
+                            else { setActivePhoneDropdown(name); setCodeSearch(''); }
+                        }}
+                    >
+                        <span>{selectedCountry.code}</span>
+                        <ChevronDown size={14} className="select-chevron" />
+                    </div>
+
+                    {isOpen && (
+                        <div className="custom-dropdown-list">
+                            <div className="dropdown-search">
+                                <Search size={14} />
+                                <input autoFocus placeholder="Search country..." value={codeSearch} onChange={(e) => setCodeSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
+                            </div>
+                            <div className="dropdown-options">
+                                {filteredCountries.map(c => (
+                                    <div key={c.cca2 + c.code} className={`dropdown-option ${countryCode === c.code ? 'selected' : ''}`} 
+                                        onClick={(e) => { e.stopPropagation(); onCodeChange(c.code); setActivePhoneDropdown(null); }}>
+                                        <span className="country-name">{c.name}</span>
+                                        <span className="country-code">{c.code}</span>
+                                    </div>
+                                ))}
+                                {filteredCountries.length === 0 && (
+                                    <div className="no-results">No countries found</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <input type="text" name={name} value={value || ''} onChange={handlePhoneInputChange} placeholder={placeholder || ""} />
+            </div>
+        </div>
+    );
+};
+
 const EmployeeProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -1037,56 +1103,6 @@ const EmployeeProfile = () => {
                             )}
 
                             {activeTab === 'Contact Detail' && (() => {
-                                const PhoneInput = ({ label, name, countryCode, value, onCodeChange, onChange, placeholder, required = false }) => {
-                                    const isOpen = activePhoneDropdown === name;
-                                    const selectedCountry = countries.find(c => c.code === (countryCode || '+91')) || { name: 'India', code: '+91' };
-                                    const filteredCountries = countries.filter(c => 
-                                        c.name.toLowerCase().includes(codeSearch.toLowerCase()) || 
-                                        c.code.includes(codeSearch)
-                                    );
-
-                                    return (
-                                        <div className="ss-form-group">
-                                            <label className="ss-label">{label} {required && <span style={{ color: '#ef4444' }}>*</span>}</label>
-                                            <div className="phone-input-group">
-                                                <div className="select-wrapper" ref={isOpen ? dropdownRef : null}>
-                                                    <div 
-                                                        className={`custom-select-trigger ${isOpen ? 'active' : ''}`}
-                                                        onClick={() => {
-                                                            if (isOpen) { setActivePhoneDropdown(null); } 
-                                                            else { setActivePhoneDropdown(name); setCodeSearch(''); }
-                                                        }}
-                                                    >
-                                                        <span>{selectedCountry.code}</span>
-                                                        <ChevronDown size={14} className="select-chevron" />
-                                                    </div>
-
-                                                    {isOpen && (
-                                                        <div className="custom-dropdown-list">
-                                                            <div className="dropdown-search">
-                                                                <Search size={14} />
-                                                                <input autoFocus placeholder="Search country..." value={codeSearch} onChange={(e) => setCodeSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                                            </div>
-                                                            <div className="dropdown-options">
-                                                                {filteredCountries.map(c => (
-                                                                    <div key={c.cca2 + c.code} className={`dropdown-option ${countryCode === c.code ? 'selected' : ''}`} 
-                                                                        onClick={(e) => { e.stopPropagation(); onCodeChange(c.code); setActivePhoneDropdown(null); }}>
-                                                                        <span className="country-name">{c.name}</span>
-                                                                        <span className="country-code">{c.code}</span>
-                                                                    </div>
-                                                                ))}
-                                                                {filteredCountries.length === 0 && (
-                                                                    <div className="no-results">No countries found</div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <input type="text" name={name} value={value || ''} onChange={handlePhoneInputChange} placeholder={placeholder || ""} />
-                                            </div>
-                                        </div>
-                                    );
-                                };
 
                                 return (
                                     <>
@@ -1094,10 +1110,64 @@ const EmployeeProfile = () => {
                                             <label className="ss-label" style={{ opacity: 0.6 }}>Email ID (Read Only)</label>
                                             <input type="email" name="email" value={formData.email || ''} readOnly disabled className="ss-input disabled-input" style={{ background: '#f8fafc', color: '#94a3b8' }} />
                                         </div>
-                                        <PhoneInput label="Mobile No." required={true} name="phone" countryCode={formData.phoneCountryCode} value={formData.phone} onCodeChange={(val) => setFormData(p => ({ ...p, phoneCountryCode: val }))} onChange={handleInputChange} placeholder="6354088391" />
-                                        <PhoneInput label="Emergency Number" name="emergencyNumber" countryCode={formData.emergencyCountryCode} value={formData.emergencyNumber} onCodeChange={(val) => setFormData(p => ({ ...p, emergencyCountryCode: val }))} onChange={handleInputChange} />
-                                        <PhoneInput label="Alt. Phone Number" name="alternateMobileNumber" countryCode={formData.altPhoneCountryCode} value={formData.alternateMobileNumber} onCodeChange={(val) => setFormData(p => ({ ...p, altPhoneCountryCode: val }))} onChange={handleInputChange} />
-                                        <PhoneInput label="Company Mobile" name="companyNumber" countryCode={formData.companyPhoneCountryCode} value={formData.companyNumber} onCodeChange={(val) => setFormData(p => ({ ...p, companyPhoneCountryCode: val }))} onChange={handleInputChange} />
+                                        <PhoneInput 
+                                            label="Mobile No." 
+                                            required={true} 
+                                            name="phone" 
+                                            countryCode={formData.phoneCountryCode} 
+                                            value={formData.phone} 
+                                            onCodeChange={(val) => setFormData(p => ({ ...p, phoneCountryCode: val }))} 
+                                            handlePhoneInputChange={handlePhoneInputChange} 
+                                            placeholder="6354088391" 
+                                            activePhoneDropdown={activePhoneDropdown}
+                                            setActivePhoneDropdown={setActivePhoneDropdown}
+                                            countries={countries}
+                                            codeSearch={codeSearch}
+                                            setCodeSearch={setCodeSearch}
+                                            dropdownRef={dropdownRef}
+                                        />
+                                        <PhoneInput 
+                                            label="Emergency Number" 
+                                            name="emergencyNumber" 
+                                            countryCode={formData.emergencyCountryCode} 
+                                            value={formData.emergencyNumber} 
+                                            onCodeChange={(val) => setFormData(p => ({ ...p, emergencyCountryCode: val }))} 
+                                            handlePhoneInputChange={handlePhoneInputChange}
+                                            activePhoneDropdown={activePhoneDropdown}
+                                            setActivePhoneDropdown={setActivePhoneDropdown}
+                                            countries={countries}
+                                            codeSearch={codeSearch}
+                                            setCodeSearch={setCodeSearch}
+                                            dropdownRef={dropdownRef}
+                                        />
+                                        <PhoneInput 
+                                            label="Alt. Phone Number" 
+                                            name="alternateMobileNumber" 
+                                            countryCode={formData.altPhoneCountryCode} 
+                                            value={formData.alternateMobileNumber} 
+                                            onCodeChange={(val) => setFormData(p => ({ ...p, altPhoneCountryCode: val }))} 
+                                            handlePhoneInputChange={handlePhoneInputChange}
+                                            activePhoneDropdown={activePhoneDropdown}
+                                            setActivePhoneDropdown={setActivePhoneDropdown}
+                                            countries={countries}
+                                            codeSearch={codeSearch}
+                                            setCodeSearch={setCodeSearch}
+                                            dropdownRef={dropdownRef}
+                                        />
+                                        <PhoneInput 
+                                            label="Company Mobile" 
+                                            name="companyNumber" 
+                                            countryCode={formData.companyPhoneCountryCode} 
+                                            value={formData.companyNumber} 
+                                            onCodeChange={(val) => setFormData(p => ({ ...p, companyPhoneCountryCode: val }))} 
+                                            handlePhoneInputChange={handlePhoneInputChange} 
+                                            activePhoneDropdown={activePhoneDropdown}
+                                            setActivePhoneDropdown={setActivePhoneDropdown}
+                                            countries={countries}
+                                            codeSearch={codeSearch}
+                                            setCodeSearch={setCodeSearch}
+                                            dropdownRef={dropdownRef}
+                                        />
                                         <div className="ss-form-group">
                                             <label className="ss-label">Current Address</label>
                                             <textarea name="currentAddress" value={formData.currentAddress || ''} onChange={handleInputChange} className="ss-input" style={{ height: '80px', padding: '10px 16px' }} placeholder="Enter current address" />

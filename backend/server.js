@@ -35,6 +35,7 @@ import breakTypeRoutes from './routes/BreakType.Routes.js';
 import shiftRoutes from './routes/Shift.Routes.js';
 import penaltyRuleRoutes from './routes/PenaltyRule.Routes.js';
 import graceTimeRoutes from './routes/GraceTime.Routes.js';
+import payrollRoutes from './routes/Payroll.Routes.js';
 import leaveTypeRoutes from './routes/LeaveType.Routes.js';
 import earningDeductionTypeRoutes from './routes/EarningDeductionType.Routes.js';
 import documentTypeRoutes from './routes/DocumentType.Routes.js';
@@ -114,6 +115,7 @@ app.use('/api/employee-dashboard', employeeDashboardRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

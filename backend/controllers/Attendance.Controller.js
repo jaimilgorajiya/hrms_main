@@ -295,16 +295,26 @@ export const togglePunch = async (req, res) => {
                         message: `You were late ${shift.maxLateInMinutes - maxAllowed}m this morning. You can only leave ${maxAllowed}m early. Please provide a reason.`
                     });
                 }
-                // Calculate early out penalty if applicable
-                if (earlyByMins > 0) {
-                    const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins);
-                    if (earlyOutPenaltyAmount > 0) {
-                        record.earlyOutPenalty = {
-                            amount: earlyOutPenaltyAmount,
-                            isApplied: true
-                        };
-                        console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
+
+                // Check Half-Day penalty on Punch Out
+                const rule = await PenaltyRule.findOne({ shift: shift._id });
+                const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                if (halfDaySlab) {
+                    const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                    if (thresholdMins !== null && nowMins < thresholdMins) {
+                        record.status = 'Half Day';
+                        console.log(`[PENALTY_DEBUG] Mark as Half Day (Early Out). Today: ${nowMins}m, Threshold: ${thresholdMins}m`);
                     }
+                }
+
+                // Calculate early out penalty if applicable
+                const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, null, rule, null, 'Early Out Minutes');
+                if (earlyOutPenaltyAmount > 0) {
+                    record.earlyOutPenalty = {
+                        amount: earlyOutPenaltyAmount,
+                        isApplied: true
+                    };
+                    console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
                 }
             }
         }
@@ -480,6 +490,8 @@ export const getAttendanceHistory = async (req, res) => {
                 breakFormatted: formatMinutes(breakMinutes),
                 punches: r.punches,
                 breaks: r.breaks,
+                lateInPenalty: r.lateInPenalty || { amount: 0, isApplied: false },
+                earlyOutPenalty: r.earlyOutPenalty || { amount: 0, isApplied: false },
                 approvalStatus: r.approvalStatus || "Pending",
                 request: rqMap[r.date] || null
             };

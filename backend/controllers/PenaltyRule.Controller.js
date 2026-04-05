@@ -75,12 +75,12 @@ export const deletePenaltyRule = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to delete penalty rule' });
     }
 };
-export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = null, existingRule = null, lateCount = null) => {
+export const calculatePenaltyAmount = async (shiftId, penaltyMins, employeeId = null, existingRule = null, lateCount = null, penaltyType = 'Late In Minutes') => {
     try {
-        const cleanLateMins = Math.floor(lateByMins);
+        const cleanMins = Math.floor(penaltyMins);
         const searchId = shiftId?._id || shiftId;
 
-        console.log(`[PENALTY_DEBUG] Fetching rule for shift: ${searchId}`);
+        console.log(`[PENALTY_DEBUG] Fetching ${penaltyType} rule for shift: ${searchId}`);
         const rule = existingRule || await PenaltyRule.findOne({ shift: searchId });
         
         if (!rule) {
@@ -93,19 +93,19 @@ export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = n
             return 0;
         }
 
-        const lateSlabs = rule.slabs.filter(s => s.penaltyType === 'Late In Minutes');
-        console.log(`[PENALTY_DEBUG] Checking ${lateSlabs.length} 'Late In Minutes' slabs for ${cleanLateMins}m lateness.`);
+        const typeSlabs = rule.slabs.filter(s => s.penaltyType === penaltyType);
+        console.log(`[PENALTY_DEBUG] Checking ${typeSlabs.length} '${penaltyType}' slabs for ${cleanMins}m.`);
 
-        const matchingSlab = lateSlabs.find(s => cleanLateMins >= s.minTime && (cleanLateMins <= s.maxTime || !s.maxTime));
+        const matchingSlab = typeSlabs.find(s => cleanMins >= s.minTime && (cleanMins <= s.maxTime || !s.maxTime));
         
         if (!matchingSlab) {
-            console.log(`[PENALTY_DEBUG] No matching slab found in range for ${cleanLateMins}m.`);
+            console.log(`[PENALTY_DEBUG] No matching slab found in range for ${cleanMins}m.`);
             return 0;
         }
 
-        // Grace count check — skip penalty if employee hasn't exceeded allowed late entries this month
+        // Grace count check (only for Late In Minutes usually, but keeps code robust)
         const graceCount = matchingSlab.grace_count || 0;
-        if (graceCount > 0 && employeeId) {
+        if (graceCount > 0 && employeeId && penaltyType === 'Late In Minutes') {
             let lateThisMonth = lateCount;
             if (lateThisMonth === null) {
                 const Attendance = (await import('../models/Attendance.Model.js')).default;
@@ -120,7 +120,7 @@ export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = n
                 });
             }
 
-            console.log(`[PENALTY_DEBUG] Grace count: ${graceCount}, Late entries this month (with penalty): ${lateThisMonth}`);
+            console.log(`[PENALTY_DEBUG] Grace count: ${graceCount}, Late entries this month: ${lateThisMonth}`);
 
             if (lateThisMonth < graceCount) {
                 console.log(`[PENALTY_DEBUG] Within grace period. No penalty applied.`);
@@ -134,7 +134,7 @@ export const calculatePenaltyAmount = async (shiftId, lateByMins, employeeId = n
             case 'Flat':
                 return matchingSlab.value;
             case 'Per Minute (Flat Amount)':
-                return cleanLateMins * matchingSlab.value;
+                return cleanMins * matchingSlab.value;
             default:
                 return matchingSlab.value;
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, ChevronLeft, ChevronRight, Coffee, LogIn, LogOut } from 'lucide-react';
+import { Calendar, Clock, ChevronLeft, ChevronRight, Coffee, LogIn, LogOut, AlertCircle } from 'lucide-react';
 import authenticatedFetch from '../../utils/apiHandler';
 import API_URL from '../../config/api';
 import '../../styles/EmployeePanel.css';
@@ -164,6 +164,27 @@ const EmployeeAttendance = () => {
                   <div className="ep-att-detail-row">
                     <Clock size={16} color="#2563EB" />
                     <div><label>Working Hours</label><span>{selected.workingFormatted}</span></div>
+                  </div>
+                )}
+                
+                {/* Penalty Section */}
+                {(selected.lateInPenalty?.amount > 0 || selected.earlyOutPenalty?.amount > 0) && (
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#FEF2F2', borderRadius: '8px', borderLeft: '4px solid #EF4444' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#B91C1C', fontWeight: 600, marginBottom: '8px' }}>
+                      <AlertCircle size={16} /> Attendance Penalties
+                    </div>
+                    {selected.lateInPenalty?.amount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#7F1D1D', marginBottom: '4px' }}>
+                        <span>Late In Penalty:</span>
+                        <span style={{ fontWeight: 600 }}>₹{selected.lateInPenalty.amount}</span>
+                      </div>
+                    )}
+                    {selected.earlyOutPenalty?.amount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#7F1D1D' }}>
+                        <span>Early Out Penalty:</span>
+                        <span style={{ fontWeight: 600 }}>₹{selected.earlyOutPenalty.amount}</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {selected.breaks?.length > 0 && (

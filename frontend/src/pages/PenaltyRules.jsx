@@ -227,6 +227,7 @@ const PenaltyRules = () => {
                                                     label="Penalty Type"
                                                     options={[
                                                         { label: 'Late In Minutes', value: 'Late In Minutes' },
+                                                        { label: 'Early Out Minutes', value: 'Early Out Minutes' },
                                                         { label: 'Half-Day', value: 'Half-Day' },
                                                     ]}
                                                     value={slab.penaltyType}

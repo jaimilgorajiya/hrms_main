@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const penaltySlabSchema = new mongoose.Schema({
     penaltyType: { 
         type: String, 
-        enum: ['Late In Minutes', 'Half-Day'], 
+        enum: ['Late In Minutes', 'Early Out Minutes', 'Half-Day'], 
         default: 'Late In Minutes' 
     },
     minTime: { 

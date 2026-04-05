@@ -56,6 +56,7 @@ import LeaveHistory from './pages/LeaveHistory';
 import UseMobileApp from './pages/employee/UseMobileApp';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import PunchOutRequests from './pages/PunchOutRequests';
+import MonthlyPayout from './pages/MonthlyPayout';
 
 function App() {
   return (
@@ -141,6 +142,7 @@ function App() {
               <Route path="attendance/punch-request" element={<PunchOutRequests />} />
               <Route path="attendance/punch-missing" element={<PunchOutRequests />} />
               <Route path="attendance/request" element={<AdminRequests />} />
+              <Route path="monthly-payout" element={<MonthlyPayout />} />
               <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
               <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />
               <Route path="holidays/*" element={<ModulePlaceholder title="Holiday Management" />} />

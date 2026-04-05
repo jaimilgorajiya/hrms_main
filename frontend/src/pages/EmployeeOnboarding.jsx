@@ -6,6 +6,71 @@ import API_URL from '../config/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
 
+const PhoneInput = ({ 
+    label, 
+    name, 
+    countryCode, 
+    value, 
+    onCodeChange, 
+    handlePhoneInputChange, 
+    placeholder, 
+    required = false,
+    isOpen,
+    countries,
+    codeSearch,
+    setCodeSearch,
+    setActivePhoneDropdown,
+    dropdownRef
+}) => {
+    const selectedCountry = countries.find(c => c.code === (countryCode || '+91')) || { name: 'India', code: '+91' };
+    const filteredCountries = countries.filter(c => 
+        c.name.toLowerCase().includes(codeSearch.toLowerCase()) || 
+        c.code.includes(codeSearch)
+    );
+
+    return (
+        <div className="hrm-form-group">
+            <label className="hrm-label">{label} {required && <span className="req">*</span>}</label>
+            <div className="phone-input-group">
+                <div className="select-wrapper" ref={isOpen ? dropdownRef : null}>
+                    <div 
+                        className={`custom-select-trigger ${isOpen ? 'active' : ''}`}
+                        onClick={() => {
+                            if (isOpen) { setActivePhoneDropdown(null); } 
+                            else { setActivePhoneDropdown(name); setCodeSearch(''); }
+                        }}
+                    >
+                        <span>{selectedCountry.code}</span>
+                        <ChevronDown size={14} className="select-chevron" />
+                    </div>
+
+                    {isOpen && (
+                        <div className="custom-dropdown-list">
+                            <div className="dropdown-search">
+                                <Search size={14} color="#94a3b8" />
+                                <input autoFocus placeholder="Search country..." value={codeSearch} onChange={(e) => setCodeSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
+                            </div>
+                            <div className="dropdown-options">
+                                {filteredCountries.map(c => (
+                                    <div key={c.cca2 + c.code} className={`dropdown-option ${countryCode === c.code ? 'selected' : ''}`} 
+                                        onClick={(e) => { e.stopPropagation(); onCodeChange(c.code); setActivePhoneDropdown(null); }}>
+                                        <span className="country-name">{c.name}</span>
+                                        <span className="country-code">{c.code}</span>
+                                    </div>
+                                ))}
+                                {filteredCountries.length === 0 && (
+                                    <div className="no-results">No countries found</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <input type="text" name={name} value={value || ''} onChange={handlePhoneInputChange} placeholder={placeholder || ""} className="phone-input-field" required={required} />
+            </div>
+        </div>
+    );
+};
+
 const EmployeeOnboarding = () => {
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
@@ -368,56 +433,6 @@ const EmployeeOnboarding = () => {
         if (activeStep > 0) setActiveStep(prev => prev - 1);
     };
 
-    const PhoneInput = ({ label, name, countryCode, value, onCodeChange, onChange, placeholder, required = false }) => {
-        const isOpen = activePhoneDropdown === name;
-        const selectedCountry = countries.find(c => c.code === (countryCode || '+91')) || { name: 'India', code: '+91' };
-        const filteredCountries = countries.filter(c => 
-            c.name.toLowerCase().includes(codeSearch.toLowerCase()) || 
-            c.code.includes(codeSearch)
-        );
-
-        return (
-            <div className="hrm-form-group">
-                <label className="hrm-label">{label} {required && <span className="req">*</span>}</label>
-                <div className="phone-input-group">
-                    <div className="select-wrapper" ref={isOpen ? dropdownRef : null}>
-                        <div 
-                            className={`custom-select-trigger ${isOpen ? 'active' : ''}`}
-                            onClick={() => {
-                                if (isOpen) { setActivePhoneDropdown(null); } 
-                                else { setActivePhoneDropdown(name); setCodeSearch(''); }
-                            }}
-                        >
-                            <span>{selectedCountry.code}</span>
-                            <ChevronDown size={14} className="select-chevron" />
-                        </div>
-
-                        {isOpen && (
-                            <div className="custom-dropdown-list">
-                                <div className="dropdown-search">
-                                    <Search size={14} color="#94a3b8" />
-                                    <input autoFocus placeholder="Search country..." value={codeSearch} onChange={(e) => setCodeSearch(e.target.value)} onClick={(e) => e.stopPropagation()} />
-                                </div>
-                                <div className="dropdown-options">
-                                    {filteredCountries.map(c => (
-                                        <div key={c.cca2 + c.code} className={`dropdown-option ${countryCode === c.code ? 'selected' : ''}`} 
-                                            onClick={(e) => { e.stopPropagation(); onCodeChange(c.code); setActivePhoneDropdown(null); }}>
-                                            <span className="country-name">{c.name}</span>
-                                            <span className="country-code">{c.code}</span>
-                                        </div>
-                                    ))}
-                                    {filteredCountries.length === 0 && (
-                                        <div className="no-results">No countries found</div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <input type="text" name={name} value={value || ''} onChange={handlePhoneInputChange} placeholder={placeholder || ""} className="phone-input-field" required={required} />
-                </div>
-            </div>
-        );
-    };
 
     return (
         <div className="hrm-container">
@@ -523,7 +538,22 @@ const EmployeeOnboarding = () => {
                                     <input type="text" name="lastName" className="hrm-input" required placeholder="Enter last name" onChange={handleInputChange} value={formData.lastName} />
                                 </div>
 
-                                <PhoneInput label="Mobile No." required={true} name="phone" countryCode={formData.countryCode} value={formData.phone} onCodeChange={(val) => setFormData(p => ({ ...p, countryCode: val }))} onChange={handleInputChange} placeholder="Enter mobile number" />
+                                <PhoneInput 
+                                    label="Mobile No." 
+                                    required={true} 
+                                    name="phone" 
+                                    countryCode={formData.countryCode} 
+                                    value={formData.phone} 
+                                    onCodeChange={(val) => setFormData(p => ({ ...p, countryCode: val }))} 
+                                    handlePhoneInputChange={handlePhoneInputChange} 
+                                    placeholder="Enter mobile number" 
+                                    isOpen={activePhoneDropdown === 'phone'}
+                                    countries={countries}
+                                    codeSearch={codeSearch}
+                                    setCodeSearch={setCodeSearch}
+                                    setActivePhoneDropdown={setActivePhoneDropdown}
+                                    dropdownRef={dropdownRef}
+                                />
 
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Date of Birth <span className="req">*</span></label>
@@ -786,9 +816,51 @@ const EmployeeOnboarding = () => {
                     {activeStep === 2 && (
                         <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-                                <PhoneInput label="WhatsApp Number" name="whatsAppNumber" countryCode={formData.whatsappCountryCode} value={formData.whatsAppNumber} onCodeChange={(val) => setFormData(p => ({ ...p, whatsappCountryCode: val }))} onChange={handleInputChange} placeholder="Enter whatsapp number"/>
-                                <PhoneInput label="Alt. Phone Number" name="alternateMobileNumber" countryCode={formData.altPhoneCountryCode} value={formData.alternateMobileNumber} onCodeChange={(val) => setFormData(p => ({ ...p, altPhoneCountryCode: val }))} onChange={handleInputChange} placeholder="Enter alternate number" />
-                                <PhoneInput label="Emergency Number" name="emergencyNumber" countryCode={formData.emergencyCountryCode} value={formData.emergencyNumber} onCodeChange={(val) => setFormData(p => ({ ...p, emergencyCountryCode: val }))} onChange={handleInputChange} placeholder="Enter emergency number"/>
+                                <PhoneInput 
+                                    label="WhatsApp Number" 
+                                    name="whatsAppNumber" 
+                                    countryCode={formData.whatsappCountryCode} 
+                                    value={formData.whatsAppNumber} 
+                                    onCodeChange={(val) => setFormData(p => ({ ...p, whatsappCountryCode: val }))} 
+                                    handlePhoneInputChange={handlePhoneInputChange} 
+                                    placeholder="Enter whatsapp number"
+                                    isOpen={activePhoneDropdown === 'whatsAppNumber'}
+                                    countries={countries}
+                                    codeSearch={codeSearch}
+                                    setCodeSearch={setCodeSearch}
+                                    setActivePhoneDropdown={setActivePhoneDropdown}
+                                    dropdownRef={dropdownRef}
+                                />
+                                <PhoneInput 
+                                    label="Alt. Phone Number" 
+                                    name="alternateMobileNumber" 
+                                    countryCode={formData.altPhoneCountryCode} 
+                                    value={formData.alternateMobileNumber} 
+                                    onCodeChange={(val) => setFormData(p => ({ ...p, altPhoneCountryCode: val }))} 
+                                    handlePhoneInputChange={handlePhoneInputChange} 
+                                    placeholder="Enter alternate number" 
+                                    isOpen={activePhoneDropdown === 'alternateMobileNumber'}
+                                    countries={countries}
+                                    codeSearch={codeSearch}
+                                    setCodeSearch={setCodeSearch}
+                                    setActivePhoneDropdown={setActivePhoneDropdown}
+                                    dropdownRef={dropdownRef}
+                                />
+                                <PhoneInput 
+                                    label="Emergency Number" 
+                                    name="emergencyNumber" 
+                                    countryCode={formData.emergencyCountryCode} 
+                                    value={formData.emergencyNumber} 
+                                    onCodeChange={(val) => setFormData(p => ({ ...p, emergencyCountryCode: val }))} 
+                                    handlePhoneInputChange={handlePhoneInputChange} 
+                                    placeholder="Enter emergency number"
+                                    isOpen={activePhoneDropdown === 'emergencyNumber'}
+                                    countries={countries}
+                                    codeSearch={codeSearch}
+                                    setCodeSearch={setCodeSearch}
+                                    setActivePhoneDropdown={setActivePhoneDropdown}
+                                    dropdownRef={dropdownRef}
+                                />
                                 
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Current Address</label>
