@@ -203,6 +203,29 @@ export const togglePunch = async (req, res) => {
                     const skipOnExtraPenalty = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
                     if (!skipOnExtraPenalty) {
+                        // AUTOMATIC HALF-DAY RULE: If punch in > shift midpoint
+                        const startMins = parseTimeToMinutes(daySchedule?.shiftStart);
+                        const endMins = parseTimeToMinutes(daySchedule?.shiftEnd);
+                        if (startMins !== null && endMins !== null) {
+                            const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
+                            const midpointMins = (startMins + (duration / 2)) % 1440;
+                            
+                            // Check if current time is past midpoint (handling overnight shifts)
+                            let isPastMidpoint = false;
+                            if (endMins > startMins) {
+                                isPastMidpoint = nowMins > midpointMins;
+                            } else {
+                                // Overnight: midpoint could be before or after midnight
+                                if (midpointMins > startMins) isPastMidpoint = nowMins > midpointMins || nowMins < endMins;
+                                else isPastMidpoint = nowMins > midpointMins && nowMins < endMins;
+                            }
+
+                            if (isPastMidpoint) {
+                                punchStatus = 'Half Day';
+                            }
+                        }
+
+                        // PenaltyRule Slab still takes precedence if specifically configured by admin
                         const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
                         if (halfDaySlab) {
                             const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
@@ -324,6 +347,26 @@ export const togglePunch = async (req, res) => {
                 const skipOnExtraPenaltyOut = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
                 if (!skipOnExtraPenaltyOut) {
+                    // AUTOMATIC HALF-DAY RULE (Punch Out): If punch out < shift midpoint
+                    const startMins = parseTimeToMinutes(daySchedule?.shiftStart);
+                    const endMins = parseTimeToMinutes(daySchedule?.shiftEnd);
+                    if (startMins !== null && endMins !== null) {
+                        const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
+                        const midpointMins = (startMins + (duration / 2)) % 1440;
+                        
+                        let isBeforeMidpoint = false;
+                        if (endMins > startMins) {
+                            isBeforeMidpoint = nowMins < midpointMins;
+                        } else {
+                            if (midpointMins > startMins) isBeforeMidpoint = nowMins < midpointMins && nowMins > startMins;
+                            else isBeforeMidpoint = nowMins < midpointMins || nowMins > startMins;
+                        }
+
+                        if (isBeforeMidpoint) {
+                            record.status = 'Half Day';
+                        }
+                    }
+
                     const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
                     if (halfDaySlab) {
                         const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);

@@ -74,6 +74,7 @@ export default function LeavesScreen() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   
   // Apply Leave form states
   const [showApply, setShowApply] = useState(false);
@@ -143,14 +144,16 @@ export default function LeavesScreen() {
 
   const loadData = async () => {
     try {
-      const [statsRes, res, ltRes] = await Promise.all([
-        apiFetch(ENDPOINTS.employeeStats),
-        apiFetch(ENDPOINTS.myRequests),
-        leaveTypes.length === 0 ? apiFetch(ENDPOINTS.leaveTypes) : Promise.resolve(null)
-      ]);
+      // Sequential fetching to prevent server timeouts
+      const statsRes = await apiFetch(ENDPOINTS.stats || ENDPOINTS.employeeStats);
+      const res = await apiFetch(ENDPOINTS.myRequests);
+      const ltRes = await apiFetch(ENDPOINTS.leaveTypes);
 
       const statsJson = await statsRes.json();
-      if (statsJson.success) setStats(statsJson.stats);
+      if (statsJson.success) {
+        setStats(statsJson.stats);
+        setUserProfile(statsJson.employee);
+      }
 
       const json = await res.json();
       if (json.success) {
@@ -236,6 +239,7 @@ export default function LeavesScreen() {
   const used = stats?.usedLeaves || 0;
   const balance = Math.max(0, total - used);
   const isWholeOnly = stats?.leavePolicy === 'Multiple of 1';
+  const maxInMonth = stats?.maxUsagePerMonth || total;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -288,7 +292,7 @@ export default function LeavesScreen() {
                        {isWholeOnly 
                         ? "Only full days can be applied as per your policy." 
                         : "You can apply for Full Day or Half Day leaves."}
-                       {` \n\nMaximum Paid Leave You Can Use Per Month: ${stats?.maxPLMonth || total}`}
+                       {` \n\nMaximum Paid Leave You Can Use Per Month: ${maxInMonth}`}
                     </Text>
                  </View>
               </View>
@@ -376,7 +380,13 @@ export default function LeavesScreen() {
                 <View style={{ marginBottom: 16 }}>
                   <Text style={styles.inputLabel}>Leave Type</Text>
                   <View style={styles.leaveTypesScroll}>
-                    {leaveTypes.map(lt => (
+                    {leaveTypes.filter(lt => {
+                        if (userProfile?.gender) {
+                            if (lt.applicableFor === 'Male Only' && userProfile.gender !== 'Male') return false;
+                            if (lt.applicableFor === 'Female Only' && userProfile.gender !== 'Female') return false;
+                        }
+                        return true;
+                    }).map(lt => (
                       <TouchableOpacity 
                         key={lt._id} 
                         style={[styles.ltBadge, selectedLeaveType === lt._id && styles.ltBadgeActive]}

@@ -262,7 +262,8 @@ export const getEmployeeStats = async (req, res) => {
             stats: {
                 hasLeaveGroup,
                 totalLeaves,
-                maxPLMonth: emp.maxPLMonth || leaveGroup?.maxPLMonth || totalLeaves,
+                leavePolicy: leaveGroup?.leaveBalanceVisibility === 'Multiple of 1' ? 'Multiple of 1' : 'Multiple of 0.5',
+                maxUsagePerMonth: leaveGroup?.maxUseInMonth || totalLeaves,
                 usedLeaves: usedPaidLeaves,
                 usedUnpaidLeaves,
                 documentCount,

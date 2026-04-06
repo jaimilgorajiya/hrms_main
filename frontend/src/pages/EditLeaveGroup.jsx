@@ -13,24 +13,10 @@ const EditLeaveGroup = () => {
     const [formData, setFormData] = useState({
         leaveGroupName: '',
         leaveBalanceVisibility: 'Default (Multiple of 0.5)',
-        generatePenaltyOnLeaveRequestPending: 'No',
-        isPaidLeave: false,
+        isPaidLeave: true,
         leaveAllocationType: 'Yearly',
         noOfPaidLeaves: '',
-        leaveAppliedFormula: 'Multiple of 0.5',
         maxUseInMonth: '',
-        leaveRestrictions: 'No',
-        leaveAccordingToPayrollCycle: 'No',
-        takeLeaveDuringProbationPeriod: 'No',
-        takeLeaveDuringNoticePeriod: 'No',
-        restrictUnpaidLeaveToEmployeesMonthly: 'No',
-        maxUnpaidLeaveInMonth: '',
-        remark: '',
-        yearEndLeaveBalancePolicy: 'Payout all (Manually)',
-        maxCarryForward: '',
-        minCarryForward: '',
-        carryForwardIncludes: 'Yes',
-        allowLeavePayoutRequest: 'No',
     });
 
     useEffect(() => {
@@ -168,97 +154,13 @@ const EditLeaveGroup = () => {
                                     ]} value={formData.leaveAllocationType} onChange={(val) => handleSelect('leaveAllocationType', val)} />
                                 </div>
                                 <div className="hrm-form-group">
-                                    <label className="hrm-label">No of Paid Leaves</label>
-                                    <input type="number" name="noOfPaidLeaves" className="hrm-input" value={formData.noOfPaidLeaves} onChange={handleChange} placeholder="Enter leave count" min="0" />
+                                    <label className="hrm-label">No. of Paid Leaves (Total)</label>
+                                    <input type="number" name="noOfPaidLeaves" className="hrm-input" value={formData.noOfPaidLeaves} onChange={handleChange} placeholder="e.g. 12" min="0" />
                                 </div>
                                 <div className="hrm-form-group">
-                                    <SearchableSelect label="Leave Applied Formula" options={[
-                                        { label: 'Multiple of 0.5', value: 'Multiple of 0.5' }, { label: 'Multiple of 1', value: 'Multiple of 1' },
-                                    ]} value={formData.leaveAppliedFormula} onChange={(val) => handleSelect('leaveAppliedFormula', val)} />
+                                    <label className="hrm-label">Max Usage In Single Month</label>
+                                    <input type="number" name="maxUseInMonth" className="hrm-input" value={formData.maxUseInMonth} onChange={handleChange} placeholder="e.g. 2" min="0" />
                                 </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Max Use in Month</label>
-                                    <input type="number" name="maxUseInMonth" className="hrm-input" value={formData.maxUseInMonth} onChange={handleChange} placeholder="Enter max usage" min="0" />
-                                </div>
-                            </div>
-
-                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#334155', margin: '32px 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9' }}>
-                                Leave Policies
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Leave Restrictions" options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.leaveRestrictions} onChange={(val) => handleSelect('leaveRestrictions', val)} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Leave According to Payroll Cycle" required={true} options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.leaveAccordingToPayrollCycle} onChange={(val) => handleSelect('leaveAccordingToPayrollCycle', val)} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Take Leave During Probation Period" required={true} options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.takeLeaveDuringProbationPeriod} onChange={(val) => handleSelect('takeLeaveDuringProbationPeriod', val)} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Take Leave During Notice Period" required={true} options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.takeLeaveDuringNoticePeriod} onChange={(val) => handleSelect('takeLeaveDuringNoticePeriod', val)} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Restrict Unpaid Leave Monthly" options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.restrictUnpaidLeaveToEmployeesMonthly} onChange={(val) => handleSelect('restrictUnpaidLeaveToEmployeesMonthly', val)} />
-                                </div>
-                                {formData.restrictUnpaidLeaveToEmployeesMonthly === 'Yes' && (
-                                    <div className="hrm-form-group" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <label className="hrm-label">Max Unpaid Leave in Month</label>
-                                        <input type="number" name="maxUnpaidLeaveInMonth" className="hrm-input" value={formData.maxUnpaidLeaveInMonth} onChange={handleChange} placeholder="Enter max unpaid days" min="0" />
-                                    </div>
-                                )}
-                            </div>
-
-                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#334155', margin: '32px 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9' }}>
-                                Year-End & Payout
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Remark</label>
-                                    <textarea name="remark" className="hrm-input" value={formData.remark} onChange={handleChange} placeholder="Enter remark" rows={3} style={{ resize: 'vertical', minHeight: '48px' }} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Year-End Leave Balance Policy (if any)" options={[
-                                        { label: 'Payout all (Manually)', value: 'Payout all (Manually)' },
-                                        { label: 'Payout or Carry forward (Manually)', value: 'Payout or Carry forward (Manually)' },
-                                        { label: 'Reset to zero', value: 'Reset to zero' },
-                                        { label: 'Carry forward all (Manually)', value: 'Carry forward all (Manually)' },
-                                    ]} value={formData.yearEndLeaveBalancePolicy} onChange={(val) => handleSelect('yearEndLeaveBalancePolicy', val)} />
-                                </div>
-
-                                {(['Payout or Carry forward (Manually)', 'Carry forward all (Manually)'].includes(formData.yearEndLeaveBalancePolicy)) && (
-                                    <>
-                                        <div className="hrm-form-group" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                            <SearchableSelect 
-                                                label="Max Carry Forward" 
-                                                options={[...Array(61).keys()].map(n => ({ label: n.toString(), value: n.toString() }))}
-                                                value={formData.maxCarryForward}
-                                                onChange={(val) => handleSelect('maxCarryForward', val)}
-                                            />
-                                        </div>
-                                        <div className="hrm-form-group" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                            <SearchableSelect 
-                                                label="Minimum Carry Forward" 
-                                                options={[...Array(61).keys()].map(n => ({ label: n.toString(), value: n.toString() }))}
-                                                value={formData.minCarryForward}
-                                                onChange={(val) => handleSelect('minCarryForward', val)}
-                                            />
-                                        </div>
-                                        <div className="hrm-form-group" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                            <SearchableSelect 
-                                                label="Carry Forward Includes" 
-                                                options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]}
-                                                value={formData.carryForwardIncludes}
-                                                onChange={(val) => handleSelect('carryForwardIncludes', val)}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                                {(['Payout all (Manually)', 'Payout or Carry forward (Manually)'].includes(formData.yearEndLeaveBalancePolicy)) && (
-                                    <div className="hrm-form-group" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                                        <SearchableSelect label="Allow Leave Payout Request" options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} value={formData.allowLeavePayoutRequest} onChange={(val) => handleSelect('allowLeavePayoutRequest', val)} />
-                                    </div>
-                                )}
                             </div>
                         </>
                     )}

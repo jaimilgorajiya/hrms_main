@@ -382,11 +382,9 @@ const Employees = () => {
                                                                 border: '1px solid rgba(239, 68, 68, 0.2)'
                                                             }}>Notice Period</span>
                                                         )}
-                                                        {/* Online/Punched Status */}
+                                                        {/* Live/Logged Out Status */}
                                                         {emp.isPunchedIn ? (
                                                             <span style={{ fontSize: '9px', fontWeight: '800', background: '#ECFDF5', color: '#10B981', padding: '1px 8px', borderRadius: '50px', textTransform: 'uppercase', border: '1px solid rgba(16, 185, 129, 0.2)' }}>● Live</span>
-                                                        ) : emp.isOnline ? (
-                                                            <span style={{ fontSize: '9px', fontWeight: '800', background: '#EFF6FF', color: '#3B82F6', padding: '1px 8px', borderRadius: '50px', textTransform: 'uppercase', border: '1px solid rgba(59, 130, 246, 0.2)' }}>● Online</span>
                                                         ) : (
                                                             <span style={{ fontSize: '9px', fontWeight: '800', background: '#FEF2F2', color: '#EF4444', padding: '1px 8px', borderRadius: '50px', textTransform: 'uppercase', border: '1px solid rgba(239, 68, 68, 0.2)' }}>Logged Out</span>
                                                         )}

@@ -19,12 +19,9 @@ const LeaveType = () => {
     const [formData, setFormData] = useState({
         name: '',
         shortName: '',
-        attachmentRequired: 'No',
-        applyOnHoliday: 'No',
         applicableFor: 'All',
         isBirthdayAnniversary: false,
         description: '',
-        applyOnPastDays: 'No'
     });
 
     const token = localStorage.getItem('token');
@@ -40,7 +37,9 @@ const LeaveType = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            if (Array.isArray(data)) {
+            if (data.leaveTypes && Array.isArray(data.leaveTypes)) {
+                setLeaveTypes(data.leaveTypes);
+            } else if (Array.isArray(data)) {
                 setLeaveTypes(data);
             }
         } catch (error) {
@@ -101,12 +100,9 @@ const LeaveType = () => {
         setFormData({
             name: '',
             shortName: '',
-            attachmentRequired: 'No',
-            applyOnHoliday: 'No',
             applicableFor: 'All',
             isBirthdayAnniversary: false,
             description: '',
-            applyOnPastDays: 'No'
         });
         setIsEditing(false);
         setCurrentId(null);
@@ -116,12 +112,9 @@ const LeaveType = () => {
         setFormData({
             name: item.name,
             shortName: item.shortName || '',
-            attachmentRequired: item.attachmentRequired || 'No',
-            applyOnHoliday: item.applyOnHoliday || 'No',
             applicableFor: item.applicableFor || 'All',
             isBirthdayAnniversary: item.isBirthdayAnniversary || false,
             description: item.description || '',
-            applyOnPastDays: item.applyOnPastDays || 'No'
         });
         setCurrentId(item._id);
         setIsEditing(true);
@@ -282,10 +275,7 @@ const LeaveType = () => {
                                 <th style={{ width: '100px' }}>Action</th>
                                 <th>Name</th>
                                 <th>Short Name</th>
-                                <th>Attachment</th>
-                                <th>Holiday</th>
                                 <th>Applicable For</th>
-                                <th>Past Days</th>
                                 <th>Description</th>
                             </tr>
                         </thead>
@@ -306,10 +296,7 @@ const LeaveType = () => {
                                     </td>
                                     <td style={{ fontWeight: '600', color: '#1E293B' }}>{item.name}</td>
                                     <td>{item.shortName || '--'}</td>
-                                    <td><span className={`dept-count`} style={{ background: item.attachmentRequired === 'Yes' ? '#FEF2F2' : '#F0FDF4', color: item.attachmentRequired === 'Yes' ? '#EF4444' : '#16A34A', border: 'none' }}>{item.attachmentRequired}</span></td>
-                                    <td>{item.applyOnHoliday}</td>
                                     <td>{item.applicableFor}</td>
-                                    <td>{item.applyOnPastDays}</td>
                                     <td style={{ fontSize: '13px', color: '#64748B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description || '--'}</td>
                                 </tr>
                             )) : (
@@ -353,51 +340,13 @@ const LeaveType = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Attachment Required?</label>
-                                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="attachmentRequired" value="Yes" checked={formData.attachmentRequired === 'Yes'} onChange={() => handleRadioChange('attachmentRequired', 'Yes')} /> Yes
-                                            </label>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="attachmentRequired" value="No" checked={formData.attachmentRequired === 'No'} onChange={() => handleRadioChange('attachmentRequired', 'No')} /> No
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Apply On Holiday?</label>
-                                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="applyOnHoliday" value="Yes" checked={formData.applyOnHoliday === 'Yes'} onChange={() => handleRadioChange('applyOnHoliday', 'Yes')} /> Yes
-                                            </label>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="applyOnHoliday" value="No" checked={formData.applyOnHoliday === 'No'} onChange={() => handleRadioChange('applyOnHoliday', 'No')} /> No
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Applicable For</label>
-                                        <select name="applicableFor" value={formData.applicableFor} onChange={handleInputChange} className="hrm-select">
-                                            <option value="All">All</option>
-                                            <option value="Male Only">Male Only</option>
-                                            <option value="Female Only">Female Only</option>
-                                        </select>
-                                    </div>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Apply On Past Days?</label>
-                                        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="applyOnPastDays" value="Yes" checked={formData.applyOnPastDays === 'Yes'} onChange={() => handleRadioChange('applyOnPastDays', 'Yes')} /> Yes
-                                            </label>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                                <input type="radio" name="applyOnPastDays" value="No" checked={formData.applyOnPastDays === 'No'} onChange={() => handleRadioChange('applyOnPastDays', 'No')} /> No
-                                            </label>
-                                        </div>
-                                    </div>
+                                <div className="hrm-form-group">
+                                    <label className="hrm-label">Applicable For</label>
+                                    <select name="applicableFor" value={formData.applicableFor} onChange={handleInputChange} className="hrm-select">
+                                        <option value="All">All</option>
+                                        <option value="Male Only">Male Only</option>
+                                        <option value="Female Only">Female Only</option>
+                                    </select>
                                 </div>
 
                                 <div className="hrm-form-group">

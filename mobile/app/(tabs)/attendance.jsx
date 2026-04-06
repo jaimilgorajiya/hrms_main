@@ -174,13 +174,31 @@ export default function AttendanceScreen() {
   const [showInPicker, setShowInPicker] = useState(false);
   const [showOutPicker, setShowOutPicker] = useState(false);
 
+  const [userProfile, setUserProfile] = useState(null);
+  
   useEffect(() => {
-    const fetchLeaveTypes = async () => {
-      const res = await apiFetch(ENDPOINTS.leaveTypes);
-      const json = await res.json();
-      if (json.success) setLeaveTypes(json.leaveTypes || json.data || []);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch User Profile for Gender/Settings
+        const statsRes = await apiFetch(ENDPOINTS.employeeStats);
+        const statsJson = await statsRes.json();
+        if (statsJson.success) setUserProfile(statsJson.employee);
+
+        // Fetch Data
+        await loadData();
+        
+        // Fetch Leave Types
+        const ltRes = await apiFetch(ENDPOINTS.leaveTypes);
+        const ltJson = await ltRes.json();
+        if (ltJson.success) setLeaveTypes(ltJson.leaveTypes || ltJson.data || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchLeaveTypes();
+    fetchData();
   }, []);
 
   const handleSubmit = async () => {
@@ -230,16 +248,23 @@ export default function AttendanceScreen() {
 
   const openRequest = () => {
     setReqDate(selectedDate);
+    const filteredForThisDate = leaveTypes.filter(lt => {
+      if (userProfile?.gender) {
+        if (lt.applicableFor === 'Male Only' && userProfile.gender !== 'Male') return false;
+        if (lt.applicableFor === 'Female Only' && userProfile.gender !== 'Female') return false;
+      }
+      if (lt.applyOnPastDays === 'No' && selectedDate < todayStr) return false;
+      return true;
+    });
+
     if (isMissingPunchOut) {
       setReqType('Attendance Correction');
-      // Pre-fill manualIn if possible
       if (selectedRecord?.punchIn) {
-        // Assume punchIn is "HH:MM AM/PM" or similar, we need HH:MM
         const match = selectedRecord.punchIn.match(/(\d{1,2}):(\d{2})/);
         if (match) setManualIn(`${match[1].padStart(2, '0')}:${match[2]}`);
       }
     } else {
-      setReqType('Leave');
+      setReqType(filteredForThisDate.length > 0 ? 'Leave' : 'Attendance Correction');
     }
     setShowApply(true);
   };
@@ -391,38 +416,54 @@ export default function AttendanceScreen() {
             <ScrollView style={styles.modalBody}>
               <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>
               
-              {!isMissingPunchOut && (
-                <View style={styles.typeSelector}>
-                  <TouchableOpacity 
-                    style={[styles.typeBtn, reqType === 'Leave' && styles.typeBtnActive]} 
-                    onPress={() => setReqType('Leave')}
-                  >
-                    <Text style={[styles.typeBtnText, reqType === 'Leave' && styles.typeBtnTextActive]}>Leave</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.typeBtn, reqType === 'Attendance Correction' && styles.typeBtnActive]} 
-                    onPress={() => setReqType('Attendance Correction')}
-                  >
-                    <Text style={[styles.typeBtnText, reqType === 'Attendance Correction' && styles.typeBtnTextActive]}>Attendance</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {reqType === 'Leave' && leaveTypes.length > 0 && (
-                <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.inputLabel}>Leave Type</Text>
-                  <View style={styles.leaveTypesScroll}>
-                    {leaveTypes.map(lt => (
-                      <TouchableOpacity 
-                        key={lt._id} 
-                        style={[styles.ltBadge, selectedLeaveType === lt._id && styles.ltBadgeActive]}
-                        onPress={() => setSelectedLeaveType(lt._id)}
-                      >
-                        <Text style={[styles.ltText, selectedLeaveType === lt._id && styles.ltTextActive]}>{lt.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
+              {(() => {
+                const filteredLeaves = leaveTypes.filter(lt => {
+                  if (userProfile?.gender) {
+                    if (lt.applicableFor === 'Male Only' && userProfile.gender !== 'Male') return false;
+                    if (lt.applicableFor === 'Female Only' && userProfile.gender !== 'Female') return false;
+                  }
+                  if (lt.applyOnPastDays === 'No' && reqDate < todayStr) return false;
+                  return true;
+                });
+
+                return (
+                  <>
+                    {(!isMissingPunchOut && filteredLeaves.length > 0) && (
+                      <View style={styles.typeSelector}>
+                        <TouchableOpacity 
+                          style={[styles.typeBtn, reqType === 'Leave' && styles.typeBtnActive]} 
+                          onPress={() => setReqType('Leave')}
+                        >
+                          <Text style={[styles.typeBtnText, reqType === 'Leave' && styles.typeBtnTextActive]}>Leave</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={[styles.typeBtn, reqType === 'Attendance Correction' && styles.typeBtnActive]} 
+                          onPress={() => setReqType('Attendance Correction')}
+                        >
+                          <Text style={[styles.typeBtnText, reqType === 'Attendance Correction' && styles.typeBtnTextActive]}>Attendance</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {reqType === 'Leave' && filteredLeaves.length > 0 && (
+                      <View style={{ marginBottom: 16 }}>
+                        <Text style={styles.inputLabel}>Leave Type</Text>
+                        <View style={styles.leaveTypesScroll}>
+                          {filteredLeaves.map(lt => (
+                            <TouchableOpacity 
+                              key={lt._id} 
+                              style={[styles.ltBadge, selectedLeaveType === lt._id && styles.ltBadgeActive]}
+                              onPress={() => setSelectedLeaveType(lt._id)}
+                            >
+                              <Text style={[styles.ltText, selectedLeaveType === lt._id && styles.ltTextActive]}>{lt.name}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </>
+                );
+              })()}
 
               {reqType === 'Leave' && (
                 <View style={{ marginBottom: 16 }}>
