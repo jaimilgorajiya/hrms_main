@@ -37,13 +37,26 @@ const getEmployeeShiftToday = async (userId) => {
     try {
         const user = await User.findById(userId).populate('workSetup.shift').select('workSetup');
         const shift = user?.workSetup?.shift;
-        if (!shift) return { shift: null, daySchedule: null, dayName: null };
+        if (!shift) return { shift: null, daySchedule: null, dayName: null, isWeekOff: false };
         const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
         const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
         const dayName = days[istNow.getUTCDay()];
-        const daySchedule = shift.schedule?.[dayName] || null;
-        return { shift, daySchedule, dayName };
-    } catch { return { shift: null, daySchedule: null, dayName: null }; }
+        let daySchedule = shift.schedule?.[dayName] || null;
+        const isWeekOff = shift?.weekOffDays?.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1)) || false;
+
+        // If week-off and today's schedule is empty, try to find a fallback from weekdays
+        if (isWeekOff && (!daySchedule || !daySchedule.shiftStart)) {
+            const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            for (const day of weekdays) {
+                if (shift?.schedule?.[day]?.shiftStart) {
+                    daySchedule = shift.schedule[day];
+                    break;
+                }
+            }
+        }
+
+        return { shift, daySchedule, dayName, isWeekOff };
+    } catch { return { shift: null, daySchedule: null, dayName: null, isWeekOff: false }; }
 };
 
 // Helper: get shift duration in minutes for today from employee's assigned shift
@@ -172,7 +185,12 @@ export const togglePunch = async (req, res) => {
                     lateByMins = lateByMinsLocal;
                     
                     const maxAllowed = shift.maxLateInMinutes || 0;
-                    if (lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
+                    const { isWeekOff } = await getEmployeeShiftToday(req.user._id);
+
+                    // Skip late check on week-off IF policy says so
+                    const skipOnExtra = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
+
+                    if (!skipOnExtra && lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
                         return res.status(400).json({ 
                             success: false, 
                             requireLateReason: true, 
@@ -182,17 +200,21 @@ export const togglePunch = async (req, res) => {
 
                     // Check Half-Day penalty
                     const rule = await PenaltyRule.findOne({ shift: shift._id });
-                    const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
-                    if (halfDaySlab) {
-                        const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
-                        if (thresholdMins !== null && nowMins > thresholdMins) {
-                            punchStatus = 'Half Day';
-                        }
-                    }
+                    const skipOnExtraPenalty = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
-                    // Only apply monetary late penalty if Half-Day threshold was not triggered
-                    if (lateByMins > 0 && punchStatus !== 'Half Day') {
-                        latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
+                    if (!skipOnExtraPenalty) {
+                        const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                        if (halfDaySlab) {
+                            const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                            if (thresholdMins !== null && nowMins > thresholdMins) {
+                                punchStatus = 'Half Day';
+                            }
+                        }
+
+                        // Only apply monetary late penalty if Half-Day threshold was not triggered
+                        if (lateByMins > 0 && punchStatus !== 'Half Day') {
+                            latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
+                        }
                     }
                 }
             }
@@ -258,7 +280,7 @@ export const togglePunch = async (req, res) => {
         const action = 'OUT';
 
         // ── Early-out enforcement on PUNCH OUT ──
-        const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+        const { shift, daySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id);
         if (shift && daySchedule?.shiftEnd) {
             const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
             const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
@@ -286,7 +308,8 @@ export const togglePunch = async (req, res) => {
                     }
                 }
 
-                if (earlyByMins > maxAllowed && shift.requireEarlyOutReason && !providedReason) {
+                const skipOnExtraEarlyReason = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
+                if (!skipOnExtraEarlyReason && earlyByMins > maxAllowed && shift.requireEarlyOutReason && !providedReason) {
                     return res.status(400).json({
                         success: false,
                         earlyOut: true,
@@ -298,23 +321,27 @@ export const togglePunch = async (req, res) => {
 
                 // Check Half-Day penalty on Punch Out
                 const rule = await PenaltyRule.findOne({ shift: shift._id });
-                const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
-                if (halfDaySlab) {
-                    const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
-                    if (thresholdMins !== null && nowMins < thresholdMins) {
-                        record.status = 'Half Day';
-                        console.log(`[PENALTY_DEBUG] Mark as Half Day (Early Out). Today: ${nowMins}m, Threshold: ${thresholdMins}m`);
-                    }
-                }
+                const skipOnExtraPenaltyOut = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
-                // Calculate early out penalty if applicable
-                const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, null, rule, null, 'Early Out Minutes');
-                if (earlyOutPenaltyAmount > 0) {
-                    record.earlyOutPenalty = {
-                        amount: earlyOutPenaltyAmount,
-                        isApplied: true
-                    };
-                    console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
+                if (!skipOnExtraPenaltyOut) {
+                    const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                    if (halfDaySlab) {
+                        const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                        if (thresholdMins !== null && nowMins < thresholdMins) {
+                            record.status = 'Half Day';
+                            console.log(`[PENALTY_DEBUG] Mark as Half Day (Early Out). Today: ${nowMins}m, Threshold: ${thresholdMins}m`);
+                        }
+                    }
+
+                    // Calculate early out penalty if applicable
+                    const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, null, rule, null, 'Early Out Minutes');
+                    if (earlyOutPenaltyAmount > 0) {
+                        record.earlyOutPenalty = {
+                            amount: earlyOutPenaltyAmount,
+                            isApplied: true
+                        };
+                        console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
+                    }
                 }
             }
         }

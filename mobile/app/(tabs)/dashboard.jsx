@@ -394,45 +394,59 @@ export default function Dashboard() {
 
       // 0. Check Late Punch In
       if (isPunchingIn && data?.stats?.shiftStart && data?.stats?.requireLateReason && !effectiveLateReason) {
-        const [h, m] = data.stats.shiftStart.split(':').map(Number);
-        const lateLimit = new Date();
-        lateLimit.setHours(h, m + (data.stats.maxLateInMinutes || 0), 0, 0);
-        
-        if (now > lateLimit) {
-          setShowLateReasonModal(true);
-          setLoading(false);
-          return;
+        let skipCheck = false;
+        if (data?.stats?.isWeekOff && !data?.stats?.lateEarlyApplyOnExtraDay) {
+          skipCheck = true;
+        }
+
+        if (!skipCheck) {
+          const [h, m] = data.stats.shiftStart.split(':').map(Number);
+          const lateLimit = new Date();
+          lateLimit.setHours(h, m + (data.stats.maxLateInMinutes || 0), 0, 0);
+          
+          if (now > lateLimit) {
+            setShowLateReasonModal(true);
+            setLoading(false);
+            return;
+          }
         }
       }
 
       // 0.1 Check Early Punch Out
       if (!isPunchingIn && data?.stats?.shiftEnd && data?.stats?.requireEarlyOutReason && !effectiveEarlyReason) {
-        const [h, m] = data.stats.shiftEnd.split(':').map(Number);
-        
-        let earlyGrace = data.stats.maxEarlyOutMinutes || 0;
-        if (data.stats.lateEarlyType === 'Combined') {
-          // Calculate late minutes from this morning
-          const firstInTime = punchData.startTime ? new Date(punchData.startTime) : null;
-          const shiftStartStr = data.stats.shiftStart;
-          if (firstInTime && shiftStartStr) {
-            const [sh, sm] = shiftStartStr.split(':').map(Number);
-            const shiftTime = new Date(firstInTime);
-            shiftTime.setHours(sh, sm, 0, 0);
-            const lateMs = firstInTime - shiftTime;
-            const lateMins = Math.max(0, Math.floor(lateMs / 60000));
-            earlyGrace = Math.max(0, (data.stats.maxLateInMinutes || 0) - lateMins);
-          } else {
-            earlyGrace = data.stats.maxLateInMinutes || 0;
-          }
+        let skipCheck = false;
+        if (data?.stats?.isWeekOff && !data?.stats?.lateEarlyApplyOnExtraDay) {
+          skipCheck = true;
         }
 
-        const earlyLimit = new Date();
-        earlyLimit.setHours(h, m - earlyGrace, 0, 0);
-        
-        if (now < earlyLimit) {
-          setShowEarlyReasonModal(true);
-          setLoading(false);
-          return;
+        if (!skipCheck) {
+          const [h, m] = data.stats.shiftEnd.split(':').map(Number);
+          
+          let earlyGrace = data.stats.maxEarlyOutMinutes || 0;
+          if (data.stats.lateEarlyType === 'Combined') {
+            // Calculate late minutes from this morning
+            const firstInTime = punchData.startTime ? new Date(punchData.startTime) : null;
+            const shiftStartStr = data.stats.shiftStart;
+            if (firstInTime && shiftStartStr) {
+              const [sh, sm] = shiftStartStr.split(':').map(Number);
+              const shiftTime = new Date(firstInTime);
+              shiftTime.setHours(sh, sm, 0, 0);
+              const lateMs = firstInTime - shiftTime;
+              const lateMins = Math.max(0, Math.floor(lateMs / 60000));
+              earlyGrace = Math.max(0, (data.stats.maxLateInMinutes || 0) - lateMins);
+            } else {
+              earlyGrace = data.stats.maxLateInMinutes || 0;
+            }
+          }
+
+          const earlyLimit = new Date();
+          earlyLimit.setHours(h, m - earlyGrace, 0, 0);
+          
+          if (now < earlyLimit) {
+            setShowEarlyReasonModal(true);
+            setLoading(false);
+            return;
+          }
         }
       }
 

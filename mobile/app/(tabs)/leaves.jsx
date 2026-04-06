@@ -256,19 +256,27 @@ export default function LeavesScreen() {
           {/* Stats Cards */}
           {stats?.hasLeaveGroup ? (
             <>
-              <View style={styles.summaryRow}>
-                 <View style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}>
-                    <Text style={[styles.summaryVal, { color: '#4338CA' }]}>{total}</Text>
-                    <Text style={styles.summaryLabel}>Total Paid</Text>
-                 </View>
-                 <View style={[styles.summaryCard, { backgroundColor: '#FEF2F2' }]}>
-                    <Text style={[styles.summaryVal, { color: '#B91C1C' }]}>{used}</Text>
-                    <Text style={styles.summaryLabel}>Used</Text>
-                 </View>
-                 <View style={[styles.summaryCard, { backgroundColor: '#ECFDF5' }]}>
-                    <Text style={[styles.summaryVal, { color: '#047857' }]}>{balance}</Text>
-                    <Text style={styles.summaryLabel}>Available</Text>
-                 </View>
+              <View style={{ gap: 10, marginBottom: 20 }}>
+                <View style={styles.summaryRow}>
+                   <View style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}>
+                      <Text style={[styles.summaryVal, { color: '#4338CA' }]}>{total}</Text>
+                      <Text style={styles.summaryLabel}>Entitlement</Text>
+                   </View>
+                   <View style={[styles.summaryCard, { backgroundColor: '#ECFDF5' }]}>
+                      <Text style={[styles.summaryVal, { color: '#047857' }]}>{balance}</Text>
+                      <Text style={styles.summaryLabel}>Available</Text>
+                   </View>
+                </View>
+                <View style={styles.summaryRow}>
+                   <View style={[styles.summaryCard, { backgroundColor: '#FEF2F2' }]}>
+                      <Text style={[styles.summaryVal, { color: '#B91C1C' }]}>{used}</Text>
+                      <Text style={styles.summaryLabel}>Paid Used</Text>
+                   </View>
+                   <View style={[styles.summaryCard, { backgroundColor: '#FFF7ED' }]}>
+                      <Text style={[styles.summaryVal, { color: '#C2410C' }]}>{stats?.usedUnpaidLeaves || 0}</Text>
+                      <Text style={styles.summaryLabel}>Unpaid Taken</Text>
+                   </View>
+                </View>
               </View>
 
               {/* Policy Information */}
@@ -466,7 +474,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white + '30'
   },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textDark, marginBottom: 16, marginTop: 10 },
-  summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  summaryRow: { flexDirection: 'row', gap: 10 },
   summaryCard: { flex: 1, borderRadius: 16, padding: 12, alignItems: 'center' },
   summaryVal: { fontSize: 18, fontWeight: '800' },
   summaryLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, marginTop: 2, textTransform: 'uppercase' },

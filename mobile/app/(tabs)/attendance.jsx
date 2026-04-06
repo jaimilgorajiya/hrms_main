@@ -12,55 +12,9 @@ import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import Toast from 'react-native-toast-message';
 
-const TimePickerModal = ({ visible, value, onSelect, onCancel, label }) => {
-  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-  
-  const [h, m] = (value || '09:00').split(':');
-  const [currH, setCurrH] = useState(h);
-  const [currM, setCurrM] = useState(m);
+import ClockPicker from '../../components/ClockPicker';
 
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.tpOverlay}>
-        <View style={styles.tpContent}>
-          <Text style={styles.tpLabel}>Select {label}</Text>
-          <View style={styles.tpPickers}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tpSubLabel}>Hour</Text>
-              <ScrollView style={{ height: 200 }} showsVerticalScrollIndicator={false}>
-                {hours.map(hr => (
-                  <TouchableOpacity key={hr} style={[styles.tpItem, currH === hr && styles.tpItemActive]} onPress={() => setCurrH(hr)}>
-                    <Text style={[styles.tpText, currH === hr && styles.tpTextActive]}>{hr}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            <View style={styles.tpDivider} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tpSubLabel}>Minute</Text>
-              <ScrollView style={{ height: 200 }} showsVerticalScrollIndicator={false}>
-                {minutes.map(mn => (
-                  <TouchableOpacity key={mn} style={[styles.tpItem, currM === mn && styles.tpItemActive]} onPress={() => setCurrM(mn)}>
-                    <Text style={[styles.tpText, currM === mn && styles.tpTextActive]}>{mn}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-          <View style={styles.tpFooter}>
-            <TouchableOpacity onPress={onCancel} style={[styles.tpBtn, { backgroundColor: COLORS.bgMain }]}>
-              <Text style={{ color: COLORS.textMuted, fontWeight: '700' }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => onSelect(`${currH}:${currM}`)} style={[styles.tpBtn, { backgroundColor: COLORS.primary }]}>
-              <Text style={{ color: COLORS.white, fontWeight: '700' }}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+const TimePickerModal = (props) => <ClockPicker {...props} />;
 
 const StatusBadge = ({ status, approvalStatus }) => {
   const isPresent = status === 'Present';
@@ -493,23 +447,45 @@ export default function AttendanceScreen() {
 
               {reqType === 'Attendance Correction' && (
                 <View style={{ marginBottom: 16 }}>
-                  <TouchableOpacity 
-                    style={[styles.timeDisplay, { width: '100%', flexDirection: 'row', justifyContent: 'flex-start' }, 
-                      (new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && { borderColor: COLORS.danger }]} 
-                    onPress={() => setShowOutPicker(true)}
-                  >
-                    <View style={{ backgroundColor: COLORS.primary + '10', padding: 8, borderRadius: 10, marginRight: 12 }}>
-                      <Ionicons name="time" size={20} color={COLORS.primary} />
-                    </View>
-                    <View>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>Missing Punch Out</Text>
-                      <Text style={[styles.timeValue, { marginTop: 2 }]}>{manualOut}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={COLORS.border} style={{ marginLeft: 'auto' }} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.timeDisplay, 
+                        { flex: 1, flexDirection: 'row', justifyContent: 'flex-start' },
+                        isMissingPunchOut && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }
+                      ]} 
+                      onPress={() => !isMissingPunchOut && setShowInPicker(true)}
+                      activeOpacity={isMissingPunchOut ? 1 : 0.7}
+                    >
+                      <View style={{ backgroundColor: isMissingPunchOut ? '#64748B20' : COLORS.success + '10', padding: 8, borderRadius: 10, marginRight: 10 }}>
+                        <Ionicons name={isMissingPunchOut ? "lock-closed" : "log-in"} size={20} color={isMissingPunchOut ? "#64748B" : COLORS.success} />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>
+                          Punch In {isMissingPunchOut}
+                        </Text>
+                        <Text style={[styles.timeValue, isMissingPunchOut && { color: '#64748B' }]}>{manualIn}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.timeDisplay, { flex: 1, flexDirection: 'row', justifyContent: 'flex-start' }, 
+                        (new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && { borderColor: COLORS.danger }]} 
+                      onPress={() => setShowOutPicker(true)}
+                    >
+                      <View style={{ backgroundColor: COLORS.danger + '10', padding: 8, borderRadius: 10, marginRight: 10 }}>
+                        <Ionicons name="log-out" size={20} color={COLORS.danger} />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>Punch Out</Text>
+                        <Text style={styles.timeValue}>{manualOut}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                  
                   {(new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && (
-                    <Text style={{ color: COLORS.danger, fontSize: 11, fontWeight: '700', marginTop: 6, marginLeft: 4 }}>
-                      <Ionicons name="warning" size={12} color={COLORS.danger} /> Must be after In-time ({manualIn})
+                    <Text style={{ color: COLORS.danger, fontSize: 11, fontWeight: '700', marginTop: 0, marginLeft: 4 }}>
+                      <Ionicons name="warning" size={12} color={COLORS.danger} /> Out-time must be after In-time ({manualIn})
                     </Text>
                   )}
                 </View>

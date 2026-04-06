@@ -95,7 +95,13 @@ const AdminAttendance = () => {
         body: JSON.stringify({ attendanceId, status })
       });
       const json = await res.json();
-      if (json.success) fetchRecords();
+      if (json.success) {
+        fetchRecords();
+        // Update the selected record state to refresh the drawer UI immediately
+        if (selectedRecord && (selectedRecord._id === attendanceId)) {
+          setSelectedRecord(prev => ({ ...prev, approvalStatus: status }));
+        }
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -389,9 +395,22 @@ const AdminAttendance = () => {
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '800' }}>
                   {selectedRecord.employee?.name?.charAt(0)}
                 </div>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '16px' }}>{selectedRecord.employee?.name}</div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>{selectedRecord.employee?.employeeId} · {selectedRecord.employee?.department}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '16px' }}>{selectedRecord.employee?.name}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{selectedRecord.employee?.employeeId} · {selectedRecord.employee?.department}</div>
+                    </div>
+                    <span style={{
+                      background: approvalColors[selectedRecord.approvalStatus]?.bg || '#F8FAFC', 
+                      color: approvalColors[selectedRecord.approvalStatus]?.color || '#64748b', 
+                      padding: '4px 12px', borderRadius: '999px', fontSize: '11px', 
+                      fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px'
+                    }}>
+                      {approvalColors[selectedRecord.approvalStatus]?.icon}
+                      {selectedRecord.approvalStatus || 'Pending'}
+                    </span>
+                  </div>
                 </div>
               </div>
 

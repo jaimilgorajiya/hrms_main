@@ -101,8 +101,19 @@ export const getEmployeeStats = async (req, res) => {
         const todayName = days[istNow.getUTCDay()];
 
         // Build shift info
-        const schedule = shift?.schedule?.[todayName] || null;
+        let schedule = shift?.schedule?.[todayName] || null;
         const isWeekOff = shift?.weekOffDays?.includes(todayName.charAt(0).toUpperCase() + todayName.slice(1)) || false;
+
+        // If it's a week off and schedule is empty, try to find a fallback from weekdays
+        if (isWeekOff && (!schedule || !schedule.shiftStart)) {
+            const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+            for (const day of weekdays) {
+                if (shift?.schedule?.[day]?.shiftStart) {
+                    schedule = shift.schedule[day];
+                    break;
+                }
+            }
+        }
 
         // Build leave balance info from leaveGroup or direct user field
         const leaveGroup = emp.leaveGroup || null;
@@ -284,6 +295,7 @@ export const getEmployeeStats = async (req, res) => {
                 requireOutOfRangeReason: shift?.requireOutOfRangeReason || false,
                 requireLateReason: shift?.requireLateReason || false,
                 requireEarlyOutReason: shift?.requireEarlyOutReason || false,
+                lateEarlyApplyOnExtraDay: shift?.lateEarlyApplyOnExtraDay || false,
                 lateEarlyType: shift?.lateEarlyType || 'Combined',
                 maxLateInMinutes: shift?.maxLateInMinutes || 0,
                 maxEarlyOutMinutes: shift?.maxEarlyOutMinutes || 0,

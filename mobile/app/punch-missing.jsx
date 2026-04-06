@@ -12,55 +12,9 @@ import { apiFetch } from '../utils/api';
 import { ENDPOINTS } from '../constants/api';
 import { COLORS, SHADOW } from '../constants/theme';
 
-const TimePickerModal = ({ visible, value, onSelect, onCancel, label }) => {
-  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-  
-  const [h, m] = (value || '18:00').split(':');
-  const [currH, setCurrH] = useState(h);
-  const [currM, setCurrM] = useState(m);
+import ClockPicker from '../components/ClockPicker';
 
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.tpOverlay}>
-        <View style={styles.tpContent}>
-          <Text style={styles.tpLabel}>Select {label}</Text>
-          <View style={styles.tpPickers}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tpSubLabel}>Hour</Text>
-              <ScrollView style={{ height: 200 }} showsVerticalScrollIndicator={false}>
-                {hours.map(hr => (
-                  <TouchableOpacity key={hr} style={[styles.tpItem, currH === hr && styles.tpItemActive]} onPress={() => setCurrH(hr)}>
-                    <Text style={[styles.tpText, currH === hr && styles.tpTextActive]}>{hr}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            <View style={styles.tpDivider} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.tpSubLabel}>Minute</Text>
-              <ScrollView style={{ height: 200 }} showsVerticalScrollIndicator={false}>
-                {minutes.map(mn => (
-                  <TouchableOpacity key={mn} style={[styles.tpItem, currM === mn && styles.tpItemActive]} onPress={() => setCurrM(mn)}>
-                    <Text style={[styles.tpText, currM === mn && styles.tpTextActive]}>{mn}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-          <View style={styles.tpFooter}>
-            <TouchableOpacity onPress={onCancel} style={[styles.tpBtn, { backgroundColor: '#F1F5F9' }]}>
-              <Text style={{ color: '#64748B', fontWeight: '700' }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => onSelect(`${currH}:${currM}`)} style={[styles.tpBtn, { backgroundColor: COLORS.primary }]}>
-              <Text style={{ color: COLORS.white, fontWeight: '700' }}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+const TimePickerModal = (props) => <ClockPicker {...props} />;
 
 export default function PunchMissingScreen() {
   const router = useRouter();
@@ -268,9 +222,9 @@ export default function PunchMissingScreen() {
             </View>
             
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.label}>Original Punch In (Locked)</Text>
-              <View style={[styles.timeDisplay, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-                <Ionicons name="log-in-outline" size={18} color="#64748B" style={{ marginRight: 10 }} />
+              <Text style={styles.label}>Original Punch In</Text>
+              <View style={[styles.timeDisplay, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0', gap: 10 }]}>
+                <Ionicons name="lock-closed" size={18} color="#64748B" />
                 <Text style={[styles.timeValue, { color: '#64748B' }]}>{selectedDay.punchIn || '—'}</Text>
               </View>
             </View>
