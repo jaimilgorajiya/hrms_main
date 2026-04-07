@@ -27,24 +27,62 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pendingAttendance, setPendingAttendance] = useState([]);
+  const [todayActivities, setTodayActivities] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const navigate = useNavigate();
   
 
   useEffect(() => {
     fetchStats();
-    fetchPendingAttendance();
+    fetchTodayActivities();
+    fetchPendingRequests();
   }, []);
 
-  const fetchPendingAttendance = async () => {
+  const fetchTodayActivities = async () => {
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/attendance/admin/all?approvalStatus=Pending`);
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Kolkata' }).split(' ')[0];
+      const response = await authenticatedFetch(`${API_URL}/api/attendance/admin/all?date=${today}`);
       const result = await response.json();
       if (result.success) {
-        setPendingAttendance(result.records?.slice(0, 5) || []);
+        setTodayActivities(result.records?.slice(0, 5) || []);
       }
     } catch (error) {
-      console.error("Error fetching pending attendance:", error);
+      console.error("Error fetching today's activities:", error);
+    }
+  };
+
+  const fetchPendingRequests = async () => {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/requests/admin/all?status=Pending`);
+      const result = await response.json();
+      if (result.success) {
+        setPendingRequests(result.requests?.slice(0, 5) || []);
+      }
+    } catch (error) {
+      console.error("Error fetching pending requests:", error);
+    }
+  };
+
+  const handleRequestAction = async (requestId, status) => {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/requests/admin/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, status, adminRemark: `Quick ${status} from Dashboard` })
+      });
+      const result = await response.json();
+      if (result.success) {
+        Swal.fire({
+          icon: 'success',
+          title: `Request ${status}`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+        fetchPendingRequests();
+        fetchTodayActivities(); // Refresh because activities might change (on leave / correction)
+      }
+    } catch (error) {
+      console.error("Error updating request:", error);
     }
   };
 
@@ -182,16 +220,16 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      <div className="dashboard-main-grid">
-        <div className="main-grid-left">
+      <div className="dashboard-main-grid-three">
+        <div className="main-grid-left-col">
           <div className="card-prem">
             <div className="card-header-prem">
-              <h2>Recent Attendance</h2>
-              <button className="icon-btn-prem" onClick={fetchPendingAttendance}><RefreshCw size={16} /></button>
+              <h2>Today's Activity</h2>
+              <button className="icon-btn-prem" onClick={fetchTodayActivities}><RefreshCw size={16} /></button>
             </div>
             <div className="card-body-prem" style={{ padding: '0' }}>
               <div className="attendance-list-dashboard">
-                {pendingAttendance.map((rec) => (
+                {todayActivities.map((rec) => (
                   <div key={rec._id} className="attendance-item-row" style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
                     <div className="emp-brief" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: '#2563EB', fontSize: '14px' }}>
@@ -209,15 +247,71 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ))}
-                {pendingAttendance.length === 0 && (
+                {todayActivities.length === 0 && (
                   <div style={{ padding: '60px 40px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
-                     No recent attendance records.
+                     No attendance activity today.
                   </div>
                 )}
               </div>
             </div>
             <div className="card-footer-prem">
                <button className="view-all-prem" onClick={() => navigate('/admin/attendance/records')}>Review All Records</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="main-grid-middle-col">
+          <div className="card-prem">
+            <div className="card-header-prem">
+              <h2>Pending Requests</h2>
+              <button className="icon-btn-prem" onClick={fetchPendingRequests}><RefreshCw size={16} /></button>
+            </div>
+            <div className="card-body-prem" style={{ padding: '0' }}>
+              <div className="attendance-list-dashboard">
+                {pendingRequests.map((req) => (
+                  <div 
+                    key={req._id} 
+                    className="attendance-item-row" 
+                    style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s', cursor: 'pointer' }}
+                    onClick={() => navigate(req.requestType === 'Leave' ? '/admin/leave/request' : '/admin/attendance/request')}
+                  >
+                    <div className="emp-brief" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: req.requestType === 'Leave' ? '#F0FDF4' : '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: req.requestType === 'Leave' ? '#10B981' : '#F97316' }}>
+                          {req.requestType === 'Leave' ? <Calendar size={16} /> : <Clock size={16} />}
+                       </div>
+                       <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '700', fontSize: '14px', color: '#1E293B' }}>{req.employee?.name}</div>
+                          <div style={{ fontSize: '12px', color: '#64748B' }}>{req.requestType} • {req.fromDate || req.date}</div>
+                       </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="icon-btn-prem" 
+                          style={{ color: '#10B981', backgroundColor: '#F0FDF4' }}
+                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Approved'); }}
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button 
+                          className="icon-btn-prem" 
+                          style={{ color: '#EF4444', backgroundColor: '#FEF2F2' }}
+                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Rejected'); }}
+                        >
+                          <X size={16} />
+                        </button>
+                    </div>
+                  </div>
+                ))}
+                {pendingRequests.length === 0 && (
+                  <div style={{ padding: '60px 40px', textAlign: 'center', color: '#94A3B8', fontStyle: 'italic' }}>
+                     No pending requests.
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="card-footer-prem">
+               <button className="view-all-prem" onClick={() => navigate('/admin/leave/request')}>View All Requests</button>
             </div>
           </div>
         </div>

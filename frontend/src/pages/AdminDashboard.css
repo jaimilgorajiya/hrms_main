@@ -148,10 +148,28 @@
 .trend-prem.down { color: #EF4444; background: #FEE2E2; }
 
 /* Main Grid */
-.dashboard-main-grid {
+.dashboard-main-grid,
+.dashboard-main-grid-three {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 32px;
+}
+
+.dashboard-main-grid-three {
+  grid-template-columns: 1.2fr 1.2fr 1fr;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-main-grid-three {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-main-grid,
+  .dashboard-main-grid-three {
+    grid-template-columns: 1fr;
+  }
 }
 
 .card-prem {
