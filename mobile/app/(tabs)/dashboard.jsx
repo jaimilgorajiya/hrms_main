@@ -700,6 +700,7 @@ export default function Dashboard() {
             {stats.hasLeaveGroup && (
               <StatCard icon="leaf-outline" label="Annual Leaves" value={stats.totalLeaves} sub="Quota" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/leaves')} delay={300} />
             )}
+            <StatCard icon="exit-outline" label="Resignation" value="Process" sub="Apply/Track" color={COLORS.danger} bg={COLORS.dangerLight} onPress={() => router.push('/resignation')} delay={350} />
           </View>
 
           <Text style={styles.sectionTitle}>Today's Activity</Text>

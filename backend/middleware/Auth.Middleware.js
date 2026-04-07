@@ -21,6 +21,20 @@ const verifyToken = async (req, res, next) => {
             return res.status(401).json({ success: false, message: "Unauthorized - User Not Found" });
         }
 
+        // Check account status - auto logout ex-employees
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const isAllowed = 
+            user.role === 'Admin' || 
+            user.status === 'Active' || 
+            user.status === 'Onboarding' || 
+            (user.status === 'Resigned' && (!user.exitDate || new Date(user.exitDate) >= today));
+
+        if (!isAllowed) {
+            return res.status(403).json({ success: false, message: "Account is blocked." });
+        }
+
         req.user = user;
 
         next();

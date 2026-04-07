@@ -219,7 +219,11 @@ const getUsers = async (req, res) => {
                         { status: { $in: ['Active', 'Inactive', 'Onboarding'] } },
                         { 
                             status: 'Resigned', 
-                            exitDate: { $gt: today } 
+                            $or: [
+                                { exitDate: { $gt: today } },
+                                { exitDate: { $exists: false } },
+                                { exitDate: null }
+                            ]
                         }
                     ]
                 }

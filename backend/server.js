@@ -53,6 +53,7 @@ import employeeDashboardRoutes from './routes/EmployeeDashboard.Route.js';
 import attendanceRoutes from './routes/Attendance.Routes.js';
 import notificationRoutes from './routes/Notification.Routes.js';
 import requestRoutes from './routes/Request.Routes.js';
+import resignationRoutes from './routes/Resignation.Routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -115,6 +116,7 @@ app.use('/api/employee-dashboard', employeeDashboardRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/api/resignation', resignationRoutes);
 app.use('/api/payroll', payrollRoutes);
 
 app.get('/', (req, res) => {

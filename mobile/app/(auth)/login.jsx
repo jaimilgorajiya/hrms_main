@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { getAuth, signInWithPhoneNumber, signOut } from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, SIZES, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme';
 
@@ -62,8 +62,7 @@ export default function LoginScreen() {
 
       // 2. If registered, proceed with Firebase OTP
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      const auth = getAuth();
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone);
+      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
       setConfirm(confirmation);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -85,8 +84,7 @@ export default function LoginScreen() {
     try {
       const result = await confirm.confirm(code);
       if (result) {
-        const auth = getAuth();
-        const idToken = await auth.currentUser.getIdToken();
+        const idToken = await auth().currentUser.getIdToken();
         const apiResult = await loginWithOTP(idToken);
         
         if (apiResult.success) {
@@ -95,8 +93,7 @@ export default function LoginScreen() {
         } else {
           Toast.show({ type: 'error', text1: 'Login Failed', text2: apiResult.message });
           // Sign out from Firebase if backend reject
-          const auth = getAuth();
-          await signOut(auth);
+          await auth().signOut();
         }
       }
     } catch (error) {

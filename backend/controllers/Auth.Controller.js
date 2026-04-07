@@ -40,8 +40,21 @@ const otpLogin = async (req, res) => {
             });
         }
 
-        if (user.status && user.status !== "Active") {
-            return res.status(403).json({ success: false, message: "Account is blocked." });
+        // Check account status
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const isAllowed = 
+            user.role === 'Admin' || 
+            user.status === 'Active' || 
+            user.status === 'Onboarding' || 
+            (user.status === 'Resigned' && (!user.exitDate || new Date(user.exitDate) >= today));
+
+        if (!isAllowed) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "This account is inactive or has been blocked. Please contact HR." 
+            });
         }
 
         // Generate JWT
@@ -214,12 +227,30 @@ const login = async (req, res) => {
       });
     }
 
-    // Check status - allow if undefined/missing for backwards compatibility
-    if (user.status && user.status !== "Active") {
-      return res.status(403).json({
-        success: false,
-        message: "Account is blocked. Contact admin.",
-      });
+    // Check account status
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const isAllowed = 
+        user.role === 'Admin' || 
+        user.role === 'Manager' || // Managers are allowed on web
+        user.status === 'Active' || 
+        user.status === 'Onboarding' || 
+        (user.status === 'Resigned' && (!user.exitDate || new Date(user.exitDate) >= today));
+
+    if (!isAllowed) {
+        return res.status(403).json({ 
+            success: false, 
+            message: "Account is blocked. Contact administrator." 
+        });
+    }
+
+    // Role-based web restriction
+    if (user.role === 'Employee') {
+        return res.status(403).json({
+            success: false,
+            message: "Employees can only access the HRMS via the Mobile App."
+        });
     }
 
     // Compare password

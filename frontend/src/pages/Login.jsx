@@ -172,6 +172,14 @@ const Login = ({ isRegister }) => {
 
         // Redirect based on role
         const role = data.user.role;
+        if (role === "Employee") {
+            setError("Employees are only permitted to use the Mobile Application. Web access is restricted.");
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setLoading(false);
+            return;
+        }
+
         if (role === "Admin") {
           navigate("/admin");
         } else if (role === "Manager") {

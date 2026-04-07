@@ -18,7 +18,8 @@ import {
   Clock,
   RefreshCw,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -53,36 +54,75 @@ const AdminDashboard = () => {
 
   const fetchPendingRequests = async () => {
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/requests/admin/all?status=Pending`);
-      const result = await response.json();
-      if (result.success) {
-        setPendingRequests(result.requests?.slice(0, 5) || []);
+      // Fetch both general requests and resignations
+      const [reqRes, resRes] = await Promise.all([
+        authenticatedFetch(`${API_URL}/api/requests/admin/all?status=Pending`),
+        authenticatedFetch(`${API_URL}/api/resignation/admin/all?status=Pending`)
+      ]);
+      
+      const reqJson = await reqRes.json();
+      const resJson = await resRes.json();
+
+      let combined = [];
+      if (reqJson.success) combined = [...reqJson.requests];
+      if (resJson.success) {
+        const resignationRequests = resJson.resignations.map(r => ({
+          ...r,
+          requestType: 'Resignation', // Label it for the UI
+          reason: r.reason,
+          date: r.lastWorkingDay, // Show LWD as the primary date
+          employee: r.employeeId // Backend uses employeeId field
+        }));
+        combined = [...combined, ...resignationRequests];
       }
-    } catch (error) {
-      console.error("Error fetching pending requests:", error);
-    }
+      
+      // Sort by creation date
+      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setPendingRequests(combined.slice(0, 5));
+    } catch (e) { console.error(e); }
   };
 
-  const handleRequestAction = async (requestId, status) => {
+  const handleRequestAction = async (requestId, status, requestType) => {
     try {
-      const response = await authenticatedFetch(`${API_URL}/api/requests/admin/action`, {
+      let noticePeriodDays = 0;
+      let comments = `Quick ${status} from Dashboard`;
+
+      if (requestType === 'Resignation' && status === 'Approved') {
+        const { value: days } = await Swal.fire({
+          title: 'Enter Notice Period',
+          input: 'number',
+          inputLabel: 'Days',
+          inputPlaceholder: 'e.g. 30',
+          showCancelButton: true
+        });
+        if (days) noticePeriodDays = days;
+        else return; // Cancelled
+      }
+
+      const endpoint = requestType === 'Resignation' 
+        ? `${API_URL}/api/resignation/admin/action` 
+        : `${API_URL}/api/requests/admin/action`;
+
+      const res = await authenticatedFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, status, adminRemark: `Quick ${status} from Dashboard` })
+        body: JSON.stringify({ 
+          requestId,
+          resignationId: requestId,
+          status, 
+          adminRemark: comments,
+          comments,
+          noticePeriodDays
+        })
       });
-      const result = await response.json();
-      if (result.success) {
-        Swal.fire({
-          icon: 'success',
-          title: `Request ${status}`,
-          timer: 1500,
-          showConfirmButton: false
-        });
+      const json = await res.json();
+      if (json.success) {
+        Swal.fire('Success!', `Request ${status.toLowerCase()} successfully`, 'success');
         fetchPendingRequests();
-        fetchTodayActivities(); // Refresh because activities might change (on leave / correction)
+        fetchTodayActivities();
       }
-    } catch (error) {
-      console.error("Error updating request:", error);
+    } catch (e) {
+      Swal.fire('Error', 'Action failed', 'error');
     }
   };
 
@@ -273,11 +313,11 @@ const AdminDashboard = () => {
                     key={req._id} 
                     className="attendance-item-row" 
                     style={{ display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s', cursor: 'pointer' }}
-                    onClick={() => navigate(req.requestType === 'Leave' ? '/admin/leave/request' : '/admin/attendance/request')}
+                    onClick={() => navigate(req.requestType === 'Leave' ? '/admin/leave/request' : (req.requestType === 'Resignation' ? '/admin/employees/resignation' : '/admin/attendance/request'))}
                   >
                     <div className="emp-brief" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: req.requestType === 'Leave' ? '#F0FDF4' : '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: req.requestType === 'Leave' ? '#10B981' : '#F97316' }}>
-                          {req.requestType === 'Leave' ? <Calendar size={16} /> : <Clock size={16} />}
+                       <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: req.requestType === 'Leave' ? '#F0FDF4' : (req.requestType === 'Resignation' ? '#FEF2F2' : '#FFF7ED'), display: 'flex', alignItems: 'center', justifyContent: 'center', color: req.requestType === 'Leave' ? '#10B981' : (req.requestType === 'Resignation' ? '#EF4444' : '#F97316') }}>
+                          {req.requestType === 'Leave' ? <Calendar size={16} /> : (req.requestType === 'Resignation' ? <XCircle size={16} /> : <Clock size={16} />)}
                        </div>
                        <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: '700', fontSize: '14px', color: '#1E293B' }}>{req.employee?.name}</div>
@@ -289,14 +329,14 @@ const AdminDashboard = () => {
                         <button 
                           className="icon-btn-prem" 
                           style={{ color: '#10B981', backgroundColor: '#F0FDF4' }}
-                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Approved'); }}
+                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Approved', req.requestType); }}
                         >
                           <Check size={16} />
                         </button>
                         <button 
                           className="icon-btn-prem" 
                           style={{ color: '#EF4444', backgroundColor: '#FEF2F2' }}
-                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Rejected'); }}
+                          onClick={(e) => { e.stopPropagation(); handleRequestAction(req._id, 'Rejected', req.requestType); }}
                         >
                           <X size={16} />
                         </button>

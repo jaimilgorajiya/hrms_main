@@ -15,7 +15,8 @@ const Department = () => {
 
     const [formData, setFormData] = useState({
         name: '',
-        branchId: ''
+        branchId: '',
+        noticePeriodDays: 30
     });
 
     const [bulkDepartments, setBulkDepartments] = useState(['']);
@@ -77,7 +78,7 @@ const Department = () => {
                     showConfirmButton: false
                 });
                 setIsModalOpen(false);
-                setFormData({ name: '', branchId: '' });
+                setFormData({ name: '', branchId: '', noticePeriodDays: 30 });
                 setIsEditing(false);
                 fetchInitialData();
             } else {
@@ -121,7 +122,7 @@ const Department = () => {
                 });
                 setIsBulkModalOpen(false);
                 setBulkDepartments(['']);
-                setFormData({ name: '', branchId: '' });
+                setFormData({ name: '', branchId: '', noticePeriodDays: 30 });
                 fetchInitialData();
             } else {
                 Swal.fire('Error', data.message || 'Something went wrong', 'error');
@@ -134,7 +135,8 @@ const Department = () => {
     const handleEdit = (dept) => {
         setFormData({
             name: dept.name,
-            branchId: dept.branchId
+            branchId: dept.branchId,
+            noticePeriodDays: dept.noticePeriodDays || 30
         });
         setCurrentId(dept._id);
         setIsEditing(true);
@@ -213,7 +215,10 @@ const Department = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                                         {branchDepts.map((dept) => (
                                             <div key={dept._id} style={{ background: '#F8FAFC', padding: '16px 20px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
-                                                <span style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{dept.name}</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{dept.name}</span>
+                                                    <span style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Notice: {dept.noticePeriodDays || 30} days</span>
+                                                </div>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button className="btn-action-edit" onClick={() => handleEdit(dept)}><Edit2 size={14} /></button>
                                                     <button className="btn-action-delete" onClick={() => handleDelete(dept._id)}><Trash2 size={14} /></button>
@@ -258,6 +263,10 @@ const Department = () => {
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Department Name <span className="req">*</span></label>
                                     <input type="text" className="hrm-input" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Sales" required />
+                                </div>
+                                <div className="hrm-form-group">
+                                    <label className="hrm-label">Notice Period (Days) <span className="req">*</span></label>
+                                    <input type="number" className="hrm-input" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} placeholder="30" required min="0" />
                                 </div>
                             </div>
                             <div className="hrm-modal-footer">

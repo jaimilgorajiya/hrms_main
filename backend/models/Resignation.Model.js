@@ -17,6 +17,9 @@ const resignationSchema = new mongoose.Schema({
     lastWorkingDay: { 
         type: Date 
     },
+    noticePeriodDays: {
+        type: Number
+    },
     status: { 
         type: String, 
         enum: ['Pending', 'Approved', 'Rejected'], 

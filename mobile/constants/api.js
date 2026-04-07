@@ -24,4 +24,6 @@ export const ENDPOINTS = {
   submitRequest: '/api/requests/submit',
   myRequests: '/api/requests/my-requests',
   leaveTypes: '/api/leave-types',
+  submitResignation: '/api/resignation/submit',
+  myResignation: '/api/resignation/my',
 };

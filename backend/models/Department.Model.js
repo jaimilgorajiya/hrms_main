@@ -19,6 +19,10 @@ const departmentSchema = new mongoose.Schema(
         order: {
             type: Number,
             default: 0
+        },
+        noticePeriodDays: {
+            type: Number,
+            default: 30 // Set a default of 30 days
         }
     },
     {

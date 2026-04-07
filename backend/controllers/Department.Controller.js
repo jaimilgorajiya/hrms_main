@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const createDepartment = async (req, res) => {
     try {
-        const { name, branchId } = req.body;
+        const { name, branchId, noticePeriodDays } = req.body;
         const adminId = req.user._id;
 
         if (!name || !branchId) {
@@ -19,7 +19,8 @@ const createDepartment = async (req, res) => {
             name, 
             branchId,
             adminId,
-            order: count
+            order: count,
+            noticePeriodDays: noticePeriodDays || 30
         });
         await newDepartment.save();
 
@@ -108,7 +109,7 @@ const updateDepartment = async (req, res) => {
 
         const department = await Department.findOneAndUpdate(
             { _id: req.params.id, adminId },
-            { name, branchId },
+            { name, branchId, noticePeriodDays },
             { new: true }
         );
 
