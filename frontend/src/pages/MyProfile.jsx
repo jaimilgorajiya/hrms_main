@@ -273,7 +273,6 @@ const MyProfile = () => {
             <div className="profile-card-premium avatar-card">
               <div className="avatar-section-premium">
                 <div className="avatar-wrapper-premium">
-                  <div className="avatar-glow"></div>
                   {companyData.logo ? (
                     <img src={getFullLogoUrl(companyData.logo)} alt="Logo" className="avatar-img-premium" />
                   ) : (

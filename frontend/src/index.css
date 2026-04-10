@@ -1471,26 +1471,21 @@ body {
   margin-bottom: 24px;
 }
 
-.avatar-glow {
-  position: absolute;
-  inset: -8px;
-  background: linear-gradient(135deg, #3B82F6, #2563EB);
-  border-radius: 50%;
-  opacity: 0.15;
-  filter: blur(8px);
-  animation: pulse 3s infinite;
-}
+
 
 .avatar-img-premium {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #ffffff;
+  padding: 4px;
   border: 4px solid white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 1;
 }
+
 
 .avatar-edit-premium {
   position: absolute;

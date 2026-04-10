@@ -19,10 +19,8 @@ import * as Location from 'expo-location';
 
 import { getDistance } from '../../utils/geofence';
 
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// LayoutAnimation is enabled by default in the New Architecture
+
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -1308,7 +1306,7 @@ const styles = StyleSheet.create({
   statCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 92 },
   statIconBox: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   statContent: { flex: 1 },
-  statValue: { fontSize: 18, fontWeight: '800', color: COLORS.textDark },
+  statValue: { fontSize: 16, fontWeight: '800', color: COLORS.textDark },
   statLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textLight, marginTop: 2 },
   statSub: { fontSize: 10, color: COLORS.textMuted, marginTop: 1 },
   productivityCard: { backgroundColor: COLORS.white, borderRadius: 20, padding: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -1360,14 +1358,14 @@ const styles = StyleSheet.create({
   holidayMonth: { fontSize: 9, fontWeight: '800', marginTop: -2 },
   holidayInfo: { flex: 1 },
   holidayName: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
-  holidayDay: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, fontWeight: '600' },
+  holidayDay: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, fontWeight: '600' },                                                              
   quickActionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   quickAction: { flex: 1, backgroundColor: COLORS.white, borderRadius: 20, padding: 16, alignItems: 'center', gap: 10 },
   quickIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   quickLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textMain },
   
   // Shift Modal Styles
-  modalSheet: {
+  modalSheet: {   
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,

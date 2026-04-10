@@ -114,17 +114,21 @@ export const menuItems = [
           { title: "Absent Emp", path: "/admin/attendance/absent" },
           { title: "Delete Attendance", path: "/admin/attendance/delete" },
         ],
-      },
+      },  
       {
         title: "Payroll",
         path: "/admin/payroll",
         children: [
           { title: "Employee CTC", path: "/admin/payroll/employee-ctc" },
           { title: "Monthly Payout Summary", path: "/admin/monthly-payout" },
+          { title: "Generate Salary Slip", path: "/admin/payroll/generate-slip" },
+          { title: "Publish Salary Slip", path: "/admin/payroll/publish-slip" },
+          { title: "Payroll History", path: "/admin/payroll/history" },
         ],
       },
     ],
   },
+ 
   {
     title: "Leave Management",
     icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",

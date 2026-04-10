@@ -132,6 +132,7 @@ const EmployeeProfile = () => {
     const [countries, setCountries] = useState([]);
 
     const [formData, setFormData] = useState({});
+    const [resignationInfo, setResignationInfo] = useState(null);
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [companyName, setCompanyName] = useState('Company');
@@ -198,6 +199,11 @@ const EmployeeProfile = () => {
             if (data.success) {
                 setEmployee(data.user);
                 setFormData(data.user);
+
+                // Fetch resignation specific details if user is not active
+                if (['Resigned', 'Ex-Employee'].includes(data.user.status)) {
+                    fetchResignationDetails(data.user._id);
+                }
             } else {
                 Swal.fire('Error', data.message || 'Failed to fetch employee details', 'error');
                 navigate('/admin/employees/list');
@@ -206,6 +212,24 @@ const EmployeeProfile = () => {
             console.error("Error fetching employee details:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchResignationDetails = async (userId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await authenticatedFetch(`${API_URL}/api/resignation/admin/all`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (data.success) {
+                const userRes = data.resignations.find(r => r.employeeId?._id === userId);
+                if (userRes) {
+                    setResignationInfo(userRes);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching resignation details:", error);
         }
     };
 
@@ -911,13 +935,13 @@ const EmployeeProfile = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Resignation Date:</span>
                                     <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>
-                                        {formData.resignationDate ? new Date(formData.resignationDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                                        {(formData.resignationDate || resignationInfo?.noticeDate) ? new Date(formData.resignationDate || resignationInfo?.noticeDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Company Last Day:</span>
                                     <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>
-                                        {formData.exitDate ? new Date(formData.exitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                                        {(formData.exitDate || resignationInfo?.lastWorkingDay) ? new Date(formData.exitDate || resignationInfo?.lastWorkingDay).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

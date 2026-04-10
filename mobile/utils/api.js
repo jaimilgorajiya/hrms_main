@@ -28,7 +28,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     
     clearTimeout(timeoutId);
 
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
       await storage.remove('token');
       await storage.remove('user');
       // Navigation handled by auth context

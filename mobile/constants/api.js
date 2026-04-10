@@ -26,4 +26,7 @@ export const ENDPOINTS = {
   leaveTypes: '/api/leave-types',
   submitResignation: '/api/resignation/submit',
   myResignation: '/api/resignation/my',
+  mySlips: '/api/payroll/my-slips',
+  downloadSlip: (id) => `/api/payroll/download-slip/${id}`,
 };
+

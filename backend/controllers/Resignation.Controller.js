@@ -45,8 +45,20 @@ export const submitResignation = async (req, res) => {
 export const getMyResignation = async (req, res) => {
     try {
         const employeeId = req.user._id;
+        const user = await User.findById(employeeId);
         const resignation = await Resignation.findOne({ employeeId }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, resignation });
+        
+        // Find notice period for this user
+        let noticePeriodDays = 30;
+        if (user && user.department) {
+            const dept = await Department.findOne({ 
+                name: user.department, 
+                adminId: user.adminId 
+            });
+            if (dept) noticePeriodDays = dept.noticePeriodDays || 30;
+        }
+
+        res.status(200).json({ success: true, resignation, noticePeriodDays });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -55,11 +67,16 @@ export const getMyResignation = async (req, res) => {
 // 3. Get All Resignations (Admin)
 export const getAdminResignations = async (req, res) => {
     try {
+        const { status } = req.query;
+        let filter = {};
+        if (status && status !== 'All') filter.status = status;
+
         const adminId = req.user._id;
         // Filter by adminId if not superadmin (logic depends on your app's multi-tenancy)
-        const resignations = await Resignation.find()
+        const resignations = await Resignation.find(filter)
             .populate('employeeId', 'name employeeId department designation profilePhoto')
             .sort({ createdAt: -1 });
+
 
         res.status(200).json({ success: true, resignations });
     } catch (error) {
@@ -106,6 +123,7 @@ export const actionResignation = async (req, res) => {
             // Update user profile
             await User.findByIdAndUpdate(resignation.employeeId, { 
                 status: 'Resigned',
+                resignationDate: resignation.noticeDate,
                 exitDate: lwd 
             });
         }

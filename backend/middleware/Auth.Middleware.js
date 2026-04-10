@@ -3,7 +3,12 @@ import User from "../models/User.Model.js";
 
 const verifyToken = async (req, res, next) => {
     try {
-        const token = req.headers.authorization?.split(" ")[1] || req.cookies.jwt;
+        let token = req.headers.authorization?.split(" ")[1] || req.cookies.jwt || req.query.token;
+        
+        // Clean token if it comes from query string or has whitespace
+        if (token && typeof token === 'string') {
+            token = token.replace('Bearer ', '').trim();
+        }
         
         if (!token) {
             return res.status(401).json({ success: false, message: "Unauthorized - No Token Provided" });

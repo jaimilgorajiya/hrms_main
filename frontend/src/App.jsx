@@ -57,6 +57,9 @@ import UseMobileApp from './pages/employee/UseMobileApp';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import PunchOutRequests from './pages/PunchOutRequests';
 import MonthlyPayout from './pages/MonthlyPayout';
+import PayoutHistory from './pages/PayoutHistory';
+import GenerateSalarySlip from './pages/GenerateSalarySlip';
+import PublishSalarySlip from './pages/PublishSalarySlip';
 import AdminResignation from './pages/AdminResignation';
 import EmployeeLayout from './layout/EmployeeLayout';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
@@ -73,18 +76,14 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<Login isRegister={false} />} />
           <Route path="/register" element={<Login isRegister={true} />} />
 
-          {/* Admin Routes (Protected) */}
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="profile" element={<MyProfile />} />
-              
-              {/* Setup & Configuration placeholders */}
               <Route path="company/details" element={<CompanyDetails />} />
               <Route path="company/designation" element={<Designation />} />
               <Route path="company/departments" element={<Department />} />
@@ -125,12 +124,13 @@ function App() {
               <Route path="payroll/salary-group" element={<SalaryGroups />} />
               <Route path="payroll/employee-ctc" element={<EmployeeCTC />} />
               <Route path="payroll/earning-deduction" element={<EarningDeductionType />} />
+              <Route path="payroll/generate-slip" element={<GenerateSalarySlip />} />
+              <Route path="payroll/publish-slip" element={<PublishSalarySlip />} />
+              <Route path="payroll/history" element={<PayoutHistory />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />
               <Route path="document/onboarding-setting" element={<OnboardingDocSetting />} />
               <Route path="document/*" element={<ModulePlaceholder title="Document Management" />} />
-
-              {/* Core HRMS placeholders */}
               <Route path="employees/list" element={<Employees />} />
               <Route path="employees/add" element={<AddEmployee />} />
               <Route path="employees/profile/:id" element={<EmployeeProfile />} />
@@ -153,22 +153,20 @@ function App() {
               <Route path="attendance/punch-missing" element={<PunchOutRequests />} />
               <Route path="attendance/request" element={<AdminRequests />} />
               <Route path="monthly-payout" element={<MonthlyPayout />} />
+              <Route path="payout-history" element={<PayoutHistory />} />
               <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
               <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />
               <Route path="holidays/*" element={<ModulePlaceholder title="Holiday Management" />} />
               <Route path="documents/*" element={<ModulePlaceholder title="Company Documents" />} />
               <Route path="engagement/*" element={<ModulePlaceholder title="Employee Engagement" />} />
             </Route>
-            {/* Compatibility redirect for the old dashboard path */}
             <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
           </Route>
 
-          {/* Manager Dashboards */}
           <Route element={<ProtectedRoute allowedRoles={['Manager']} />}>
             <Route path="/manager-dashboard" element={<Dashboard title="Manager Dashboard" />} />
           </Route>
           
-          {/* Employee Routes (Protected) */}
           <Route element={<ProtectedRoute allowedRoles={['Employee']} />}>
             <Route path="/employee" element={<EmployeeLayout />}>
               <Route index element={<EmployeeDashboard />} />
@@ -184,7 +182,6 @@ function App() {
             <Route path="/employee-dashboard" element={<Navigate to="/employee/dashboard" replace />} />
           </Route>
 
-          {/* Root/Default Redirects */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

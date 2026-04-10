@@ -111,7 +111,7 @@ const SearchableSelect = ({
                                     padding: '2px 10px',
                                     borderRadius: '8px',
                                     fontSize: '13px',
-                                    fontWeight: '600',
+                                    fontWeight: '500',
                                     border: '1px solid rgba(59, 100, 139, 0.1)'
                                 }}>
                                     {opt.label}
@@ -122,9 +122,9 @@ const SearchableSelect = ({
                                     />
                                 </span>
                             ))
-                        ) : <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: '500' }}>{placeholder}</span>
+                        ) : <span style={{ color: '#94A3B8', fontSize: '15px', fontWeight: '400' }}>{placeholder}</span>
                     ) : (
-                        <span style={{ color: selected ? '#1E293B' : '#94A3B8', fontSize: '15px', fontWeight: '500' }}>
+                        <span style={{ color: selected ? '#1E293B' : '#94A3B8', fontSize: '15px', fontWeight: '400' }}>
                             {selected ? selected.label : placeholder}
                         </span>
                     )}
@@ -164,7 +164,7 @@ const SearchableSelect = ({
                                         border: '1.5px solid #E2E8F0',
                                         borderRadius: '10px',
                                         fontSize: '14px',
-                                        fontWeight: '500',
+                                        fontWeight: '400',
                                         outline: 'none',
                                         backgroundColor: '#F8FAFC',
                                         transition: 'all 0.2s'
@@ -191,7 +191,7 @@ const SearchableSelect = ({
                                         style={{
                                             padding: '10px 14px',
                                             fontSize: '14.5px',
-                                            fontWeight: '600',
+                                            fontWeight: '500',
                                             color: isSelected ? '#3B648B' : '#475569',
                                             backgroundColor: isSelected ? 'rgba(59, 100, 139, 0.08)' : 'transparent',
                                             borderRadius: '10px',

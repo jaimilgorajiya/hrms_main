@@ -64,17 +64,25 @@ const AdminDashboard = () => {
       const resJson = await resRes.json();
 
       let combined = [];
-      if (reqJson.success) combined = [...reqJson.requests];
+      if (reqJson.success) {
+        // Extra safety: Filter for Pending only
+        const filteredReqs = reqJson.requests.filter(r => r.status === 'Pending');
+        combined = [...filteredReqs];
+      }
+      
       if (resJson.success) {
-        const resignationRequests = resJson.resignations.map(r => ({
-          ...r,
-          requestType: 'Resignation', // Label it for the UI
-          reason: r.reason,
-          date: r.lastWorkingDay, // Show LWD as the primary date
-          employee: r.employeeId // Backend uses employeeId field
-        }));
+        const resignationRequests = resJson.resignations
+          .filter(r => r.status === 'Pending') // Extra safety: Filter for Pending only
+          .map(r => ({
+            ...r,
+            requestType: 'Resignation', // Label it for the UI
+            reason: r.reason,
+            date: r.lastWorkingDay, // Show LWD as the primary date
+            employee: r.employeeId // Backend uses employeeId field
+          }));
         combined = [...combined, ...resignationRequests];
       }
+
       
       // Sort by creation date
       combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -226,7 +234,7 @@ const AdminDashboard = () => {
     <div className="dashboard-container">
       <div className="dashboard-header-premium">
         <div className="header-info">
-          <h1>Dashboard Overview</h1>
+          <h1>Dashboard</h1>
           <p>Welcome back! Here's what's happening with your workforce today.</p>
         </div>
         <div className="header-actions">

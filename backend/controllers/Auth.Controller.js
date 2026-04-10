@@ -109,7 +109,14 @@ const checkPhone = async (req, res) => {
             });
         }
 
-        if (user.status && user.status !== "Active") {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        const isBlocked = 
+            (user.status && !["Active", "Onboarding", "Resigned"].includes(user.status)) ||
+            (user.status === "Resigned" && user.exitDate && new Date(user.exitDate) < today);
+
+        if (isBlocked) {
             return res.status(403).json({ success: false, message: "Account is blocked. Contact admin." });
         }
 

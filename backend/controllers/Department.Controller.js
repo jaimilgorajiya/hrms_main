@@ -20,7 +20,7 @@ const createDepartment = async (req, res) => {
             branchId,
             adminId,
             order: count,
-            noticePeriodDays: noticePeriodDays || 30
+            noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30
         });
         await newDepartment.save();
 
@@ -104,12 +104,17 @@ const getDepartments = async (req, res) => {
 
 const updateDepartment = async (req, res) => {
     try {
-        const { name, branchId } = req.body;
+        console.log("Update Dept Request:", { id: req.params.id, body: req.body });
+        const { name, branchId, noticePeriodDays } = req.body;
         const adminId = req.user._id;
 
         const department = await Department.findOneAndUpdate(
             { _id: req.params.id, adminId },
-            { name, branchId, noticePeriodDays },
+            { 
+                name, 
+                branchId, 
+                noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30 
+            },
             { new: true }
         );
 
@@ -119,10 +124,11 @@ const updateDepartment = async (req, res) => {
 
         res.status(200).json({ success: true, message: "Department updated successfully", department });
     } catch (error) {
+        console.error("Error in updateDepartment:", error);
         if (error.code === 11000) {
             return res.status(400).json({ success: false, message: "Department already exists in this branch" });
         }
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
     }
 };
 

@@ -17,14 +17,24 @@ export default function ResignationScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [resignation, setResignation] = useState(null);
   const [reason, setReason] = useState('');
-  const [lwd, setLwd] = useState(''); // last working day
+  const [lwd, setLwd] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+  const [policyNoticeDays, setPolicyNoticeDays] = useState(30);
+  const [expectedLwd, setExpectedLwd] = useState('');
 
   const fetchStatus = async () => {
     try {
       const res = await apiFetch(ENDPOINTS.myResignation);
       const json = await res.json();
-      if (json.success) setResignation(json.resignation);
+      if (json.success) {
+        setResignation(json.resignation);
+        setPolicyNoticeDays(json.noticePeriodDays || 30);
+        
+        // Calculate expected LWD if not yet submitted
+        const date = new Date();
+        date.setDate(date.getDate() + (json.noticePeriodDays || 30));
+        setExpectedLwd(format(date, 'yyyy-MM-dd'));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -87,6 +97,12 @@ export default function ResignationScreen() {
     Rejected: COLORS.danger
   };
 
+  const getPolicyLwd = () => {
+    const startDate = resignation ? new Date(resignation.noticeDate) : new Date();
+    startDate.setDate(startDate.getDate() + policyNoticeDays);
+    return startDate.toLocaleDateString();
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -113,10 +129,19 @@ export default function ResignationScreen() {
                 <Text style={styles.infoValue}>{new Date(resignation.createdAt).toLocaleDateString()}</Text>
               </View>
               <View style={styles.infoCol}>
-                <Text style={styles.infoLabel}>Requested LWD</Text>
+                <Text style={styles.infoLabel}>{resignation.status === 'Approved' ? 'Official LWD' : 'Requested LWD'}</Text>
                 <Text style={styles.infoValue}>{new Date(resignation.lastWorkingDay).toLocaleDateString()}</Text>
               </View>
             </View>
+
+            {resignation.status === 'Pending' && (
+              <View style={[styles.infoRow, { marginTop: -8 }]}>
+                <View style={[styles.infoCol, { borderColor: COLORS.warning + '40', backgroundColor: '#FFFBEB' }]}>
+                  <Text style={[styles.infoLabel, { color: COLORS.warning }]}>LWD as per Policy ({policyNoticeDays} days)</Text>
+                  <Text style={styles.infoValue}>{getPolicyLwd()}</Text>
+                </View>
+              </View>
+            )}
 
             <View style={styles.reasonBox}>
               <Text style={styles.infoLabel}>Reason</Text>
@@ -145,6 +170,13 @@ export default function ResignationScreen() {
                 {lwd || 'Select your last working day'}
               </Text>
             </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 }}>
+              <Ionicons name="information-circle-outline" size={14} color={COLORS.warning} />
+              <Text style={{ fontSize: 12, color: COLORS.textMuted, fontWeight: '600' }}>
+                Your policy-based LWD would be: <Text style={{ color: COLORS.warning, fontWeight: '800' }}>{new Date(expectedLwd).toLocaleDateString()}</Text>
+              </Text>
+            </View>
 
             <Text style={styles.label}>Reason for Resignation</Text>
             <TextInput 
