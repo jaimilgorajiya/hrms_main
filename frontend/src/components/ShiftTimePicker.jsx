@@ -1,166 +1,81 @@
 import React, { useState, useRef, useEffect } from 'react';
-import TimeKeeper from 'react-timekeeper';
 
-/**
- * ShiftTimePicker - A professional analog clock-face time picker
- * Uses react-time-keeper but wrapped in a modal for better UX in data-heavy tables
- */
 const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [internalTime, setInternalTime] = useState(value || '09:00');
     const containerRef = useRef(null);
 
-    // Sync internal time with prop when it opens
     useEffect(() => {
-        if (isOpen) {
-            setInternalTime(value || '09:00');
-        }
+        if (isOpen) setInternalTime(value || '09:00');
     }, [isOpen, value]);
 
-    // To display the time in a user-friendly 12h format on the button
+    // Close on outside click
+    useEffect(() => {
+        if (!isOpen) return;
+        const handler = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isOpen]);
+
     const format12h = (val24h) => {
         if (!val24h) return placeholder;
         const [h, m] = val24h.split(':');
         let hours = parseInt(h, 10);
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        const mins = m ? m.padStart(2, '0') : '00';
-        return `${hours}:${mins} ${ampm}`;
+        hours = hours % 12 || 12;
+        return `${hours}:${(m || '00').padStart(2, '0')} ${ampm}`;
     };
 
-    const displayValue = format12h(value);
-
-    const handleConfirm = () => {
-        onChange(internalTime);
-        setIsOpen(false);
-    };
-
-    const handleClear = (e) => {
-        e.stopPropagation(); 
-        onChange(''); 
-        setIsOpen(false); 
-    };
+    const handleConfirm = () => { onChange(internalTime); setIsOpen(false); };
+    const handleClear = (e) => { e.stopPropagation(); onChange(''); setIsOpen(false); };
 
     return (
-        <div className="shift-time-picker-wrapper" ref={containerRef} style={{ width: '100%' }}>
-            <div 
-                className="time-display-box" 
-                onClick={() => setIsOpen(true)}
+        <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+            <div
+                onClick={() => setIsOpen(o => !o)}
                 style={{
-                    padding: '8px 10px',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    backgroundColor: '#fff',
-                    textAlign: 'center',
-                    fontSize: '13px',
-                    minWidth: '94px', // Standard width for --:-- AM/PM
-                    color: value ? '#1E293B' : '#94A3B8',
-                    transition: 'border-color 0.2s, box-shadow 0.2s',
-                    whiteSpace: 'nowrap'
+                    padding: '8px 10px', border: `1px solid ${isOpen ? '#3B82F6' : '#E2E8F0'}`,
+                    borderRadius: 6, cursor: 'pointer', backgroundColor: '#fff',
+                    textAlign: 'center', fontSize: 13, minWidth: 94,
+                    color: value ? '#1E293B' : '#94A3B8', whiteSpace: 'nowrap',
+                    boxShadow: isOpen ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
                 }}
-                onMouseEnter={(e) => { e.target.style.borderColor = '#3B82F6'; }}
-                onMouseLeave={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
             >
-                {displayValue}
+                {format12h(value)}
             </div>
 
             {isOpen && (
-                <div 
-                    className="time-picker-modal-overlay"
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 10000,
-                        backdropFilter: 'blur(2px)'
-                    }}
-                    onClick={() => setIsOpen(false)}
-                >
-                    <div 
-                        className="time-picker-dialog"
-                        onClick={(e) => e.stopPropagation()}
+                <div style={{
+                    position: 'absolute', top: '110%', left: 0, zIndex: 9999,
+                    background: '#fff', borderRadius: 10, padding: 16,
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0',
+                    minWidth: 200
+                }}>
+                    <div style={{ marginBottom: 12, fontSize: 12, color: '#64748b', fontWeight: 500 }}>Select Time</div>
+                    <input
+                        type="time"
+                        value={internalTime}
+                        onChange={e => setInternalTime(e.target.value)}
                         style={{
-                            backgroundColor: '#fff',
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            fontFamily: '"Inter", "Segoe UI", sans-serif',
-                            // --- React TimeKeeper Custom Theming ---
-                            '--top-bg': '#336691',
-                            '--top-text-color': '#94a3b8',
-                            '--top-selected-color': '#ffffff',
-                            '--top-colon-color': '#cbd5e1',
-                            '--top-meridiem-color': '#cbd5e1',
-                            
-                            '--hand-line-color': '#336691',
-                            '--hand-circle-center': '#336691',
-                            '--hand-circle-outer': '#336691',
-                            '--hand-minute-circle': '#336691',
-                            
-                            '--clock-wrapper-bg': '#ffffff',
-                            '--clock-bg': '#f1f5f9',
-                            
-                            '--meridiem-selected-bg-color': '#336691',
-                            '--meridiem-selected-text-color': '#ffffff',
-                            '--meridiem-text-color': '#475569',
-                            '--meridiem-bg-color': '#e2e8f0',
-                            
-                            '--numbers-text-color': '#1e293b'
+                            width: '100%', padding: '10px 12px', fontSize: 18, fontWeight: 600,
+                            border: '1.5px solid #3B82F6', borderRadius: 8, outline: 'none',
+                            color: '#1e293b', background: '#f8fafc', textAlign: 'center',
+                            letterSpacing: 2, marginBottom: 12
                         }}
-                    >
-                        <TimeKeeper
-                            time={internalTime}
-                            onChange={(newTime) => setInternalTime(newTime.formatted24)}
-                            switchToMinuteOnHourSelect
-                            closeOnDone={false}
-                        />
-                        <div style={{
-                            padding: '12px',
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            gap: '8px',
-                            borderTop: '1px solid #f0f0f0',
-                            backgroundColor: '#fff'
-                        }}>
-                            <button 
-                                onClick={handleClear}
-                                style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#f1f5f9',
-                                    color: '#475569',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                CLEAR
-                            </button>
-                            <button 
-                                onClick={handleConfirm}
-                                style={{
-                                    padding: '6px 16px',
-                                    backgroundColor: '#336691',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                OK
-                            </button>
-                        </div>
+                        autoFocus
+                    />
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={handleClear} style={{
+                            padding: '6px 14px', background: '#f1f5f9', color: '#475569',
+                            border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
+                        }}>CLEAR</button>
+                        <button onClick={handleConfirm} style={{
+                            padding: '6px 18px', background: '#336691', color: '#fff',
+                            border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
+                        }}>OK</button>
                     </div>
                 </div>
             )}

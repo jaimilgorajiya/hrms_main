@@ -1,8 +1,10 @@
 import User from "../models/User.Model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import admin from 'firebase-admin';
 import { generateEmployeeId } from "../utils/employeeId.js";
+import { sendPasswordResetEmail } from "../utils/emailService.js";
 
 const otpLogin = async (req, res) => {
     try {
@@ -393,3 +395,54 @@ const changePassword = async (req, res) => {
 };
 
 export { register, login, otpLogin, logout, verifyUser, changePassword, checkPhone };
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
+        // Always return success to prevent email enumeration
+        if (!user) return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await User.findByIdAndUpdate(user._id, {
+            $set: { resetPasswordToken: token, resetPasswordExpiry: expiry }
+        });
+
+        await sendPasswordResetEmail(user.email, user.name || user.firstName || 'User', token);
+
+        res.status(200).json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+    } catch (error) {
+        console.error('forgotPassword error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) return res.status(400).json({ success: false, message: 'Token and password are required' });
+        if (password.length < 6) return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpiry: { $gt: new Date() }
+        });
+
+        if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired reset link' });
+
+        const hashed = await bcrypt.hash(password, 10);
+        await User.findByIdAndUpdate(user._id, {
+            $set: { password: hashed },
+            $unset: { resetPasswordToken: '', resetPasswordExpiry: '' }
+        });
+
+        res.status(200).json({ success: true, message: 'Password reset successfully. You can now log in.' });
+    } catch (error) {
+        console.error('resetPassword error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+};

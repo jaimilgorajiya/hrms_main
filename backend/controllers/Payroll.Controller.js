@@ -54,64 +54,95 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             const usedPaidLeaves = approvedLeaves.filter(l => l.leaveCategory === 'Paid').length;
             const usedUnpaidLeaves = approvedLeaves.filter(l => l.leaveCategory === 'Unpaid').length;
 
-            const presentDays = monthAttendance.filter(a => a.status === 'Present').length;
-            const halfDays = monthAttendance.filter(a => a.status === 'Half Day').length;
-            const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
-            const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
-            const absentDaysCount = monthAttendance.filter(a => a.status === 'Absent').length;
-            
-            const workedMins = monthAttendance.reduce((acc, a) => acc + computeWorkingMinutes(a.punches, a.breaks), 0);
-            
+            // --- ADVANCED PAYROLL ENGINE ---
             const shift = emp.workSetup?.shift;
-            let expectedMins = 0;
-            if (shift) {
-                const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const dateObj = new Date(year, monthNum - 1, d);
-                    const dayName = daysOfWeek[dateObj.getDay()];
-                    const isWeekOff = shift.weekOffDays?.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1));
-                    if (!isWeekOff) {
-                        const sched = shift.schedule?.[dayName];
-                        if (sched?.shiftStart && sched?.shiftEnd) {
-                            const start = parseInt(sched.shiftStart.split(':')[0]) * 60 + parseInt(sched.shiftStart.split(':')[1]);
-                            const end = parseInt(sched.shiftEnd.split(':')[0]) * 60 + parseInt(sched.shiftEnd.split(':')[1]);
-                            expectedMins += (end > start ? end - start : (end + 1440 - start));
-                        } else {
-                            expectedMins += 540;
-                        }
+            let presentDaysCount = 0;
+            let halfDaysCount = 0;
+            let absentDaysCount = 0;
+            let weekOffsPaid = 0;
+            let holidaysPaid = 0;
+            let extraDaysWorked = 0;
+
+            const attendanceMap = {};
+            monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
+
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            let workedMins = 0;
+            let monthPenalty = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = `${month}-${String(d).padStart(2, '0')}`;
+                const dateObj = new Date(year, monthNum - 1, d);
+                const dayName = daysOfWeek[dateObj.getDay()];
+                const isWeekOff = shift?.weekOffDays?.includes(dayName);
+                
+                const record = attendanceMap[dayStr];
+                
+                if (record) {
+                    workedMins += computeWorkingMinutes(record.punches, record.breaks);
+
+                    if (record.status === 'Present') {
+                        presentDaysCount++;
+                        if (isWeekOff) extraDaysWorked += 1;
+                    } else if (record.status === 'Half Day') {
+                        halfDaysCount++;
+                        if (isWeekOff) extraDaysWorked += 0.5;
+                    } else if (record.status === 'Absent') {
+                        absentDaysCount++;
+                    }
+                    
+                    // Accumulate penalties
+                    monthPenalty += (record.lateInPenalty?.amount || 0) + (record.earlyOutPenalty?.amount || 0);
+                } else {
+                    // No record found: Treat as Paid Week Off or Unpaid Absent
+                    if (isWeekOff) {
+                        weekOffsPaid++;
                     }
                 }
             }
 
-            let totalLatePenalty = 0;
-            let totalEarlyPenalty = 0;
-            for (const a of monthAttendance) {
-                totalLatePenalty += a.lateInPenalty?.amount || 0;
-                totalEarlyPenalty += a.earlyOutPenalty?.amount || 0;
-            }
+            // Estimate expected mins (roughly 9h per working day)
+            const expectedMins = (daysInMonth - weekOffsPaid) * 540;
 
-            const monthPenalty = totalLatePenalty + totalEarlyPenalty;
+            // Calculate Extra Benefit Multiplier (as Total Multiplier)
+            // e.g., 2x means the employee gets 2 days of pay total for that day (1 regular + 1 bonus)
+            const multiplierStr = shift?.extraPayoutMultiplier || 'Default';
+            let totalMultiplier = 1; // Default is just regular pay
+            if (multiplierStr === '1x') totalMultiplier = 1;
+            else if (multiplierStr === '1.5x') totalMultiplier = 1.5;
+            else if (multiplierStr === '2x' || multiplierStr === 'Default') totalMultiplier = 2; // Defaulting to 2x total pay for benefit
+
+            // Total Payable Days calculation
+            // Base = Worked + Paid Leaves + Paid Week Offs (recorded or missed) + Holidays
+            const basePayable = presentDaysCount + (halfDaysCount * 0.5) + weekOffsPaid + holidaysPaid + usedPaidLeaves;
+            
+            // Extra Benefit = Days * (TotalMultiplier - 1)
+            // Because they already have '1x' in the basePayable (as Present/HalfDay)
+            const extraBenefit = extraDaysWorked * (totalMultiplier - 1);
+            
+            const payableDays = basePayable + extraBenefit;
+
             const salaryGroup = emp.workSetup?.salaryGroup;
             const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
             const baseDays = isFixed ? (salaryGroup?.fixedDays || 26) : daysInMonth;
 
             const perDayGross = (ctc.monthlyGross || 0) / baseDays;
             const perDayNet = (ctc.netSalary || 0) / baseDays;
-            const payableDays = presentDays + (halfDays * 0.5) + weekOffs + holidays + usedPaidLeaves;
 
             let accruedGross = 0;
             let accruedNet = 0;
             let unpaidLeaveDeduction = 0;
 
             if (isFixed) {
-                const cappedPayable = Math.min(baseDays, payableDays);
-                accruedGross = perDayGross * cappedPayable;
-                accruedNet = (perDayNet * cappedPayable) - monthPenalty;
-                unpaidLeaveDeduction = (ctc.netSalary || 0) - accruedNet - monthPenalty;
+                // For fixed days (e.g. 26), capped at baseDays for regular work, but EXTRA days can exceed it.
+                const regularPayable = Math.min(baseDays, basePayable);
+                accruedGross = (perDayGross * regularPayable) + (perDayGross * extraBenefit);
+                accruedNet = ((perDayNet * regularPayable) + (perDayNet * extraBenefit)) - monthPenalty;
+                unpaidLeaveDeduction = (ctc.netSalary || 0) - (perDayNet * regularPayable); 
             } else {
                 accruedGross = perDayGross * payableDays;
                 accruedNet = (perDayNet * payableDays) - monthPenalty;
-                unpaidLeaveDeduction = (ctc.netSalary || 0) - accruedNet - monthPenalty;
+                unpaidLeaveDeduction = (ctc.netSalary || 0) - (perDayNet * (payableDays - extraBenefit)); 
             }
 
             if (salaryGroup?.roundedSalary === 'Yes') {
@@ -134,11 +165,27 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 },
                 daysInMonth,
                 isInitiated,
-                attendance: { present: presentDays, halfDay: halfDays, absent: absentDaysCount, weekOff: weekOffs, holiday: holidays, paidLeave: usedPaidLeaves, unpaidLeave: usedUnpaidLeaves },
-                hours: { worked: Math.floor(workedMins / 60) + 'h ' + (workedMins % 60) + 'm', expected: Math.floor(expectedMins / 60) + 'h ' + (expectedMins % 60) + 'm' },
+                attendance: { 
+                    present: presentDaysCount, 
+                    halfDay: halfDaysCount, 
+                    absent: absentDaysCount, 
+                    weekOff: weekOffsPaid, 
+                    holiday: holidaysPaid, 
+                    paidLeave: usedPaidLeaves, 
+                    unpaidLeave: usedUnpaidLeaves 
+                },
+                hours: { 
+                    worked: Math.floor(workedMins / 60) + 'h ' + (workedMins % 60) + 'm', 
+                    expected: Math.floor(expectedMins / 60) + 'h ' + (expectedMins % 60) + 'm' 
+                },
+                extraBenefits: {
+                    extraDaysWorked,
+                    multiplier: multiplierStr,
+                    bonusPayDays: extraBenefit,
+                    amount: extraBenefit * perDayNet
+                },
                 penalties: { 
-                    lateIn: isInitiated ? 0 : totalLatePenalty, 
-                    earlyOut: isInitiated ? 0 : totalEarlyPenalty, 
+                    lateIn: isInitiated ? 0 : monthPenalty, 
                     total: isInitiated ? 0 : monthPenalty 
                 },
                 salary: { 
@@ -146,7 +193,8 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     monthlyNet: ctc.netSalary, 
                     accruedGross: isInitiated ? (initiatedMap[emp._id.toString()].systemAccrued || 0) : accruedGross, 
                     accruedNet: isInitiated ? (initiatedMap[emp._id.toString()].finalPayout || 0) : accruedNet, 
-                    unpaidLeaveDeduction: isInitiated ? 0 : unpaidLeaveDeduction 
+                    unpaidLeaveDeduction: isInitiated ? 0 : unpaidLeaveDeduction,
+                    extraDayAmount: extraBenefit * perDayNet
                 }
             });
         }
@@ -160,12 +208,12 @@ export const getMonthlyPayoutSummary = async (req, res) => {
 export const initiatePayout = async (req, res) => {
     try {
         const { 
-            employeeId, month, attendance, baseSalary, systemAccrued, penalties, adjustments, finalPayout 
+            employeeId, month, attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout 
         } = req.body;
         const adminId = req.user._id;
         const payout = await Payout.findOneAndUpdate(
             { employeeId, month },
-            { $set: { attendance, baseSalary, systemAccrued, penalties, adjustments, finalPayout, initiatedBy: adminId, initiatedAt: new Date(), status: 'Initiated' } },
+            { $set: { attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout, initiatedBy: adminId, initiatedAt: new Date(), status: 'Initiated' } },
             { upsert: true, new: true }
         );
         res.status(200).json({ success: true, message: "Payout initiated successfully", payout });
@@ -251,7 +299,9 @@ export const downloadPayslip = async (req, res) => {
         const ctc = await EmployeeCTC.findOne({ employeeId: payout.employeeId._id, status: 'Active' });
         
         // Calculate dynamic values based on payout ratio
-        const ratio = payout.baseSalary > 0 ? (payout.systemAccrued / payout.baseSalary) : 0;
+        // We subtract extraDayBenefit from systemAccrued to get the "Base" accrued for regular components
+        const adjustedAccrued = payout.systemAccrued - (payout.extraDayBenefit?.amount || 0);
+        const ratio = payout.baseSalary > 0 ? (adjustedAccrued / payout.baseSalary) : 0;
         
         let earningRows = [];
         let deductionRows = [];
@@ -263,7 +313,7 @@ export const downloadPayslip = async (req, res) => {
                 { text: (e.amount * ratio).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }), fontSize: 10, alignment: 'right' }
             ]));
         } else {
-            earningRows.push([{ text: 'Basic Salary (Accrued)', fontSize: 10 }, { text: payout.systemAccrued.toLocaleString(), fontSize: 10, alignment: 'right' }]);
+            earningRows.push([{ text: 'Basic Salary (Accrued)', fontSize: 10 }, { text: adjustedAccrued.toLocaleString(), fontSize: 10, alignment: 'right' }]);
         }
 
         // Process Dynamic Deductions from CTC
@@ -293,6 +343,14 @@ export const downloadPayslip = async (req, res) => {
             deductionRows.push([
                 { text: `Deduction: ${payout.adjustments.deduction.reason || 'Other'}`, fontSize: 10 },
                 { text: (payout.adjustments.deduction.amount).toLocaleString(), fontSize: 10, alignment: 'right' }
+            ]);
+        }
+        
+        // Add Extra Day Benefit (New)
+        if ((payout.extraDayBenefit?.amount || 0) > 0) {
+            earningRows.push([
+                { text: `Extra Day Benefit (${payout.extraDayBenefit.days} days)`, fontSize: 10 },
+                { text: (payout.extraDayBenefit.amount).toLocaleString(), fontSize: 10, alignment: 'right' }
             ]);
         }
 
@@ -370,7 +428,7 @@ export const downloadPayslip = async (req, res) => {
                 {
                     table: {
                         headerRows: 1,
-                        widths: ['*', '*', '*', '*', '*', '*', '*'],
+                        widths: ['*', '*', '*', '*', '*', '*', '*', '*'],
                         body: [
                             [
                                 { text: 'Present', style: 'tableHeader' },
@@ -378,6 +436,7 @@ export const downloadPayslip = async (req, res) => {
                                 { text: 'Absent', style: 'tableHeader' },
                                 { text: 'Paid LV', style: 'tableHeader' },
                                 { text: 'Unpaid LV', style: 'tableHeader' },
+                                { text: 'Ex. Days', style: 'tableHeader' },
                                 { text: 'Week Off', style: 'tableHeader' },
                                 { text: 'Holiday', style: 'tableHeader' }
                             ],
@@ -387,6 +446,7 @@ export const downloadPayslip = async (req, res) => {
                                 { text: payout.attendance.absent, alignment: 'center', fontSize: 9 },
                                 { text: payout.attendance.paidLeave, alignment: 'center', fontSize: 9 },
                                 { text: payout.attendance.unpaidLeave, alignment: 'center', fontSize: 9 },
+                                { text: payout.extraDayBenefit?.days || 0, alignment: 'center', fontSize: 9 },
                                 { text: payout.attendance.weekOff, alignment: 'center', fontSize: 9 },
                                 { text: payout.attendance.holiday, alignment: 'center', fontSize: 9 }
                             ]

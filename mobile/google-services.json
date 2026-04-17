@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "789991408827-dcremf5qoed4t1g1qian3e49fhpbr3lo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hrms.employee",
+            "certificate_hash": "f69e182ce31aea768cd95ef1be5c1070ab00c8c2"
+          }
+        },
+        {
           "client_id": "789991408827-mgir11c22evclmcgmi6qgnepu4a1g0kn.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

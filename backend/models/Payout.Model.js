@@ -23,6 +23,10 @@ const payoutSchema = new mongoose.Schema({
         paidLeave: Number,
         unpaidLeave: Number
     },
+    extraDayBenefit: {
+        days: { type: Number, default: 0 },
+        amount: { type: Number, default: 0 }
+    },
     systemAccrued: {
         type: Number,
         required: true

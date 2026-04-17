@@ -110,8 +110,10 @@ export const getTodayAttendance = async (req, res) => {
         // Also handles old records that don't have isLate field yet
         let liveLatePenalty = record.lateInPenalty || { amount: 0, isApplied: false };
         if (record.lateInPenalty?.isLate || (record.lateInPenalty?.amount > 0)) {
-            const { shift: empShift, daySchedule: empDaySchedule } = await getEmployeeShiftToday(req.user._id);
-            if (empShift && empDaySchedule?.shiftStart) {
+            const { shift: empShift, daySchedule: empDaySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id);
+            
+            // Skip if it's a week off and settings say don't apply
+            if (empShift && empDaySchedule?.shiftStart && !(isWeekOff && !empShift.lateEarlyApplyOnExtraDay)) {
                 const firstIn = record.punches.find(p => p.type === 'IN');
                 if (firstIn) {
                     const shiftStartMins = parseTimeToMinutes(empDaySchedule.shiftStart);
@@ -130,6 +132,15 @@ export const getTodayAttendance = async (req, res) => {
                             );
                         }
                     }
+                }
+            } else if (empShift && (isWeekOff && !empShift.lateEarlyApplyOnExtraDay)) {
+                // Force penalty to 0 if policy changed after punch-in
+                liveLatePenalty = { amount: 0, isApplied: false, isLate: true };
+                if (record.lateInPenalty?.amount > 0) {
+                     await Attendance.updateOne(
+                        { _id: record._id },
+                        { $set: { 'lateInPenalty.amount': 0, 'lateInPenalty.isApplied': false } }
+                    );
                 }
             }
         }
@@ -552,8 +563,8 @@ export const getAttendanceHistory = async (req, res) => {
             return {
                 date: r.date,
                 status,
-                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
-                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 workingMinutes,
                 workingFormatted: formatMinutes(workingMinutes),
                 breakCount: r.breaks.length,
@@ -621,8 +632,8 @@ export const getAdminAttendance = async (req, res) => {
                 date: r.date,
                 status: r.status,
                 employee: r.employee,
-                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
-                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 workingMinutes,
                 workingFormatted: formatMinutes(workingMinutes),
                 breakCount: r.breaks.length,
@@ -784,8 +795,8 @@ export const getMissingAttendance = async (req, res) => {
                 date: r.date,
                 status: r.status,
                 employee: r.employee,
-                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
-                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 approvalStatus: r.approvalStatus || "Pending"
             };
         });
@@ -936,8 +947,8 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             return {
                 date: r.date,
                 status: r.status,
-                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
-                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : null,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 workingFormatted: formatMinutes(workingMins),
                 approvalStatus: r.approvalStatus || 'Pending'
             };
@@ -954,3 +965,4 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
+

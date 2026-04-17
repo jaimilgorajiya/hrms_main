@@ -285,7 +285,9 @@ const userSchema = new mongoose.Schema(
         isOnline: {
             type: Boolean,
             default: false
-        }
+        },
+        resetPasswordToken: { type: String },
+        resetPasswordExpiry: { type: Date }
     },
     {
         timestamps: true

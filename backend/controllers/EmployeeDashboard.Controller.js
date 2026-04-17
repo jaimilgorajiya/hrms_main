@@ -60,24 +60,31 @@ export const getEmployeeStats = async (req, res) => {
             const isLate = a.lateInPenalty?.isLate || false;
 
             if (isLate && shift) {
-                const firstIn = a.punches?.find(p => p.type === 'IN');
-                if (firstIn) {
-                    const days2 = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-                    const recordDate = new Date(a.date + 'T00:00:00+05:30');
-                    const dayName = days2[recordDate.getDay()];
-                    const daySchedule = shift.schedule?.[dayName];
-                    if (daySchedule?.shiftStart) {
-                        const shiftStartMins = parseInt(daySchedule.shiftStart.split(':')[0]) * 60 + parseInt(daySchedule.shiftStart.split(':')[1]);
-                        const inTime = new Date(firstIn.time);
-                        const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
-                        const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
-                        const lateByMins = inMins - shiftStartMins;
-                        
-                        if (lateByMins > 0) {
-                            // Use cached penaltyRule and local lateCount for high performance
-                            lateAmount = await calculatePenaltyAmount(shift._id, lateByMins, userId, penaltyRule, lateInMonthCount);
+                const days2 = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                const recordDate = new Date(a.date + 'T00:00:00+05:30');
+                const dayName = days2[recordDate.getDay()];
+                const isWeekOffCurrent = shift?.weekOffDays?.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1)) || false;
+                
+                // Skip if it's a week off and settings say don't apply
+                if (!(isWeekOffCurrent && !shift.lateEarlyApplyOnExtraDay)) {
+                    const firstIn = a.punches?.find(p => p.type === 'IN');
+                    if (firstIn) {
+                        const daySchedule = shift.schedule?.[dayName];
+                        if (daySchedule?.shiftStart) {
+                            const shiftStartMins = parseInt(daySchedule.shiftStart.split(':')[0]) * 60 + parseInt(daySchedule.shiftStart.split(':')[1]);
+                            const inTime = new Date(firstIn.time);
+                            const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                            const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                            const lateByMins = inMins - shiftStartMins;
+                            
+                            if (lateByMins > 0) {
+                                // Use cached penaltyRule and local lateCount for high performance
+                                lateAmount = await calculatePenaltyAmount(shift._id, lateByMins, userId, penaltyRule, lateInMonthCount);
+                            }
                         }
                     }
+                } else {
+                    lateAmount = 0; // Ensure 0 if policy says so
                 }
                 lateInMonthCount++; // Increment count for next iteration
             }

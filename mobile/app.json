@@ -1,39 +1,9 @@
 {
   "expo": {
-    "name": "HRMS Employee",
+    "name": "HRMS",
     "slug": "hrms-employee-app",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2563EB"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.hrms.employee"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#2563EB"
-      },
-      "package": "com.hrms.employee",
-      "googleServicesFile": "./google-services.json",
-      "usesCleartextTraffic": true
-    },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth"
-    ],
-    "scheme": "hrms-employee",
+    "assetBundlePatterns": ["**/*"],
     "sdkVersion": "54.0.0",
     "web": {
       "bundler": "metro",
@@ -41,6 +11,13 @@
     },
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2cd9afca-b9e7-4979-bb01-75a69001d509"
+      }
+    },
+    "owner": "jaimilgorajiya"
   }
 }

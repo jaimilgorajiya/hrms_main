@@ -8,6 +8,33 @@ const Login = ({ isRegister }) => {
   const [error, setError] = useState("");
   const location = useLocation();
 
+  // Forgot password state
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotDone, setForgotDone] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+      const data = await res.json();
+      if (data.success) setForgotDone(true);
+      else setForgotError(data.message || 'Something went wrong');
+    } catch {
+      setForgotError('Failed to connect to server');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   // Handle session expiration message
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -203,6 +230,7 @@ const Login = ({ isRegister }) => {
   };
 
   return (
+    <>
     <div className="login-page">
       <div className={`flip-card-inner ${isRegister ? "flipped" : ""}`}>
         {/* LOGIN FORM (FRONT) */}
@@ -288,7 +316,7 @@ const Login = ({ isRegister }) => {
                 />
                 <span>Remember me</span>
               </label>
-              <a href="#" className="forgot-link">
+              <a href="#" className="forgot-link" onClick={e => { e.preventDefault(); setForgotOpen(true); setForgotDone(false); setForgotEmail(''); setForgotError(''); }}>
                 Forgot password?
               </a>
             </div>
@@ -403,6 +431,54 @@ const Login = ({ isRegister }) => {
         </div>
       </div>
     </div>
+
+      {/* Forgot Password Modal */}
+      {forgotOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setForgotOpen(false)}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            {!forgotDone ? (
+              <>
+                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#1e293b' }}>Forgot Password</h3>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: '#64748b' }}>Enter your email and we'll send you a reset link.</p>
+                {forgotError && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{forgotError}</div>}
+                <form onSubmit={handleForgotSubmit}>
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none', marginBottom: 16, boxSizing: 'border-box' }}
+                  />
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" onClick={() => setForgotOpen(false)}
+                      style={{ flex: 1, padding: '12px', background: '#f1f5f9', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: '#475569' }}>
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={forgotLoading}
+                      style={{ flex: 1, padding: '12px', background: '#2563EB', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: '#fff' }}>
+                      {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
+                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#1e293b' }}>Check your email</h3>
+                <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>If <strong>{forgotEmail}</strong> is registered, a reset link has been sent. Check your inbox.</p>
+                <button onClick={() => setForgotOpen(false)}
+                  style={{ padding: '12px 32px', background: '#2563EB', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: '#fff', fontSize: 14 }}>
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

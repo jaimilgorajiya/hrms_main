@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import User from '../models/User.Model.js';
 import Attendance from '../models/Attendance.Model.js';
+import { generateAndSendDailyReport } from './attendanceReport.js';
 
 // Helper: get today's date string YYYY-MM-DD in IST
 const getTodayStr = () => {
@@ -75,4 +76,24 @@ export const initCronJobs = () => {
     });
 
     console.log('[CRON] Scheduled Midnight Absence Marking at 11:59 PM IST');
+
+    // 2. Daily Attendance Report
+    // Run at 19:00 (7:00 PM) every day
+    cron.schedule('0 19 * * *', async () => {
+        console.log('[CRON] Running Daily Attendance Report Emailer...');
+        try {
+            const admins = await User.find({ role: 'Admin', status: 'Active' });
+            for (const admin of admins) {
+                await generateAndSendDailyReport(admin._id);
+                console.log(`[CRON] Report sent to Admin: ${admin.name} (${admin.email})`);
+            }
+        } catch (error) {
+            console.error('[CRON] Error in Daily Attendance Report:', error);
+        }
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
+    });
+
+    console.log('[CRON] Scheduled Daily Attendance Report at 07:00 PM IST');
 };

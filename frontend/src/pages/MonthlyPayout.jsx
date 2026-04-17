@@ -78,6 +78,10 @@ const MonthlyPayout = () => {
                         bonus: { amount: Number(adjustments.bonus), reason: adjustments.bonusReason },
                         deduction: { amount: Number(adjustments.deduction), reason: adjustments.deductionReason }
                     },
+                    extraDayBenefit: {
+                        days: empData.extraBenefits?.extraDaysWorked || 0,
+                        amount: empData.salary?.extraDayAmount || 0
+                    },
                     finalPayout: finalNet
                 })
             });
@@ -142,27 +146,150 @@ const MonthlyPayout = () => {
 
     const navigate = useNavigate();
 
+    // Helper to format month display: "2026-04" -> "April 2026"
+    const formatMonthDisplay = (mStr) => {
+        const [y, m] = mStr.split('-');
+        const date = new Date(y, m - 1);
+        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    };
+
     return (
         <div className="hrm-container">
+            <style>{`
+                .payout-header-actions {
+                    display: flex;
+                    gap: 16px;
+                    align-items: center;
+                }
+
+                .payout-month-container {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 8px 16px;
+                    gap: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+                }
+
+                .payout-month-container:hover {
+                    border-color: #2563eb;
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+                }
+
+                .payout-month-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #1e293b;
+                    min-width: 100px;
+                }
+
+                .payout-month-input {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    opacity: 0;
+                    width: 100%;
+                    height: 100%;
+                    cursor: pointer;
+                }
+
+                .btn-payout-initiate {
+                    background: linear-gradient(135deg, #2563eb, #1e40af);
+                    color: white;
+                    border: none;
+                    padding: 6px 18px;
+                    border-radius: 20px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+
+                .btn-payout-initiate:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+                    filter: brightness(1.1);
+                }
+
+                .btn-payout-initiated {
+                    background: #f1f5f9;
+                    color: #64748b;
+                    border: 1px solid #e2e8f0;
+                    padding: 6px 18px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: default;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+
+                .redo-container {
+                    padding: 6px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    background: #fff5f5;
+                    border: 1px solid #fee2e2;
+                    color: #ef4444;
+                    cursor: pointer;
+                }
+
+                .redo-container:hover {
+                    background: #ef4444;
+                    color: white;
+                    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
+                }
+            `}</style>
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Monthly Payout Summary</h1>
                     <p className="hrm-subtitle">Audit and initiate monthly salaries for employees</p>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <div className="payout-header-actions">
                     <button 
                         className="btn-hrm btn-hrm-secondary" 
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '12px' }}
                         onClick={() => navigate('/admin/payout-history')}
                     >
                         <History size={18} /> View Payout History
                     </button>
                     
-                     <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                    <div style={{ position: 'relative' }}>
+                        <Calendar 
+                            size={16} 
+                            color="#2563eb" 
+                            style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} 
+                        />
                         <input 
                             type="month" 
                             className="hrm-date-input"
+                            style={{ 
+                                paddingLeft: '40px', 
+                                paddingRight: '12px',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0',
+                                fontWeight: '600',
+                                color: '#1e293b',
+                                background: 'white',
+                                height: '42px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                            }}
                             value={month}
                             onChange={(e) => setMonth(e.target.value)}
                         />
@@ -215,25 +342,28 @@ const MonthlyPayout = () => {
                                         <div style={{ fontSize: '10px', color: '#64748b' }}>Gross: ₹{s.salary.monthlyGross}</div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <button 
-                                                className={`btn-hrm ${s.isInitiated ? 'btn-hrm-secondary' : 'btn-hrm-primary'}`}
-                                                style={{ padding: '6px 12px', fontSize: '11px', opacity: s.isInitiated ? 0.7 : 1 }}
-                                                onClick={(e) => { e.stopPropagation(); if(!s.isInitiated) setSelectedEmp(s); }}
-                                                disabled={s.isInitiated}
-                                            >
-                                                {s.isInitiated ? 'Initiated' : 'Initiate'}
-                                            </button>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            {!s.isInitiated ? (
+                                                <button 
+                                                    className="btn-payout-initiate"
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmp(s); }}
+                                                >
+                                                    <Calculator size={14} /> Initiate
+                                                </button>
+                                            ) : (
+                                                <div className="btn-payout-initiated">
+                                                    Initiated
+                                                </div>
+                                            )}
                                             
                                             {s.isInitiated && (
-                                                <button 
-                                                    className="btn-hrm-icon" 
-                                                    style={{ color: '#ef4444' }}
+                                                <div 
+                                                    className="redo-container"
                                                     onClick={(e) => { e.stopPropagation(); handleDeletePayout(s.employee._id); }}
                                                     title="Redo / Delete Initiation"
                                                 >
                                                     <Trash2 size={16} />
-                                                </button>
+                                                </div>
                                             )}
                                         </div>
                                     </td>
@@ -264,9 +394,11 @@ const MonthlyPayout = () => {
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#059669', fontWeight: 600 }}>{selectedEmp.attendance.present}</span> Present</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#ef4444', fontWeight: 600 }}>{selectedEmp.attendance.absent}</span> Absent</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#0284c7', fontWeight: 600 }}>{selectedEmp.attendance.halfDay}</span> Half Days</div>
+                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#10B981', fontWeight: 600 }}>{selectedEmp.extraBenefits?.extraDaysWorked || 0}</span> Extra Days</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#6366f1', fontWeight: 600 }}>{selectedEmp.attendance.weekOff}</span> Week Offs</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#db2777', fontWeight: 600 }}>{selectedEmp.attendance.paidLeave}</span> Paid Leaves</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#ea580c', fontWeight: 600 }}>{selectedEmp.attendance.unpaidLeave}</span> Unpaid Leaves</div>
+                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#F59E0B', fontWeight: 600 }}>{selectedEmp.extraBenefits?.bonusPayDays || 0}</span> Bonus Days</div>
                                     </div>
                                 </div>
 
@@ -304,6 +436,10 @@ const MonthlyPayout = () => {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '13px' }}>LOP Deduction:</span>
                                         <span style={{ fontWeight: 600, color: '#ef4444' }}>-₹{selectedEmp.salary.unpaidLeaveDeduction.toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ fontSize: '13px' }}>Extra Day Benefit:</span>
+                                        <span style={{ fontWeight: 600, color: '#059669' }}>+₹{selectedEmp.salary.extraDayAmount?.toLocaleString()}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ fontSize: '13px' }}>Performance Penalties:</span>

@@ -54,6 +54,7 @@ import attendanceRoutes from './routes/Attendance.Routes.js';
 import notificationRoutes from './routes/Notification.Routes.js';
 import requestRoutes from './routes/Request.Routes.js';
 import resignationRoutes from './routes/Resignation.Routes.js';
+import reportRoutes from './routes/AttendanceReport.Route.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -117,6 +118,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/resignation', resignationRoutes);
+app.use('/api/admin/reports', reportRoutes);
 app.use('/api/payroll', payrollRoutes);
 
 app.get('/', (req, res) => {

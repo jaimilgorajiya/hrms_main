@@ -44,6 +44,7 @@ import EmployeeIdFormat from './pages/EmployeeIdFormat';
 import RetirementSettings from './pages/RetirementSettings';
 import UpcomingRetirement from './pages/UpcomingRetirement';
 import EmployeePromotion from './pages/EmployeePromotion';
+import DailyAttendanceEmail from './pages/DailyAttendanceEmail';
 import AdminAttendance from './pages/AdminAttendance';
 import AddAttendance from './pages/AddAttendance';
 import AbsentEmployees from './pages/AbsentEmployees';
@@ -70,6 +71,7 @@ import EmployeePayslips from './pages/employee/EmployeePayslips';
 import EmployeeDocuments from './pages/employee/EmployeeDocuments';
 import EmployeeShift from './pages/employee/EmployeeShift';
 import EmployeeResignation from './pages/employee/EmployeeResignation';
+import ResetPassword from './pages/ResetPassword';
 
 function App() {
   return (
@@ -77,6 +79,7 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/login" element={<Login isRegister={false} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Login isRegister={true} />} />
 
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
@@ -91,6 +94,7 @@ function App() {
               <Route path="company/profile" element={<MyProfile />} />
               <Route path="company/emp-id-format" element={<EmployeeIdFormat />} />
               <Route path="company/retirement-settings" element={<RetirementSettings />} />
+              <Route path="company/attendance-email" element={<DailyAttendanceEmail />} />
               <Route path="company-settings" element={<ModulePlaceholder title="Company Settings" />} />
               <Route path="company/*" element={<ModulePlaceholder title="Company Management" />} />
               <Route path="attendance/break-type" element={<BreakType />} />

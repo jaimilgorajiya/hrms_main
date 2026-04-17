@@ -402,6 +402,14 @@ const AddShift = () => {
                         )}
 
 
+                        <div className="form-group-shift">
+                            <SearchableSelect 
+                                label="Apply Late In / Early Out on Week Off Day"
+                                options={[{ label: 'No', value: false }, { label: 'Yes', value: true }]}
+                                value={formData.lateEarlyApplyOnExtraDay}
+                                onChange={(val) => handleInputChange({ target: { name: 'lateEarlyApplyOnExtraDay', value: val, type: 'select' }})}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -425,6 +433,43 @@ const AddShift = () => {
                   
 
                        
+                    </div>
+                </div>
+
+                {/* SECTION: OT & EXTRA DAY SETTINGS */}
+                <div className="shift-card">
+                    <h2 className="card-title">OT & Extra Day Settings</h2>
+                    <div className="form-grid">
+                        <div className="form-group-shift">
+                            <SearchableSelect 
+                                label="Extra Day Holiday Approval Policy"
+                                options={[
+                                    { label: 'None', value: 'None' },
+                                    { label: 'Week Off', value: 'Week Off' },
+                                    { label: 'Holiday', value: 'Holiday' },
+                                    { label: 'Week off and holiday', value: 'Week off and holiday' }
+                                ]}
+                                value={formData.extraDayApprovalPolicy}
+                                onChange={(val) => handleInputChange({ target: { name: 'extraDayApprovalPolicy', value: val, type: 'select' }})}
+                            />
+                        </div>
+
+                        <div className="form-group-shift">
+                            <SearchableSelect 
+                                label="Extra Day Payout Multiplier (Benefit)"
+                                options={[
+                                    { label: '2x (Double Pay Total)', value: 'Default' },
+                                    { label: '1x (Regular Pay Only)', value: '1x' },
+                                    { label: '1.5x (1.5x Pay Total)', value: '1.5x' },
+                                    { label: '2x (Double Pay Total)', value: '2x' }
+                                ]}
+                                value={formData.extraPayoutMultiplier}
+                                onChange={(val) => handleInputChange({ target: { name: 'extraPayoutMultiplier', value: val, type: 'select' }})}
+                            />
+                            <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                                This multiplier determines the total pay for working on a week-off (e.g. 2x = Double Pay).
+                            </small>
+                        </div>
                     </div>
                 </div>
 

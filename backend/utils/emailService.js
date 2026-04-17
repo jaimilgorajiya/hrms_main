@@ -204,3 +204,140 @@ export const sendRetirementNotificationEmail = async (hrEmail, employeeName, ret
         return { success: false, error: error.message };
     }
 };
+// Send Daily Attendance Report to Admin
+export const sendDailyAttendanceReport = async (adminEmail, reportData) => {
+    try {
+        const { date, stats, records } = reportData;
+        
+        const mailOptions = {
+            from: `"HRMS Daily Report" <${process.env.SMTP_FROM}>`,
+            to: adminEmail,
+            subject: `Daily Attendance Report - ${date}`,
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.5; }
+                        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+                        .header { background: #1e293b; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+                        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+                        .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+                        .stat-val { font-size: 20px; font-weight: bold; color: #2563eb; }
+                        .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+                        th { background: #f1f5f9; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+                        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+                        .status-pill { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+                        .status-present { background: #dcfce7; color: #15803d; }
+                        .status-absent { background: #fee2e2; color: #b91c1c; }
+                        .status-half { background: #fef9c3; color: #854d0e; }
+                        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #94a3b8; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h2 style="margin: 0;">Daily Attendance Report</h2>
+                            <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.8;">Report Date: ${date}</p>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin: 20px 0;">
+                            <div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: bold; color: #1e293b;">${stats.total}</div>
+                                <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Total Staff</div>
+                            </div>
+                            <div style="flex: 1; background: #dcfce7; border: 1px solid #bbfcce; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: bold; color: #15803d;">${stats.present}</div>
+                                <div style="font-size: 11px; color: #15803d; text-transform: uppercase;">Present</div>
+                            </div>
+                            <div style="flex: 1; background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: bold; color: #b91c1c;">${stats.absent}</div>
+                                <div style="font-size: 11px; color: #b91c1c; text-transform: uppercase;">Absent</div>
+                            </div>
+                            <div style="flex: 1; background: #fef9c3; border: 1px solid #fef08a; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 20px; font-weight: bold; color: #854d0e;">${stats.halfDay}</div>
+                                <div style="font-size: 11px; color: #854d0e; text-transform: uppercase;">Half Day</div>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Status</th>
+                                    <th>Punch In</th>
+                                    <th>Punch Out</th>
+                                    <th>Work Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${records.map(r => `
+                                    <tr>
+                                        <td>
+                                            <strong>${r.name}</strong><br>
+                                            <span style="font-size: 11px; color: #64748b;">${r.empId} | ${r.dept}</span>
+                                        </td>
+                                        <td>
+                                            <span class="status-pill status-${r.status.toLowerCase().replace(' ', '')}">
+                                                ${r.status}
+                                            </span>
+                                        </td>
+                                        <td>${r.punchIn || '--:--'}</td>
+                                        <td>${r.punchOut || '--:--'}</td>
+                                        <td>${r.workHours || '0h 0m'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+
+                        <div class="footer">
+                            <p>This is an automated report from HRMS.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('Daily Report Email Error:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Send password reset email
+export const sendPasswordResetEmail = async (userEmail, userName, resetToken) => {
+    try {
+        const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+        const mailOptions = {
+            from: `"HRMS Security" <${process.env.SMTP_FROM}>`,
+            to: userEmail,
+            subject: 'Password Reset Request - HRMS',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: #1e293b; color: white; padding: 28px; border-radius: 12px 12px 0 0; text-align: center;">
+                        <h2 style="margin: 0; font-size: 22px;">Password Reset</h2>
+                    </div>
+                    <div style="background: #f8fafc; padding: 28px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0;">
+                        <p>Hi <strong>${userName}</strong>,</p>
+                        <p>We received a request to reset your HRMS password. Click the button below to set a new password:</p>
+                        <div style="text-align: center; margin: 28px 0;">
+                            <a href="${resetUrl}" style="background: #2563EB; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Reset Password</a>
+                        </div>
+                        <p style="color: #64748b; font-size: 13px;">This link will expire in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email.</p>
+                        <p style="color: #94a3b8; font-size: 12px; margin-top: 24px;">This is an automated email. Please do not reply.</p>
+                    </div>
+                </div>
+            `
+        };
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Password reset email sent:', info.messageId);
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending password reset email:', error);
+        return { success: false, error: error.message };
+    }
+};

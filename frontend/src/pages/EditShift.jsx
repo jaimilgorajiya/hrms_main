@@ -427,7 +427,13 @@ const EditShift = () => {
                             </>
                         )}
 
-
+                        <div className="form-group-shift">
+                            <label>Apply Late In / Early Out on Week Off Day</label>
+                            <select name="lateEarlyApplyOnExtraDay" value={formData.lateEarlyApplyOnExtraDay} onChange={handleInputChange}>
+                                <option value={false}>No</option>
+                                <option value={true}>Yes</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -448,6 +454,35 @@ const EditShift = () => {
                
 
                       
+                    </div>
+                </div>
+
+                {/* SECTION: OT & EXTRA DAY SETTINGS */}
+                <div className="shift-card">
+                    <h2 className="card-title">OT & Extra Day Settings</h2>
+                    <div className="form-grid">
+                        <div className="form-group-shift">
+                            <label>Extra Day Holiday Approval Policy</label>
+                            <select name="extraDayApprovalPolicy" value={formData.extraDayApprovalPolicy} onChange={handleInputChange}>
+                                <option value="None">None</option>
+                                <option value="Week Off">Week Off</option>
+                                <option value="Holiday">Holiday</option>
+                                <option value="Week off and holiday">Week off and holiday</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group-shift">
+                            <label>Extra Day Payout Multiplier (Benefit)</label>
+                            <select name="extraPayoutMultiplier" value={formData.extraPayoutMultiplier} onChange={handleInputChange}>
+                                <option value="Default">2x (Double Pay Total)</option>
+                                <option value="1x">1x (Regular Pay Only)</option>
+                                <option value="1.5x">1.5x (1.5x Pay Total)</option>
+                                <option value="2x">2x (Double Pay Total)</option>
+                            </select>
+                            <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                                This multiplier determines the total pay for working on a week-off (e.g. 2x = Double Pay).
+                            </small>
+                        </div>
                     </div>
                 </div>
 
