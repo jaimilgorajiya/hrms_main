@@ -18,9 +18,9 @@ export const markAsRead = async (req, res) => {
         const { notificationId } = req.params;
         const userId = req.user._id;
 
-        await Notification.findOneAndUpdate({ _id: notificationId, user: userId }, { isRead: true });
+        await Notification.findOneAndDelete({ _id: notificationId, user: userId });
 
-        res.status(200).json({ success: true, message: "Notification marked as read" });
+        res.status(200).json({ success: true, message: "Notification removed" });
     } catch (error) {
         console.error("markAsRead error:", error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -30,9 +30,9 @@ export const markAsRead = async (req, res) => {
 export const markAllRead = async (req, res) => {
     try {
         const userId = req.user._id;
-        await Notification.updateMany({ user: userId, isRead: false }, { isRead: true });
+        await Notification.deleteMany({ user: userId });
 
-        res.status(200).json({ success: true, message: "All notifications marked as read" });
+        res.status(200).json({ success: true, message: "All notifications cleared" });
     } catch (error) {
         console.error("markAllRead error:", error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });

@@ -62,6 +62,7 @@ import PayoutHistory from './pages/PayoutHistory';
 import GenerateSalarySlip from './pages/GenerateSalarySlip';
 import PublishSalarySlip from './pages/PublishSalarySlip';
 import AdminResignation from './pages/AdminResignation';
+import AttendanceReport from './pages/AttendanceReport';
 import EmployeeLayout from './layout/EmployeeLayout';
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import EmployeeMyProfile from './pages/employee/EmployeeMyProfile';
@@ -103,6 +104,7 @@ function App() {
               <Route path="attendance/monthly" element={<MonthlyAttendance />} />
               <Route path="attendance/absent" element={<AbsentEmployees />} />
               <Route path="attendance/delete" element={<AdminDeleteAttendance />} />
+              <Route path="attendance/report" element={<AttendanceReport />} />
               <Route path="attendance-settings" element={<ModulePlaceholder title="Attendance Settings" />} />
               <Route path="attendance/*" element={<ModulePlaceholder title="Attendance Management" />} />
               <Route path="shift/add" element={<AddShift />} />

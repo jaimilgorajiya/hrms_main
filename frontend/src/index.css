@@ -3138,3 +3138,78 @@ select:focus {
 .hrm-step.completed .hrm-step-label {
     color: #3B648B;
 }
+
+/* Payroll/Report Header Utilities */
+.hrm-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.hrm-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.hrm-search-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.hrm-search-input {
+    padding: 10px 12px 10px 38px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 220px;
+}
+
+.hrm-search-input:focus {
+    border-color: #3B648B;
+    box-shadow: 0 0 0 3px rgba(59, 100, 139, 0.1);
+}
+
+.hrm-date-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    color: #64748b;
+}
+
+.hrm-date-input {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    background: transparent;
+}
+
+.hrm-table-container {
+    overflow-x: auto;
+}
+
+.btn-hrm-icon {
+    padding: 6px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-hrm-icon:hover {
+    background: #e2e8f0;
+}

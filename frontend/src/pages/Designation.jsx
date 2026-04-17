@@ -180,7 +180,7 @@ const Designation = () => {
             <div className="hrm-header">
                 <h1 className="hrm-title">Designations</h1>
                 <div className="hrm-header-actions">
-                    <button className="btn-hrm btn-hrm-secondary"><Upload size={18} /> IMPORT</button>
+                  
                     <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ designationName: '', designationAlias: '', jobDescription: '' }); setIsModalOpen(true); }}><Plus size={18} /> ADD</button>
                     <button className="btn-hrm btn-hrm-danger" onClick={handleBulkDelete}><Trash2 size={18} /> DELETE</button>
                 </div>

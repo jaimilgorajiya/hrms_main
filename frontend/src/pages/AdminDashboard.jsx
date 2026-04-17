@@ -2,27 +2,13 @@ import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, 
-  Building2, 
-  Briefcase, 
-  UserPlus, 
-  UserMinus, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  ChevronRight,
-  MoreVertical,
-  Search,
-  LayoutDashboard,
-  Check,
-  X,
-  Clock,
-  RefreshCw,
-  Calendar,
-  AlertCircle,
-  XCircle
+  Users, Building2, Briefcase, UserPlus, UserMinus, ArrowUpRight, ArrowDownRight,
+  ChevronRight, MoreVertical, Search, LayoutDashboard, Check, X, Clock, RefreshCw,
+  Calendar, AlertCircle, XCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -164,6 +150,32 @@ const AdminDashboard = () => {
 
   const stats = data?.stats || {};
 
+  const DEPT_COLORS = ['#3B82F6','#10B981','#F59E0B','#8B5CF6','#EF4444','#06B6D4','#F97316'];
+
+  const attendanceDonutData = [
+    { name: 'Present',  value: stats.presentToday  || 0, color: '#10B981' },
+    { name: 'Absent',   value: stats.absentToday   || 0, color: '#EF4444' },
+    { name: 'Half Day', value: stats.halfDayToday  || 0, color: '#F59E0B' },
+    { name: 'On Leave', value: stats.onLeaveToday  || 0, color: '#8B5CF6' },
+  ].filter(d => d.value > 0);
+
+  const genderData = (data?.genderStats || []).map(g => ({ name: g._id || 'Unknown', value: g.count }));
+  const GENDER_COLORS = ['#3B82F6', '#EC4899', '#94A3B8'];
+
+  const deptBarData = (data?.departmentStats || []).slice(0, 7).map(d => ({ name: d.name, Employees: d.count }));
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload?.length) {
+      return (
+        <div style={{ background: '#1e293b', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 12 }}>
+          <div style={{ fontWeight: 600 }}>{label || payload[0].name}</div>
+          <div>{payload[0].value} {payload[0].name === 'Employees' ? 'employees' : ''}</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const statCards = [
     { 
       title: 'Total Employees', 
@@ -238,11 +250,11 @@ const AdminDashboard = () => {
           <p>Welcome back! Here's what's happening with your workforce today.</p>
         </div>
         <div className="header-actions">
-          <button className="btn-outline-prem">
+          <button className="btn-outline-prem" onClick={() => navigate('/admin/employees/list')}>
             <Search size={16} />
             Find Employee
           </button>
-          <button className="btn-primary-prem">
+          <button className="btn-primary-prem" onClick={() => navigate('/admin/attendance/report')}>
             Generate Report
           </button>
         </div>
@@ -266,6 +278,61 @@ const AdminDashboard = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Charts Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
+
+        {/* Today's Attendance Donut */}
+        <div className="card-prem">
+          <div className="card-header-prem"><h2>Today's Attendance</h2></div>
+          <div className="card-body-prem" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {attendanceDonutData.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={attendanceDonutData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                      {attendanceDonutData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 16px', justifyContent: 'center', marginTop: 8 }}>
+                  {attendanceDonutData.map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} />
+                      <span style={{ color: '#64748b' }}>{d.name}</span>
+                      <span style={{ fontWeight: 700, color: '#1e293b' }}>{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: '40px 0', color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>No attendance data today</div>
+            )}
+          </div>
+        </div>
+
+        {/* Department Bar Chart */}
+        <div className="card-prem">
+          <div className="card-header-prem"><h2>Employees by Department</h2></div>
+          <div className="card-body-prem">
+            {deptBarData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={deptBarData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                  <Bar dataKey="Employees" radius={[6, 6, 0, 0]}>
+                    {deptBarData.map((_, i) => <Cell key={i} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ padding: '40px 0', color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>No department data</div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="dashboard-main-grid-three">

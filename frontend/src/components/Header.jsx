@@ -36,9 +36,39 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef(null);
   const profileRef = useRef(null);
+  const notifRef = useRef(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [companyLogo, setCompanyLogo] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await authenticatedFetch(`${API_URL}/api/notifications/my`);
+      const data = await res.json();
+      if (data.success) { setNotifications(data.notifications); setUnreadCount(data.unreadCount); }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    await authenticatedFetch(`${API_URL}/api/notifications/read-all`, { method: 'PUT' });
+    setUnreadCount(0);
+    setNotifications([]);
+  };
+
+  const handleMarkRead = async (id) => {
+    await authenticatedFetch(`${API_URL}/api/notifications/read/${id}`, { method: 'PUT' });
+    setNotifications(prev => prev.filter(n => n._id !== id));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
   
 
   useEffect(() => {
@@ -119,6 +149,9 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
       }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setShowProfileMenu(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifs(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -212,10 +245,46 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
 
       <div className="header-right">
       
-        <button className="icon-btn notification-btn">
-          <Bell size={20} />
-          <span className="badge"></span>
-        </button>
+        <div style={{ position: 'relative' }} ref={notifRef}>
+          <button className="icon-btn notification-btn" onClick={() => { setShowNotifs(o => !o); if (!showNotifs) fetchNotifications(); }}>
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: 4, right: 4, background: '#EF4444', color: '#fff', borderRadius: '50%', fontSize: 10, fontWeight: 700, minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifs && (
+            <div style={{ position: 'absolute', right: 0, top: '110%', width: 360, background: '#fff', borderRadius: 14, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0', zIndex: 9999, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Notifications</span>
+                {unreadCount > 0 && (
+                  <button onClick={handleMarkAllRead} style={{ fontSize: 12, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
+                )}
+              </div>
+              <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No notifications yet</div>
+                ) : notifications.map(n => (
+                  <div key={n._id} onClick={() => handleMarkRead(n._id)}
+                    style={{ padding: '12px 16px', borderBottom: '1px solid #f8fafc', background: n.isRead ? '#fff' : '#EFF6FF', cursor: 'pointer', transition: 'background 0.15s' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.isRead ? '#cbd5e1' : '#2563EB', marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{n.title}</div>
+                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{n.message}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                          {new Date(n.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
         <div className="user-profile-container" ref={profileRef} style={{ position: 'relative' }}>
           <div className="user-profile" onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ cursor: 'pointer' }}>

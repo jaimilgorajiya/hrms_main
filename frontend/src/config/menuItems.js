@@ -113,6 +113,7 @@ export const menuItems = [
           { title: "Attendance Request", path: "/admin/attendance/request" },
           { title: "Absent Emp", path: "/admin/attendance/absent" },
           { title: "Delete Attendance", path: "/admin/attendance/delete" },
+          { title: "Attendance Report", path: "/admin/attendance/report" },
         ],
       },  
       {

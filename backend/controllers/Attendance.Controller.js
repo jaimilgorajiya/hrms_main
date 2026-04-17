@@ -7,6 +7,25 @@ import Attendance from "../models/Attendance.Model.js";
 import { computeWorkingMinutes, formatMinutes } from "../utils/attendance.js";
 import Notification from "../models/Notification.Model.js";
 
+// Notify admin when employee punches in or out
+const notifyAdminPunch = async (employeeId, action, date, status) => {
+    try {
+        const employee = await User.findById(employeeId).select('name employeeId adminId');
+        if (!employee?.adminId) return;
+        const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+        const label = action === 'IN' ? 'Punched In' : 'Punched Out';
+        const statusNote = status && status !== 'Present' ? ` (${status})` : '';
+        await Notification.create({
+            user: employee.adminId,
+            title: `Employee ${label}`,
+            message: `${employee.name} (${employee.employeeId || ''}) ${label.toLowerCase()} at ${timeStr}${statusNote} on ${date}.`,
+            type: 'Attendance'
+        });
+    } catch (e) {
+        console.error('notifyAdminPunch error:', e.message);
+    }
+};
+
 // Helper: get today's date string YYYY-MM-DD in IST
 const getTodayStr = () => {
     const now = new Date();
@@ -286,6 +305,7 @@ export const togglePunch = async (req, res) => {
             }
 
             await record.save();
+            notifyAdminPunch(req.user._id, 'IN', date, record.status);
 
             return res.status(200).json({
                 success: true,
@@ -415,6 +435,7 @@ export const togglePunch = async (req, res) => {
             locationAddress
         });
         await record.save();
+        notifyAdminPunch(req.user._id, 'OUT', date, record.status);
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
 
