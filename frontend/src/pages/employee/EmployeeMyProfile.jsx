@@ -51,7 +51,7 @@ const EmployeeMyProfile = () => {
       } else {
         Swal.fire({ title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#2563EB' });
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ title: 'Error', text: 'Something went wrong.', icon: 'error', confirmButtonColor: '#2563EB' });
     } finally { setSavingPwd(false); }
   };

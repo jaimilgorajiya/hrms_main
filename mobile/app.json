@@ -9,6 +9,16 @@
       "bundler": "metro",
       "output": "single"
     },
+    "android": {
+      "package": "com.hrms.employee",
+      "googleServicesFile": "./google-services.json"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "expo-router",
+      "expo-location",
+      "expo-secure-store"
+    ],
     "experiments": {
       "typedRoutes": false
     },

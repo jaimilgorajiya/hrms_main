@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, MapPin, Briefcase, User, Search, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Briefcase, User, Search, RefreshCw, CheckCircle2, ChevronRight, AlertCircle, Save } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
@@ -15,7 +15,6 @@ const ChangeBranch = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
-    const [searching, setSearching] = useState(false);
     
     const [destinationBranch, setDestinationBranch] = useState('');
     const [destinationDept, setDestinationDept] = useState('');
@@ -67,6 +66,18 @@ const ChangeBranch = () => {
             return;
         }
 
+        const result = await Swal.fire({
+            title: 'Confirm Transfer?',
+            text: `Are you sure you want to transfer ${selectedEmployee.name} to ${destinationBranch}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--primary-blue)',
+            cancelButtonColor: 'var(--text-muted)',
+            confirmButtonText: 'Yes, Confirm Transfer'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             setLoading(true);
             const response = await authenticatedFetch(`${API_URL}/api/users/${selectedEmployee._id}/change-branch`, {
@@ -84,12 +95,13 @@ const ChangeBranch = () => {
                     title: 'Transfer Successful',
                     text: data.message,
                     icon: 'success',
-                    confirmButtonColor: '#3B648B'
+                    timer: 2000,
+                    showConfirmButton: false
                 });
                 setSelectedEmployee(null);
                 setDestinationBranch('');
                 setDestinationDept('');
-                fetchInitialData(); // Refresh list
+                fetchInitialData();
             } else {
                 Swal.fire('Error', data.message || 'Failed to move employee', 'error');
             }
@@ -102,221 +114,223 @@ const ChangeBranch = () => {
     };
 
     return (
-        <div className="hrm-container">
+        <div className="hrm-container" style={{ maxWidth: '1200px' }}>
             <div className="hrm-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
                         <ArrowLeft size={20} />
                     </button>
                     <div>
                         <h1 className="hrm-title">Change Branch</h1>
-                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500' }}>Relocate employees between company branches</p>
+                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                            Securely transfer employees between organizational branches and departments
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '30px', alignItems: 'start' }}>
-                {/* Search & Select Panel */}
-                <div style={{ background: 'white', padding: '30px', borderRadius: '24px', border: '1px solid #E2E8F0', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
-                    <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#1E293B', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Search size={18} color="#3B648B" /> Select Employee
-                    </h2>
-                    
-                    <div style={{ position: 'relative', marginBottom: '20px' }}>
-                        <input 
-                            type="text"
-                            placeholder="Search by name or ID..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{ 
-                                width: '100%', 
-                                padding: '12px 40px 12px 15px', 
-                                borderRadius: '12px', 
-                                border: '1.5px solid #E2E8F0', 
-                                fontSize: '14px', 
-                                outline: 'none' 
-                            }}
-                        />
-                        <Search style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)' }} size={16} color="#94A3B8" />
-                        
-                        {searchQuery && (
-                            <div style={{ 
-                                position: 'absolute', 
-                                top: '100%', 
-                                left: 0, 
-                                right: 0, 
-                                background: 'white', 
-                                borderRadius: '0 0 12px 12px', 
-                                border: '1.5px solid #E2E8F0', 
-                                borderTop: 'none',
-                                zIndex: 10,
-                                maxHeight: '300px',
-                                overflowY: 'auto',
-                                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-                            }}>
-                                {filteredEmployees.length > 0 ? filteredEmployees.map(emp => (
-                                    <div 
-                                        key={emp._id}
-                                        onClick={() => handleEmployeeSelect(emp)}
-                                        style={{ 
-                                            padding: '12px 15px', 
-                                            cursor: 'pointer', 
-                                            borderBottom: '1px solid #F1F5F9',
-                                            transition: 'background 0.2s'
-                                        }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1E293B' }}>{emp.name}</div>
-                                        <div style={{ fontSize: '11px', color: '#64748B' }}>{emp.employeeId} • {emp.designation}</div>
-                                    </div>
-                                )) : (
-                                    <div style={{ padding: '15px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>No employees found</div>
-                                )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '24px', alignItems: 'start' }}>
+                {/* Left Panel: Search & Selection */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="hrm-card" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                            <div style={{ background: 'var(--primary-light)', padding: '8px', borderRadius: '10px', color: 'var(--primary-blue)' }}>
+                                <Search size={18} />
                             </div>
-                        )}
+                            <h2 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>Select Employee</h2>
+                        </div>
+                        
+                        <div style={{ position: 'relative' }}>
+                            <input 
+                                type="text"
+                                className="hrm-input"
+                                placeholder="Search by name or ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{ paddingLeft: '44px', height: '52px' }}
+                            />
+                            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                            
+                            {searchQuery && (
+                                <div style={{ 
+                                    position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
+                                    background: 'white', borderRadius: '16px',
+                                    border: '1px solid var(--border)', zIndex: 100,
+                                    maxHeight: '320px', overflowY: 'auto',
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                                }}>
+                                    {filteredEmployees.length > 0 ? filteredEmployees.map(emp => (
+                                        <div key={emp._id} onClick={() => handleEmployeeSelect(emp)}
+                                            style={{ 
+                                                padding: '12px 16px', cursor: 'pointer', 
+                                                borderBottom: '1px solid var(--border-subtle)', 
+                                                transition: 'all 0.2s ease',
+                                                display: 'flex', alignItems: 'center', gap: '12px'
+                                            }}
+                                            className="search-item-hover"
+                                        >
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <User size={20} color="var(--text-muted)" />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-dark)' }}>{emp.name}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{emp.employeeId} • {emp.designation}</div>
+                                            </div>
+                                            <ChevronRight size={16} color="var(--border)" style={{ marginLeft: 'auto' }} />
+                                        </div>
+                                    )) : (
+                                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                            No matches found for "{searchQuery}"
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {selectedEmployee && (
-                        <div style={{ 
-                            background: 'rgba(59, 100, 139, 0.03)', 
-                            border: '1.5px dashed rgba(59, 100, 139, 0.2)', 
-                            borderRadius: '16px', 
-                            padding: '20px',
-                            animation: 'fadeIn 0.3s ease-out'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
-                                <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        <div className="hrm-card" style={{ padding: '24px', border: '1px solid var(--primary-blue)', background: 'linear-gradient(to bottom, #FFFFFF 0%, #F8FAFC 100%)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                                <div style={{ 
+                                    width: '64px', height: '64px', borderRadius: '16px', 
+                                    background: 'white', display: 'flex', alignItems: 'center', 
+                                    justifyContent: 'center', border: '1px solid var(--border)', 
+                                    overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                                }}>
                                     {selectedEmployee.profilePhoto ? (
                                         <img src={`${API_URL}/uploads/${selectedEmployee.profilePhoto}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <User size={24} color="#CBD5E1" />
-                                    )}
+                                    ) : <User size={32} color="var(--border)" />}
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{selectedEmployee.name}</div>
-                                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>Current ID: {selectedEmployee.employeeId}</div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 4px' }}>{selectedEmployee.name}</h3>
+                                    <span className="hrm-badge hrm-badge-primary">{selectedEmployee.employeeId}</span>
                                 </div>
                             </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                <div style={{ padding: '12px', background: 'white', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Branch</div>
-                                    <div style={{ fontSize: '13px', color: '#1E293B', fontWeight: '700' }}>{selectedEmployee.branch || 'Not Set'}</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div style={{ padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>Current Branch</div>
+                                    <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Building2 size={14} color="var(--primary-blue)" /> {selectedEmployee.branch || 'Not Set'}
+                                    </div>
                                 </div>
-                                <div style={{ padding: '12px', background: 'white', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Dept.</div>
-                                    <div style={{ fontSize: '13px', color: '#1E293B', fontWeight: '700' }}>{selectedEmployee.department || 'Not Set'}</div>
+                                <div style={{ padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>Department</div>
+                                    <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{selectedEmployee.department || 'Not Set'}</div>
                                 </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Transfer Action Panel */}
-                <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
-                    <div style={{ padding: '25px 30px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                        <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1E293B' }}>Transfer Details</h2>
-                        <p style={{ fontSize: '12px', color: '#64748B', fontWeight: '500' }}>Specify the employee's new workplace location</p>
+                {/* Right Panel: Transfer Config */}
+                <div className="hrm-card" style={{ padding: 0, overflow: 'visible' }}>
+                    <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', borderRadius: '16px 16px 0 0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ background: 'var(--primary-gradient)', padding: '10px', borderRadius: '12px', color: 'white' }}>
+                                <RefreshCw size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>Transfer Details</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>Configure the new destination for the selected employee</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style={{ padding: '40px' }}>
+                    <div style={{ padding: '32px' }}>
                         {!selectedEmployee ? (
-                            <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                                    <Briefcase size={32} color="#94A3B8" />
+                            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                    <Briefcase size={40} color="var(--border)" />
                                 </div>
-                                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#475569', marginBottom: '10px' }}>No Employee Selected</h3>
-                                <p style={{ fontSize: '14px', color: '#94A3B8', maxWidth: '300px', margin: '0 auto' }}>Please select an employee from the search panel to proceed with the branch transfer.</p>
+                                <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '8px' }}>No Employee Selected</h3>
+                                <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '340px', margin: '0 auto', lineHeight: '1.6' }}>
+                                    Search and select an employee from the left panel to begin the transfer process.
+                                </p>
                             </div>
                         ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px' }}>Destination Branch</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '32px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
                                         <SearchableSelect
-                                            options={[
-                                                { value: '', label: 'Select Target Branch' },
-                                                ...branches
-                                                    .filter(b => b.branchName !== selectedEmployee?.branch)
-                                                    .map(b => ({ value: b.branchName, label: b.branchName }))
-                                            ]}
+                                            label="Destination Branch"
+                                            required={true}
+                                            options={branches.filter(b => b.branchName !== selectedEmployee?.branch).map(b => ({ value: b.branchName, label: b.branchName }))}
                                             value={destinationBranch}
-                                            onChange={(val) => {
-                                                setDestinationBranch(val);
-                                                setDestinationDept('');
-                                            }}
+                                            onChange={(val) => { setDestinationBranch(val); setDestinationDept(''); }}
                                             placeholder="Select Target Branch"
                                         />
                                     </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '1px' }}>Target Department</label>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
                                         <SearchableSelect
-                                            options={[
-                                                { value: '', label: 'Select Target Department' },
-                                                ...filteredDepartments.map(d => ({ value: d.name, label: d.name }))
-                                            ]}
+                                            label="Target Department"
+                                            options={filteredDepartments.map(d => ({ value: d.name, label: d.name }))}
                                             value={destinationDept}
                                             onChange={(val) => setDestinationDept(val)}
                                             placeholder="Select Target Department"
                                             disabled={!destinationBranch}
                                         />
-                                        {!destinationBranch && <p style={{ fontSize: '11px', color: '#94A3B8' }}>Select a branch first to see departments</p>}
+                                        {!destinationBranch && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                                                <AlertCircle size={14} /> Select a branch first to see departments
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <div style={{ marginTop: '20px' }}>
+                                    <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
                                         <button 
-                                            onClick={handleChangeBranch}
-                                            disabled={loading || !destinationBranch}
-                                            className="btn-hrm btn-hrm-primary"
-                                            style={{ width: '100%', height: '52px', fontSize: '15px', gap: '10px' }}
+                                            onClick={handleChangeBranch} 
+                                            disabled={loading || !destinationBranch} 
+                                            className="btn-hrm btn-hrm-primary" 
+                                            style={{ width: '100%', height: '52px', fontSize: '15px', letterSpacing: '0.02em' }}
                                         >
-                                            {loading ? <><RefreshCw className="animate-spin" size={20} /> PROCESSING...</> : <><CheckCircle2 size={20} /> CONFIRM TRANSFER</>}
+                                            {loading ? <><RefreshCw className="animate-spin" size={20} /> PROCESSING...</> : <><Save size={20} /> CONFIRM TRANSFER</>}
                                         </button>
                                     </div>
                                 </div>
 
-                                <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '25px', border: '1px solid #E2E8F0' }}>
-                                    <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '15px', textTransform: 'uppercase' }}>Transfer Summary</h4>
+                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '24px', border: '1px solid #E2E8F0' }}>
+                                    <h4 style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Transfer Summary
+                                    </h4>
                                     
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 100, 139, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B648B' }}>
-                                                <User size={16} />
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', border: '1px solid var(--border-subtle)' }}>
+                                                <User size={18} />
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>EMPLOYEE</div>
-                                                <div style={{ fontSize: '13px', color: '#1E293B', fontWeight: '700' }}>{selectedEmployee.name}</div>
+                                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700' }}>EMPLOYEE</div>
+                                                <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{selectedEmployee.name}</div>
                                             </div>
                                         </div>
 
-                                        <div style={{ position: 'relative', paddingLeft: '15px', ml: '16px', borderLeft: '2px dashed #E2E8F0', py: 2 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
-                                                    <MapPin size={14} />
-                                                </div>
+                                        <div style={{ paddingLeft: '17px', borderLeft: '2px dashed #CBD5E1', margin: '4px 0 4px 17px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+                                                <div style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: '#CBD5E1' }}></div>
+                                                <MapPin size={16} color="var(--text-muted)" />
                                                 <div>
-                                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>FROM</div>
-                                                    <div style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>{selectedEmployee.branch}</div>
+                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700' }}>FROM</div>
+                                                    <div style={{ fontSize: '14px', color: '#64748B', fontWeight: '600' }}>{selectedEmployee.branch}</div>
                                                 </div>
                                             </div>
-                                            <div style={{ margin: '15px 0' }}></div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'rgba(34, 197, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22C55E' }}>
-                                                    <RefreshCw size={14} />
-                                                </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+                                                <div style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary-blue)' }}></div>
+                                                <RefreshCw size={16} color="var(--primary-blue)" />
                                                 <div>
-                                                    <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700' }}>TO</div>
-                                                    <div style={{ fontSize: '13px', color: '#1E293B', fontWeight: '800' }}>{destinationBranch || '---'}</div>
+                                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700' }}>TO</div>
+                                                    <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '800' }}>{destinationBranch || '---'}</div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #E2E8F0', marginTop: '5px' }}>
-                                            <p style={{ fontSize: '11px', color: '#64748B', lineHeight: '1.6' }}>
-                                                <strong>Note:</strong> Branch transfers may affect department assignment and shift availability. Ensure the target branch has the required infrastructure for this employee.
-                                            </p>
+                                        <div style={{ background: '#EFF6FF', padding: '16px', borderRadius: '12px', border: '1px solid #DBEAFE', marginTop: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                <AlertCircle size={16} color="var(--primary-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                                <p style={{ fontSize: '11px', color: '#1E40AF', lineHeight: '1.5', margin: 0, fontWeight: '500' }}>
+                                                    Transfers are logged in the employee history. Department assignment may need verification after transfer.
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -327,9 +341,11 @@ const ChangeBranch = () => {
             </div>
 
             <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                .search-item-hover:hover {
+                    background-color: #F8FAFC !important;
+                }
+                .search-item-hover:hover h4 {
+                    color: var(--primary-blue) !important;
                 }
                 .animate-spin {
                     animation: spin 1s linear infinite;
@@ -338,13 +354,10 @@ const ChangeBranch = () => {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
                 }
-                input:focus, select:focus {
-                    border-color: #3B648B !important;
-                    box-shadow: 0 0 0 4px rgba(59, 100, 139, 0.08) !important;
-                }
             `}</style>
         </div>
     );
 };
 
 export default ChangeBranch;
+

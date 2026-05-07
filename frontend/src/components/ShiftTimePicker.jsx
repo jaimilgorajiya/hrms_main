@@ -54,7 +54,7 @@ const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
                     boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0',
                     minWidth: 200
                 }}>
-                    <div style={{ marginBottom: 12, fontSize: 12, color: '#64748b', fontWeight: 500 }}>Select Time</div>
+                    <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Select Time</div>
                     <input
                         type="time"
                         value={internalTime}
@@ -62,14 +62,14 @@ const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
                         style={{
                             width: '100%', padding: '10px 12px', fontSize: 18, fontWeight: 600,
                             border: '1.5px solid #3B82F6', borderRadius: 8, outline: 'none',
-                            color: '#1e293b', background: '#f8fafc', textAlign: 'center',
+                            color: 'var(--text-primary)', background: '#f8fafc', textAlign: 'center',
                             letterSpacing: 2, marginBottom: 12
                         }}
                         autoFocus
                     />
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <button onClick={handleClear} style={{
-                            padding: '6px 14px', background: '#f1f5f9', color: '#475569',
+                            padding: '6px 14px', background: '#f1f5f9', color: 'var(--text-secondary)',
                             border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
                         }}>CLEAR</button>
                         <button onClick={handleConfirm} style={{

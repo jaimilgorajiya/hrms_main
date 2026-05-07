@@ -1,7 +1,7 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, AlertCircle, Minus } from 'lucide-react';
+import { Plus, Trash2, Save, AlertCircle, Minus, ShieldAlert, Clock, Zap, Info } from 'lucide-react';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
 
@@ -101,13 +101,13 @@ const PenaltyRules = () => {
 
     const handleRemoveAllSlabs = async () => {
         const result = await Swal.fire({
-            title: 'Are you sure?',
+            title: 'Wipe all rules?',
             text: "This will remove all slabs for this shift. This cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ff4d4f',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Yes, remove all!'
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, wipe rules'
         });
         if (result.isConfirmed) {
             try {
@@ -175,154 +175,187 @@ const PenaltyRules = () => {
         }
     };
 
-    if (fetchingShifts) return <div className="loading-container">Loading Shifts...</div>;
+    if (fetchingShifts) return (
+        <div className="hrm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div className="animate-spin" style={{ color: 'var(--primary-blue)' }}><ShieldAlert size={40} /></div>
+        </div>
+    );
 
     return (
         <div className="hrm-container">
             <div className="hrm-header">
-                <h1 className="hrm-title">Penalty Rules</h1>
+                <div>
+                    <h1 className="hrm-title">Attendance Penalty Rules</h1>
+                    <p className="hrm-subtitle">Configure late-in and early-out deductions per shift</p>
+                </div>
             </div>
 
             <div className="hrm-card" style={{ overflow: 'visible' }}>
-                <div className="hrm-card-body">
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
+                <div style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '20px', marginBottom: '32px', flexWrap: 'wrap' }}>
                         <div className="hrm-form-group" style={{ flex: 1, maxWidth: '400px', marginBottom: 0 }}>
                             <SearchableSelect
-                                label="Shift Name"
+                                label="Target Shift"
                                 options={shifts.map(shift => ({ label: shift.shiftName, value: shift._id }))}
                                 value={selectedShift}
                                 onChange={(val) => setSelectedShift(val)}
-                                placeholder="-- Select Shift --"
+                                placeholder="Select a shift to manage rules"
                             />
                         </div>
                         {selectedShift && slabs.length > 0 && (
-                            <button className="btn-hrm btn-hrm-danger" onClick={handleRemoveAllSlabs}>
-                                <Trash2 size={18} /> REMOVE ALL SLABS
+                            <button className="btn-hrm btn-hrm-secondary" onClick={handleRemoveAllSlabs} style={{ color: 'var(--danger)' }}>
+                                <Trash2 size={18} /> Clear All Rules
                             </button>
                         )}
                     </div>
 
-                    {selectedShift && (
-                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '30px' }}>
-                            <div>
-                                {slabs.map((slab, index) => (
-                                    <div key={index} style={{
-                                        padding: '25px',
-                                        background: '#f8fafc',
-                                        borderRadius: '12px',
-                                        border: '1px solid #e2e8f0',
-                                        marginBottom: '30px',
-                                        position: 'relative'
-                                    }}>
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                            gap: '25px',
-                                            alignItems: 'flex-end',
+                    {selectedShift ? (
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
+                            <div className="slabs-container">
+                                {slabs.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '60px', background: 'var(--bg-main)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '24px' }}>
+                                        <Zap size={40} style={{ opacity: 0.1, margin: '0 auto 16px' }} />
+                                        <p style={{ fontWeight: '600', color: 'var(--text-muted)' }}>No penalty rules defined for this shift.</p>
+                                        <button className="btn-hrm btn-hrm-primary" style={{ marginTop: '16px' }} onClick={handleAddSlab}>
+                                            <Plus size={18} /> Create First Slab
+                                        </button>
+                                    </div>
+                                ) : (
+                                    slabs.map((slab, index) => (
+                                        <div key={index} style={{
+                                            padding: '28px',
+                                            background: 'var(--bg-main)',
+                                            borderRadius: '16px',
+                                            border: '1px solid var(--border)',
+                                            marginBottom: '24px',
                                             position: 'relative',
-                                            paddingRight: '64px'
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                                         }}>
-                                            <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                <SearchableSelect
-                                                    label="Penalty Type"
-                                                    options={[
-                                                        { label: 'Late In Minutes', value: 'Late In Minutes' },
-                                                        { label: 'Early Out Minutes', value: 'Early Out Minutes' },
-                                                        { label: 'Half-Day', value: 'Half-Day' },
-                                                    ]}
-                                                    value={slab.penaltyType}
-                                                    onChange={(val) => handleSlabChange(index, 'penaltyType', val)}
-                                                />
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                                gap: '24px',
+                                                alignItems: 'flex-start',
+                                                paddingRight: '60px'
+                                            }}>
+                                                <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                                    <SearchableSelect
+                                                        label="Penalty Category"
+                                                        options={[
+                                                            { label: 'Late In (Minutes)', value: 'Late In Minutes' },
+                                                            { label: 'Early Out (Minutes)', value: 'Early Out Minutes' },
+                                                            { label: 'Auto Half-Day', value: 'Half-Day' },
+                                                        ]}
+                                                        value={slab.penaltyType}
+                                                        onChange={(val) => handleSlabChange(index, 'penaltyType', val)}
+                                                    />
+                                                </div>
+
+                                                {slab.penaltyType === 'Half-Day' ? (
+                                                    <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px' }}>
+                                                        <div className="hrm-form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                                            <SearchableSelect
+                                                                label="Trigger Hour"
+                                                                options={hourOptions}
+                                                                value={getHour(slab.threshold_time)}
+                                                                onChange={(val) => handleTimeChange(index, 'h', val)}
+                                                                placeholder="HH"
+                                                                searchable={true}
+                                                            />
+                                                        </div>
+                                                        <div className="hrm-form-group" style={{ flex: 1, marginBottom: 0 }}>
+                                                            <SearchableSelect
+                                                                label="Trigger Minute"
+                                                                options={minuteOptions}
+                                                                value={getMinute(slab.threshold_time)}
+                                                                onChange={(val) => handleTimeChange(index, 'm', val)}
+                                                                placeholder="MM"
+                                                                searchable={true}
+                                                            />
+                                                        </div>
+                                                        <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', background: 'var(--primary-light)', padding: '0 16px', borderRadius: '12px', border: '1px solid var(--primary-light)' }}>
+                                                            <Info size={16} style={{ color: 'var(--primary-blue)', flexShrink: 0 }} />
+                                                            <p style={{ fontSize: '11px', color: 'var(--primary-blue)', marginLeft: '12px', lineHeight: '1.4', fontWeight: '500' }}>
+                                                                Employees checking in after {slab.threshold_time || 'HH:MM'} will be marked as Half-Day automatically.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                                            <label className="hrm-label">Range: Min Minutes</label>
+                                                            <div style={{ position: 'relative' }}>
+                                                                <input type="number" className="hrm-input" placeholder="e.g. 5" value={slab.minTime} onChange={(e) => handleSlabChange(index, 'minTime', e.target.value)} />
+                                                                <Clock size={16} style={{ position: 'absolute', right: '12px', top: '13px', color: 'var(--text-muted)' }} />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                                            <label className="hrm-label">Range: Max Minutes</label>
+                                                            <div style={{ position: 'relative' }}>
+                                                                <input type="number" className="hrm-input" placeholder="e.g. 30" value={slab.maxTime} onChange={(e) => handleSlabChange(index, 'maxTime', e.target.value)} />
+                                                                <Clock size={16} style={{ position: 'absolute', right: '12px', top: '13px', color: 'var(--text-muted)' }} />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                                            <label className="hrm-label">Penalty Amount (₹)</label>
+                                                            <div style={{ position: 'relative' }}>
+                                                                <input type="number" className="hrm-input" placeholder="0.00" value={slab.value} onChange={(e) => handleSlabChange(index, 'value', e.target.value)} />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                                            <label className="hrm-label">Grace Occurrences</label>
+                                                            <input
+                                                                type="number"
+                                                                className="hrm-input"
+                                                                placeholder="0"
+                                                                min="0"
+                                                                value={slab.grace_count ?? 0}
+                                                                onChange={(e) => handleSlabChange(index, 'grace_count', e.target.value)}
+                                                            />
+                                                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Free entries per month</p>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
 
-                                            {slab.penaltyType === 'Half-Day' ? (
-                                                <>
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <SearchableSelect
-                                                            label="Hour"
-                                                            options={hourOptions}
-                                                            value={getHour(slab.threshold_time)}
-                                                            onChange={(val) => handleTimeChange(index, 'h', val)}
-                                                            placeholder="HH"
-                                                            searchable={true}
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <SearchableSelect
-                                                            label="Minute"
-                                                            options={minuteOptions}
-                                                            value={getMinute(slab.threshold_time)}
-                                                            onChange={(val) => handleTimeChange(index, 'm', val)}
-                                                            placeholder="MM"
-                                                            searchable={true}
-                                                            required
-                                                        />
-                                                       
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <label className="hrm-label">Min Time (Min) <span className="req">*</span></label>
-                                                        <input type="number" className="hrm-input" placeholder="05" value={slab.minTime} onChange={(e) => handleSlabChange(index, 'minTime', e.target.value)} />
-                                                    </div>
-
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <label className="hrm-label">Max Time (Min) <span className="req">*</span></label>
-                                                        <input type="number" className="hrm-input" placeholder="45" value={slab.maxTime} onChange={(e) => handleSlabChange(index, 'maxTime', e.target.value)} />
-                                                    </div>
-
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <label className="hrm-label">Penalty Value <span className="req">*</span></label>
-                                                        <input type="number" className="hrm-input" placeholder="150" value={slab.value} onChange={(e) => handleSlabChange(index, 'value', e.target.value)} />
-                                                    </div>
-
-                                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
-                                                        <label className="hrm-label">Grace Count <span className="req">*</span></label>
-                                                        <input
-                                                            type="number"
-                                                            className="hrm-input"
-                                                            placeholder="0"
-                                                            min="0"
-                                                            value={slab.grace_count ?? 0}
-                                                            onChange={(e) => handleSlabChange(index, 'grace_count', e.target.value)}
-                                                        />
-                                                        <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
-                                                            Number of allowed late entries without penalty per month
-                                                        </span>
-                                                    </div>
-                                                </>
-                                            )}
-
                                             <button
-                                                className="btn-hrm btn-hrm-danger"
-                                                style={{ padding: '12px', width: '48px', height: '48px', position: 'absolute', right: 0, bottom: 0 }}
+                                                className="icon-btn"
+                                                style={{ color: 'var(--danger)', position: 'absolute', right: '20px', top: '28px', background: 'white' }}
                                                 onClick={() => handleRemoveSlab(index)}
+                                                title="Remove Slab"
                                             >
                                                 <Minus size={20} />
                                             </button>
                                         </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {slabs.length > 0 && (
+                                <>
+                                    <button className="btn-hrm btn-hrm-secondary" style={{ borderStyle: 'dashed', width: '100%', marginBottom: '32px', justifyContent: 'center', background: 'transparent' }} onClick={handleAddSlab}>
+                                        <Plus size={18} /> Add Another Penalty Slab
+                                    </button>
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                        <button className="btn-hrm btn-hrm-secondary" onClick={() => setSelectedShift('')}>CANCEL</button>
+                                        <button className="btn-hrm btn-hrm-primary" style={{ padding: '12px 40px' }} onClick={handleSave} disabled={loading}>
+                                            <Save size={18} /> {loading ? 'SAVING...' : 'SAVE CONFIGURATION'}
+                                        </button>
                                     </div>
-                                ))}
-                            </div>
-
-                            <button className="btn-hrm btn-hrm-secondary" style={{ borderStyle: 'dashed', width: '100%', marginBottom: '30px' }} onClick={handleAddSlab}>
-                                <Plus size={18} /> ADD MORE PENALTY SLAB
-                            </button>
-
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <button className="btn-hrm btn-hrm-primary" style={{ padding: '12px 60px' }} onClick={handleSave} disabled={loading}>
-                                    <Save size={20} /> {loading ? 'SAVING...' : 'SAVE'}
-                                </button>
-                            </div>
+                                </>
+                            )}
                         </div>
-                    )}
-
-                    {!selectedShift && !loading && (
-                        <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8' }}>
-                            <AlertCircle size={48} style={{ marginBottom: '15px', opacity: 0.5 }} />
-                            <p style={{ fontSize: '16px' }}>Please select a shift to view or manage penalty rules.</p>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
+                            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                <ShieldAlert size={40} style={{ opacity: 0.2 }} />
+                            </div>
+                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-dark)', marginBottom: '8px' }}>No Shift Selected</h3>
+                            <p style={{ fontSize: '14px', maxWidth: '300px', margin: '0 auto' }}>Select a shift from the dropdown above to manage its attendance penalty rules.</p>
                         </div>
                     )}
                 </div>

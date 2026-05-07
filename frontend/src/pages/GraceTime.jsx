@@ -1,7 +1,7 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, X, Edit2, AlertCircle, Check, Search } from 'lucide-react';
+import { Plus, Trash2, Save, X, Edit2, AlertCircle, Check, Search, Clock, Zap } from 'lucide-react';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
 
@@ -14,7 +14,6 @@ const GraceTime = () => {
     const [fetchingShifts, setFetchingShifts] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    
     const token = localStorage.getItem('token');
 
     useEffect(() => {
@@ -128,13 +127,13 @@ const GraceTime = () => {
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to revert this!",
+            title: 'Delete Rule?',
+            text: "This action cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#EF4444',
-            cancelButtonColor: '#64748B',
-            confirmButtonText: 'Yes, delete it!'
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, delete it'
         });
 
         if (result.isConfirmed) {
@@ -167,35 +166,33 @@ const GraceTime = () => {
     );
 
     return (
-        <div style={{ padding: '0px', width: '100%', minHeight: '100vh', background: '#F8FAFC' }}>
-            <div style={{ padding: '24px 30px' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: '600', color: '#1E293B', margin: 0 }}>
-                    Add Next Day Grace Time
-                </h1>
+        <div className="hrm-container">
+            <div className="hrm-header">
+                <div>
+                    <h1 className="hrm-title">Grace Time Configuration</h1>
+                    <p className="hrm-subtitle">Define next-day grace time based on extra working minutes</p>
+                </div>
             </div>
 
-            <div style={{ padding: '0 30px 40px' }}>
-                {/* Form Card */}
-                <div style={{ 
-                    background: 'white', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
-                    border: '1px solid #E2E8F0',
-                    marginBottom: '30px'
-                }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div className="hrm-card">
+                    <div className="hrm-modal-header" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-main)', padding: '16px 24px' }}>
+                        <h3 className="hrm-modal-title" style={{ fontSize: '15px' }}>Rule Configuration</h3>
+                    </div>
                     <form onSubmit={handleSave}>
-                        <div style={{ padding: '30px' }}>
-                            <div style={{ marginBottom: '30px', maxWidth: '500px' }}>
+                        <div style={{ padding: '24px' }}>
+                            <div className="hrm-form-group" style={{ maxWidth: '500px', marginBottom: '24px' }}>
                                 <SearchableSelect 
-                                    label="Shift Name"
+                                    label="Target Shift(s)"
                                     required={true}
                                     options={shifts.map(s => ({ label: s.shiftName, value: s._id }))}
                                     value={selectedShifts}
                                     onChange={(val) => setSelectedShifts(val)}
-                                    placeholder="Select Shifts"
+                                    placeholder="Select one or more shifts"
                                     searchable={true}
                                     multiple={true}
                                 />
+                                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Select multiple shifts to apply same rules in bulk</p>
                             </div>
 
                             <div className="slabs-container">
@@ -204,49 +201,52 @@ const GraceTime = () => {
                                         display: 'flex', 
                                         gap: '20px', 
                                         alignItems: 'flex-start', 
-                                        marginBottom: '15px'
+                                        marginBottom: '20px',
+                                        background: 'var(--bg-main)',
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        border: '1px solid var(--border)'
                                     }}>
                                         <div style={{ flex: 1 }}>
-                                            <label style={{ color: '#475569', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                                Extra Working Time (Minutes) <span style={{ color: '#ef4444' }}>*</span>
-                                            </label>
-                                            <input 
-                                                type="number" 
-                                                className="form-control-hrm"
-                                                style={{ height: '45px', borderRadius: '8px', border: '1.5px solid #E2E8F0', padding: '0 15px', width: '100%' }}
-                                                value={slab.extraWorkingMinutes}
-                                                onChange={(e) => handleSlabChange(index, 'extraWorkingMinutes', e.target.value)}
-                                                required
-                                            />
+                                            <label className="hrm-label">Extra Working Time (Minutes) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input 
+                                                    type="number" 
+                                                    className="hrm-input"
+                                                    value={slab.extraWorkingMinutes}
+                                                    onChange={(e) => handleSlabChange(index, 'extraWorkingMinutes', e.target.value)}
+                                                    required
+                                                    placeholder="0"
+                                                />
+                                                <Clock size={16} style={{ position: 'absolute', right: '12px', top: '13px', color: 'var(--text-muted)' }} />
+                                            </div>
                                         </div>
 
                                         <div style={{ flex: 1 }}>
-                                            <label style={{ color: '#475569', fontWeight: '600', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
-                                                Next Day Grace Time (Minutes) <span style={{ color: '#ef4444' }}>*</span>
-                                            </label>
-                                            <input 
-                                                type="number" 
-                                                className="form-control-hrm"
-                                                style={{ height: '45px', borderRadius: '8px', border: '1.5px solid #E2E8F0', padding: '0 15px', width: '100%' }}
-                                                value={slab.graceMinutes}
-                                                onChange={(e) => handleSlabChange(index, 'graceMinutes', e.target.value)}
-                                                required
-                                            />
+                                            <label className="hrm-label">Next Day Grace Time (Minutes) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input 
+                                                    type="number" 
+                                                    className="hrm-input"
+                                                    value={slab.graceMinutes}
+                                                    onChange={(e) => handleSlabChange(index, 'graceMinutes', e.target.value)}
+                                                    required
+                                                    placeholder="0"
+                                                />
+                                                <Zap size={16} style={{ position: 'absolute', right: '12px', top: '13px', color: 'var(--primary-blue)' }} />
+                                            </div>
                                         </div>
 
-                                        <div style={{ width: '45px', marginTop: '30px' }}>
-                                            {slabs.length > 1 && (
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => handleRemoveSlab(index)}
-                                                    style={{ 
-                                                        height: '45px', width: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', borderRadius: '8px', cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            )}
+                                        <div style={{ marginTop: '28px' }}>
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleRemoveSlab(index)}
+                                                className="icon-btn"
+                                                style={{ color: 'var(--danger)', height: '42px', width: '42px', background: 'white' }}
+                                                disabled={slabs.length === 1}
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                         </div>
                                     </div>
                                 ))}
@@ -255,111 +255,81 @@ const GraceTime = () => {
                             <button 
                                 type="button"
                                 onClick={handleAddSlab}
-                                style={{ 
-                                    background: 'transparent', border: 'none', color: '#2563EB', fontWeight: '700', fontSize: '13px',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '10px'
-                                }}
+                                className="btn-hrm btn-hrm-secondary"
+                                style={{ borderStyle: 'dashed', width: '100%', justifyContent: 'center', background: 'transparent' }}
                             >
-                                <Plus size={16} /> ADD MORE GRACE TIME SLAB
+                                <Plus size={16} /> Add Another Slab
                             </button>
                         </div>
 
-                        <div style={{ 
-                            padding: '20px 30px', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '15px',
-                            background: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px'
-                        }}>
-                            <button 
-                                type="submit" 
-                                style={{ 
-                                    height: '45px', padding: '0 25px', background: '#3B648B', color: 'white', border: 'none',
-                                    borderRadius: '8px', fontWeight: '600', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'
-                                }}
-                                disabled={loading}
-                            >
-                                {loading ? 'SAVING...' : <><Save size={18} /> SAVE</>}
-                            </button>
+                        <div className="hrm-modal-footer" style={{ borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
                             <button 
                                 type="button" 
+                                className="btn-hrm btn-hrm-secondary"
                                 onClick={() => { setSelectedShifts([]); setSlabs([{ extraWorkingMinutes: '', graceMinutes: '' }]); }}
-                                style={{ 
-                                    height: '45px', padding: '0 20px', background: '#F1F5F9', color: '#475569', border: 'none',
-                                    borderRadius: '8px', fontWeight: '600', fontSize: '15px', cursor: 'pointer'
-                                }}
                             >
-                                CLEAR
+                                DISCARD
+                            </button>
+                            <button type="submit" className="btn-hrm btn-hrm-primary" disabled={loading}>
+                                <Save size={18} /> {loading ? 'SAVING...' : 'SAVE CONFIGURATION'}
                             </button>
                         </div>
                     </form>
                 </div>
 
-                {/* Management Section */}
-                <div style={{ 
-                    background: 'white', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
-                    border: '1px solid #E2E8F0',
-                    overflow: 'hidden'
-                }}>
-                    <div style={{ padding: '20px 30px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1E293B', margin: 0 }}>Manage Grace Time Rules</h2>
-                        <div style={{ position: 'relative', width: '300px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div className="hrm-card">
+                    <div className="hrm-modal-header" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-main)', padding: '16px 24px' }}>
+                        <h3 className="hrm-modal-title" style={{ fontSize: '15px' }}>Existing Rules</h3>
+                        <div className="hrm-search-wrapper" style={{ maxWidth: '300px', marginLeft: 'auto' }}>
+                            <Search size={16} className="hrm-search-icon" />
                             <input 
                                 type="text"
+                                className="hrm-input hrm-search-input"
                                 placeholder="Search shift..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', height: '40px', padding: '0 15px 0 40px', border: '1.5px solid #E2E8F0', borderRadius: '8px', outline: 'none' }}
+                                style={{ height: '36px' }}
                             />
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div className="hrm-table-container">
+                        <table className="hrm-table">
                             <thead>
-                                <tr style={{ background: '#F8FAFC' }}>
-                                    <th style={{ padding: '15px 30px', color: '#64748B', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Shift Name</th>
-                                    <th style={{ padding: '15px 30px', color: '#64748B', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Grace Time Details</th>
-                                    <th style={{ padding: '15px 30px', color: '#64748B', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                                <tr>
+                                    <th>Shift Name</th>
+                                    <th>Grace Time Policy Details</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredRules.length > 0 ? filteredRules.map((rule) => (
-                                    <tr key={rule._id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '20px 30px', color: '#1E293B', fontWeight: '600' }}>{rule.shiftName}</td>
-                                        <td style={{ padding: '20px 30px' }}>
+                                    <tr key={rule._id}>
+                                        <td>
+                                            <div style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{rule.shiftName}</div>
+                                        </td>
+                                        <td>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                                                 {rule.slabs.map((s, idx) => (
-                                                    <span key={idx} style={{ 
-                                                        background: '#EFF6FF', color: '#2563EB', padding: '4px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', border: '1px solid #DBEAFE'
-                                                    }}>
-                                                        Ex: {s.extraWorkingMinutes}m → Grace: {s.graceMinutes}m
+                                                    <span key={idx} className="hrm-badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-blue)', border: '1px solid var(--primary-light)' }}>
+                                                        {s.extraWorkingMinutes}m Work → {s.graceMinutes}m Grace
                                                     </span>
                                                 ))}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '20px 30px', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                                <button 
-                                                    onClick={() => handleEdit(rule)}
-                                                    className="btn-action-edit"
-                                                    title="Edit"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(rule._id)}
-                                                    className="btn-action-delete"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                <button onClick={() => handleEdit(rule)} className="icon-btn" title="Edit"><Edit2 size={16} /></button>
+                                                <button onClick={() => handleDelete(rule._id)} className="icon-btn" style={{ color: 'var(--danger)' }} title="Delete"><Trash2 size={16} /></button>
                                             </div>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>No grace time rules found</td>
+                                        <td colSpan="3" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                                            <AlertCircle size={32} style={{ opacity: 0.2, margin: '0 auto 10px' }} />
+                                            <div>No grace time rules found</div>
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>
@@ -372,4 +342,3 @@ const GraceTime = () => {
 };
 
 export default GraceTime;
-

@@ -306,7 +306,7 @@ const AddShift = () => {
                                         min="0"
                                         placeholder="0 for no limit"
                                     />
-                                    <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                                    <small style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
                                         0 for no limit, possible week-offs are allowed
                                     </small>
                                 </div>
@@ -466,7 +466,7 @@ const AddShift = () => {
                                 value={formData.extraPayoutMultiplier}
                                 onChange={(val) => handleInputChange({ target: { name: 'extraPayoutMultiplier', value: val, type: 'select' }})}
                             />
-                            <small style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                            <small style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
                                 This multiplier determines the total pay for working on a week-off (e.g. 2x = Double Pay).
                             </small>
                         </div>
@@ -478,7 +478,7 @@ const AddShift = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                         <h2 className="card-title" style={{ marginBottom: 0 }}>Weekly Shift Time Table</h2>
                         <div style={{ display: 'flex', gap: '20px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#1E293B', fontWeight: '500' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
                                 <input 
                                     type="checkbox" 
                                     name="sameRulesForAllDays" 
@@ -488,7 +488,7 @@ const AddShift = () => {
                                 />
                                 Same Rules for All days
                             </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#1E293B', fontWeight: '500' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
                                 <input 
                                     type="checkbox" 
                                     name="flexibleShiftHours" 

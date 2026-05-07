@@ -60,16 +60,16 @@ const AbsentEmployees = () => {
       {/* Header & Stats Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Absent Employees</h1>
-          <p style={{ color: '#64748B', fontWeight: '500', margin: 0 }}>Tracking employees who haven't clocked in for the selected date.</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Absent Employees</h1>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: '500', margin: 0 }}>Tracking employees who haven't clocked in for the selected date.</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '0 12px' }}>
-            <CalendarIcon size={18} color="#64748B" />
+            <CalendarIcon size={18} color="var(--text-secondary)" />
             <input 
               type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: 'none', padding: '12px', fontSize: '14px', fontWeight: '700', color: '#1E293B', outline: 'none', background: 'transparent' }} 
+              style={{ border: 'none', padding: '12px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', outline: 'none', background: 'transparent' }} 
             />
           </div>
           <button onClick={fetchAbsentees} style={{ padding: '14px', borderRadius: '12px', border: 'none', background: '#2563EB', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
@@ -84,31 +84,31 @@ const AbsentEmployees = () => {
           <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
             <AlertTriangle size={24} color="#EF4444" />
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: '#0F172A' }}>{absentees.filter(a => !a.isWeekOff).length}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: '#64748B', margin: 0 }}>Actually Absent</p>
+          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{absentees.filter(a => !a.isWeekOff).length}</h3>
+          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>Actually Absent</p>
         </div>
 
         <div style={statCardStyle('#F1F5F9', '#64748B')}>
           <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-            <Clock size={24} color="#64748B" />
+            <Clock size={24} color="var(--text-secondary)" />
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: '#0F172A' }}>{absentees.filter(a => a.isWeekOff).length}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: '#64748B', margin: 0 }}>On Week-off</p>
+          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{absentees.filter(a => a.isWeekOff).length}</h3>
+          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>On Week-off</p>
         </div>
 
         <div style={statCardStyle('#ECFDF5', '#10B981')}>
           <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
             <Users size={24} color="#10B981" />
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: '#0F172A' }}>{stats.presentCount}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: '#64748B', margin: 0 }}>Present Today</p>
+          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{stats.presentCount}</h3>
+          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>Present Today</p>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" placeholder="Search by name or employee ID..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '14px', fontWeight: '600', outline: 'none', background: '#fff' }}
@@ -141,8 +141,8 @@ const AbsentEmployees = () => {
             <div style={{ width: '80px', height: '80px', borderRadius: '30px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <Users size={40} color="#CBD5E1" />
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#475569' }}>No Absentees Found</h3>
-            <p style={{ color: '#94A3B8', fontSize: '14px' }}>Everyone is accounted for based on your current filters.</p>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-secondary)' }}>No Absentees Found</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Everyone is accounted for based on your current filters.</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -164,17 +164,17 @@ const AbsentEmployees = () => {
                         <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
                           {a.profilePhoto ? (
                             <img src={a.profilePhoto.startsWith('http') ? a.profilePhoto : `${API_URL}/uploads/${a.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : <User size={20} color="#94A3B8" />}
+                          ) : <User size={20} color="var(--text-muted)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '800', fontSize: '14px', color: '#0F172A' }}>{a.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>#{a.employeeId}</div>
+                          <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>{a.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>#{a.employeeId}</div>
                         </div>
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#334155' }}>{a.department || '—'}</div>
-                      <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>{a.department || '—'}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <MapPin size={12} /> {a.branch || 'Main Branch'}
                       </div>
                     </td>
@@ -184,7 +184,7 @@ const AbsentEmployees = () => {
                           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
                             <Phone size={14} />
                           </div>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569' }}>{a.phone}</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>{a.phone}</span>
                         </div>
                       ) : <span style={{ color: '#CBD5E1', fontSize: '12px' }}>No phone listed</span>}
                     </td>
@@ -197,7 +197,7 @@ const AbsentEmployees = () => {
                       }}>
                         {a.isWeekOff ? 'Week Off' : 'Unmarked Absence'}
                       </span>
-                      <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', fontWeight: '600' }}>Shift: {a.shiftName}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontWeight: '600' }}>Shift: {a.shiftName}</div>
                     </td>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -208,7 +208,7 @@ const AbsentEmployees = () => {
                             Contact
                          </button>
                          <button 
-                          style={{ width: '36px', height: '36px', borderRadius: '10px', border: 'none', background: '#F8FAFC', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          style={{ width: '36px', height: '36px', borderRadius: '10px', border: 'none', background: '#F8FAFC', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                          >
                             <MoreVertical size={18} />
                          </button>
@@ -241,10 +241,10 @@ const statCardStyle = (bg, color) => ({
 
 const filterSelectStyle = { 
   padding: '12px 16px', border: '1.5px solid #E2E8F0', borderRadius: '14px', 
-  outline: 'none', background: '#fff', fontWeight: '700', color: '#475569', fontSize: '14px', minWidth: '180px' 
+  outline: 'none', background: '#fff', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '14px', minWidth: '180px' 
 };
 
-const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const tdStyle = { padding: '20px', fontSize: '14px' };
 
 export default AbsentEmployees;

@@ -108,7 +108,7 @@ const GenerateSalarySlip = () => {
             </div>
 
             <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                     {selectedIds.length > 0 && <span>Selected <strong>{selectedIds.length}</strong> employees</span>}
                 </div>
                 <button 
@@ -141,7 +141,7 @@ const GenerateSalarySlip = () => {
                             {loading ? (
                                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>Loading initiated payouts...</td></tr>
                             ) : filteredPayouts.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No pending payouts to generate for this month.</td></tr>
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No pending payouts to generate for this month.</td></tr>
                             ) : filteredPayouts.map((p, i) => (
                                 <tr key={i} onClick={() => toggleSelect(p._id)} style={{ cursor: 'pointer' }}>
                                     <td onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
@@ -149,19 +149,19 @@ const GenerateSalarySlip = () => {
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>{p.employeeId?.employeeId}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.employeeId?.employeeId}</div>
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '13px' }}>{p.attendance?.present} Present | {p.attendance?.absent} Absent</div>
-                                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{p.attendance?.paidLeave} Leave Taken</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{p.attendance?.paidLeave} Leave Taken</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 700, color: '#0f172a' }}>₹{p.finalPayout.toLocaleString()}</div>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout.toLocaleString()}</div>
                                         <span className="status-badge status-pending" style={{ fontSize: '9px' }}>Initiated by {p.initiatedBy?.name}</span>
                                     </td>
                                     <td>
                                         <button className="btn-hrm-icon">
-                                            <Calculator size={16} color="#64748b" />
+                                            <Calculator size={16} color="var(--text-secondary)" />
                                         </button>
                                     </td>
                                 </tr>

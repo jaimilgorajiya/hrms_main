@@ -3,6 +3,7 @@ import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Check, GripVertical, Building2, Layout, Save } from 'lucide-react';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 const Department = () => {
     const [branches, setBranches] = useState([]);
@@ -149,8 +150,8 @@ const Department = () => {
             text: "All associated roles might be affected!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-muted)',
             confirmButtonText: 'Yes, delete department'
         });
 
@@ -189,139 +190,240 @@ const Department = () => {
     return (
         <div className="hrm-container">
             <div className="hrm-header">
-                <h1 className="hrm-title">Departments</h1>
+                <div>
+                    <h1 className="hrm-title">Departments</h1>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        Structure your organization by managing departments across branches
+                    </p>
+                </div>
                 <div className="hrm-header-actions">
-                    <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsBulkModalOpen(true); setFormData({ ...formData, branchId: branches[0]?._id }); }}><Plus size={18} /> ADD MULTIPLE</button>
+                    <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsBulkModalOpen(true); setFormData({ ...formData, branchId: branches[0]?._id }); }}>
+                        <Plus size={18} /> ADD MULTIPLE
+                    </button>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                 {branches.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '100px 0', color: '#94A3B8', background: 'white', borderRadius: '12px' }}>No branches found. Please add branches first.</div>
+                    <div className="hrm-card" style={{ textAlign: 'center', padding: '100px 0' }}>
+                        <Building2 size={48} color="var(--text-muted)" style={{ opacity: 0.2, marginBottom: '16px' }} />
+                        <p style={{ color: 'var(--text-muted)' }}>No branches found. Please add branches first.</p>
+                    </div>
                 ) : (
-                    branches.filter(branch => departments.some(d => d.branchId === branch._id)).map(branch => {
+                    branches.map(branch => {
                         const branchDepts = departments.filter(d => d.branchId === branch._id).sort((a,b) => a.order - b.order);
                         return (
-                            <div key={branch._id} className="hrm-card" style={{ marginBottom: 0 }}>
-                                <div className="hrm-card-header">
+                            <div key={branch._id} style={{ marginBottom: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <div style={{ background: '#EEF2FF', padding: '8px', borderRadius: '8px' }}><Building2 size={18} color="#3B82FB" /></div>
-                                        <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{branch.branchName} BRANCH</h3>
-                                        <span className="dept-count">{branchDepts.length}</span>
+                                        <div style={{ background: 'var(--primary-light)', padding: '10px', borderRadius: '12px' }}>
+                                            <Building2 size={20} color="var(--primary-blue)" />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                                                {branch.branchName}
+                                            </h3>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                                <span className="hrm-badge hrm-badge-primary" style={{ fontSize: '10px' }}>{branchDepts.length} Departments</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '6px 16px', fontSize: '12px' }} onClick={() => { setIsEditing(false); setFormData({ name: '', branchId: branch._id }); setIsModalOpen(true); }}><Plus size={14} /> ADD</button>
+                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => { setIsEditing(false); setFormData({ name: '', branchId: branch._id, noticePeriodDays: 30 }); setIsModalOpen(true); }}>
+                                        <Plus size={14} /> NEW DEPARTMENT
+                                    </button>
                                 </div>
-                                <div className="hrm-card-body">
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                                
+                                {branchDepts.length === 0 ? (
+                                    <div className="hrm-card" style={{ padding: '40px', textAlign: 'center', borderStyle: 'dashed' }}>
+                                        <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>No departments added to this branch yet.</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                                         {branchDepts.map((dept) => (
-                                            <div key={dept._id} style={{ background: '#F8FAFC', padding: '16px 20px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontWeight: '700', color: '#1E293B', fontSize: '14px' }}>{dept.name}</span>
-                                                    <span style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>Notice: {dept.noticePeriodDays || 30} days</span>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button className="btn-action-edit" onClick={() => handleEdit(dept)}><Edit2 size={14} /></button>
-                                                    <button className="btn-action-delete" onClick={() => handleDelete(dept._id)}><Trash2 size={14} /></button>
+                                            <div key={dept._id} className="hrm-card" style={{ padding: '24px', transition: 'all 0.3s ease', border: '1px solid var(--border)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div>
+                                                        <h4 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '4px' }}>{dept.name}</h4>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <span style={{ fontWeight: '700', color: 'var(--primary-blue)' }}>{dept.noticePeriodDays || 30}</span> Days Notice
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button className="btn-action-edit" onClick={() => handleEdit(dept)} style={{ width: '32px', height: '32px', borderRadius: '8px' }}><Edit2 size={14} /></button>
+                                                        <button className="btn-action-delete" onClick={() => handleDelete(dept._id)} style={{ width: '32px', height: '32px', borderRadius: '8px' }}><Trash2 size={14} /></button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                )}
                             </div>
                         );
                     })
                 )}
-                
-                {!loading && branches.length > 0 && !branches.some(branch => departments.some(d => d.branchId === branch._id)) && (
-                    <div className="hrm-card" style={{ padding: '60px', textAlign: 'center' }}>
-                        <Layout size={48} style={{ marginBottom: '20px', opacity: 0.2 }} />
-                        <p style={{ color: '#64748B' }}>All branches currently have 0 departments.</p>
-                        <button className="btn-hrm btn-hrm-primary" style={{ marginTop: '20px' }} onClick={() => { setIsBulkModalOpen(true); setFormData({ ...formData, branchId: branches[0]?._id }); }}>Add Your First Department</button>
-                    </div>
-                )}
             </div>
 
-            {/* Single Add Modal */}
+            {/* Modals using standard premium styles */}
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content">
-                        <div className="hrm-modal-header">
-                            <h2>{isEditing ? 'Edit Department' : 'Add New Department'}</h2>
-                            <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="hrm-modal-body">
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Branch <span className="req">*</span></label>
-                                    <select className="hrm-select" name="branchId" value={formData.branchId} onChange={handleInputChange} required disabled={isEditing}>
-                                        <option value="">-- Select Branch --</option>
-                                        {branches.map(b => (
-                                            <option key={b._id} value={b._id}>{b.branchName}</option>
-                                        ))}
-                                    </select>
+                    <div className="hrm-modal-content" style={{ maxWidth: '550px', width: '100%' }}>
+                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ 
+                                    background: 'var(--primary-gradient)', 
+                                    padding: '10px', 
+                                    borderRadius: '12px', 
+                                    color: 'white',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                                }}>
+                                    <Building2 size={20} />
                                 </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Department Name <span className="req">*</span></label>
-                                    <input type="text" className="hrm-input" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Sales" required />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Notice Period (Days) <span className="req">*</span></label>
-                                    <input type="number" className="hrm-input" name="noticePeriodDays" value={formData.noticePeriodDays} onChange={handleInputChange} placeholder="30" required min="0" />
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                        {isEditing ? 'Update Department' : 'Create Department'}
+                                    </h3>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                        Configure organizational structure and notice period
+                                    </p>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer">
-                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)}>CANCEL</button>
-                                <button type="submit" className="btn-hrm btn-hrm-primary"><Save size={18} /> {isEditing ? 'UPDATE' : 'SAVE'}</button>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+                                <div className="hrm-form-group" style={{ marginBottom: '24px' }}>
+                                    <SearchableSelect 
+                                        label="Target Branch"
+                                        required={true}
+                                        options={branches.map(b => ({ value: b._id, label: b.branchName }))}
+                                        value={formData.branchId}
+                                        onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                        disabled={isEditing}
+                                    />
+                                </div>
+
+                                <div className="hrm-form-group" style={{ marginBottom: '24px' }}>
+                                    <label className="hrm-label">Department Name <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                    <input 
+                                        type="text" 
+                                        className="hrm-input" 
+                                        name="name" 
+                                        value={formData.name} 
+                                        onChange={handleInputChange} 
+                                        placeholder="e.g. Engineering, Sales, HR" 
+                                        style={{ height: '52px', fontSize: '15px' }}
+                                        required 
+                                    />
+                                </div>
+
+                                <div className="hrm-form-group" style={{ margin: 0 }}>
+                                    <label className="hrm-label">Notice Period (Days) <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                    <input 
+                                        type="number" 
+                                        className="hrm-input" 
+                                        name="noticePeriodDays" 
+                                        value={formData.noticePeriodDays} 
+                                        onChange={handleInputChange} 
+                                        placeholder="30" 
+                                        style={{ height: '52px' }}
+                                        required 
+                                        min="0" 
+                                    />
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#64748B' }}>Standard duration an employee must serve before leaving</p>
+                                </div>
+                            </div>
+                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
+                                    DISCARD
+                                </button>
+                                <button type="submit" className="btn-hrm btn-hrm-primary" style={{ padding: '12px 32px' }}>
+                                    <Save size={18} /> {isEditing ? 'UPDATE DEPARTMENT' : 'SAVE DEPARTMENT'}
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Bulk Add Modal */}
             {isBulkModalOpen && (
                 <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content" style={{ width: '700px' }}>
-                        <div className="hrm-modal-header">
-                            <h2>Add Multiple Departments</h2>
-                            <button className="icon-btn" onClick={() => setIsBulkModalOpen(false)}><X size={20} /></button>
+                    <div className="hrm-modal-content" style={{ maxWidth: '700px', width: '100%' }}>
+                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ 
+                                    background: 'var(--primary-gradient)', 
+                                    padding: '10px', 
+                                    borderRadius: '12px', 
+                                    color: 'white',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                                }}>
+                                    <Layout size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                        Bulk Add Departments
+                                    </h3>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                        Quickly add multiple departments to a specific branch
+                                    </p>
+                                </div>
+                            </div>
+                            <button className="icon-btn" onClick={() => setIsBulkModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                                <X size={20} />
+                            </button>
                         </div>
                         <form onSubmit={handleBulkSubmit}>
-                            <div className="hrm-modal-body">
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Branch <span className="req">*</span></label>
-                                    <select className="hrm-select" name="branchId" value={formData.branchId} onChange={handleInputChange} required>
-                                        <option value="">-- Select Branch --</option>
-                                        {branches.map(b => (
-                                            <option key={b._id} value={b._id}>{b.branchName}</option>
-                                        ))}
-                                    </select>
+                            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+                                <div className="hrm-form-group" style={{ marginBottom: '32px' }}>
+                                    <SearchableSelect 
+                                        label="Target Branch"
+                                        required={true}
+                                        options={branches.map(b => ({ value: b._id, label: b.branchName }))}
+                                        value={formData.branchId}
+                                        onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                    />
                                 </div>
-                                <div style={{ marginTop: '30px' }}>
-                                    <label className="hrm-label">Department Names</label>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                
+                                <div>
+                                    <label className="hrm-label" style={{ marginBottom: '16px' }}>Department Names List</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
                                         {bulkDepartments.map((val, idx) => (
-                                            <div key={idx} style={{ display: 'flex', gap: '10px' }}>
-                                                <input 
-                                                    type="text" 
-                                                    className="hrm-input" 
-                                                    value={val} 
-                                                    onChange={(e) => handleBulkRowChange(idx, e.target.value)} 
-                                                    placeholder={`Department #${idx + 1}`}
-                                                    required={idx === 0}
-                                                />
+                                            <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                <div style={{ flex: 1, position: 'relative' }}>
+                                                    <input 
+                                                        type="text" 
+                                                        className="hrm-input" 
+                                                        value={val} 
+                                                        onChange={(e) => handleBulkRowChange(idx, e.target.value)} 
+                                                        placeholder={`Department #${idx + 1}`}
+                                                        style={{ height: '48px' }}
+                                                        required={idx === 0}
+                                                    />
+                                                </div>
                                                 {bulkDepartments.length > 1 && (
-                                                    <button type="button" className="btn-hrm btn-hrm-danger" style={{ padding: '10px' }} onClick={() => removeBulkRow(idx)}><Trash2 size={16} /></button>
+                                                    <button type="button" className="btn-hrm" style={{ padding: '12px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2' }} onClick={() => removeBulkRow(idx)}>
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
-                                    <button type="button" className="btn-hrm btn-hrm-secondary" style={{ width: '100%', marginTop: '15px', borderStyle: 'dashed' }} onClick={addBulkRow}><Plus size={16} /> ADD MORE ROW</button>
+                                    <button type="button" className="btn-hrm btn-hrm-secondary" style={{ width: '100%', marginTop: '20px', borderStyle: 'dashed', padding: '12px' }} onClick={addBulkRow}>
+                                        <Plus size={16} /> ADD ANOTHER ROW
+                                    </button>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer">
-                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsBulkModalOpen(false)}>CANCEL</button>
-                                <button type="submit" className="btn-hrm btn-hrm-primary"><Save size={18} /> SAVE ALL</button>
+                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsBulkModalOpen(false)} style={{ padding: '12px 28px' }}>
+                                    DISCARD
+                                </button>
+                                <button type="submit" className="btn-hrm btn-hrm-primary" style={{ padding: '12px 32px' }}>
+                                    <Save size={18} /> SAVE ALL DEPARTMENTS
+                                </button>
                             </div>
                         </form>
                     </div>

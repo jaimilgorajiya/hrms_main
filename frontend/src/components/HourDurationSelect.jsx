@@ -32,7 +32,7 @@ const HourDurationSelect = ({ value, onChange }) => {
             >
                 <option value="" disabled hidden>Select</option>
                 {options.map((opt) => (
-                    <option key={opt} value={opt} style={{ color: '#1E293B' }}>
+                    <option key={opt} value={opt} style={{ color: 'var(--text-primary)' }}>
                         {opt}
                     </option>
                 ))}

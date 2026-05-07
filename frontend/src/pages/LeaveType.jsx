@@ -57,10 +57,6 @@ const LeaveType = () => {
         });
     };
 
-    const handleRadioChange = (name, value) => {
-        setFormData({ ...formData, [name]: value });
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         const endpoint = isEditing ? `${API_URL}/api/leave-types/${currentId}` : `${API_URL}/api/leave-types`;
@@ -127,8 +123,8 @@ const LeaveType = () => {
             text: "This action cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-muted)',
             confirmButtonText: 'Yes, delete it!'
         });
 
@@ -160,8 +156,8 @@ const LeaveType = () => {
             text: `You are about to delete ${selectedIds.length} selected items!`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-muted)',
             confirmButtonText: 'Yes, delete selected!'
         });
 
@@ -194,8 +190,8 @@ const LeaveType = () => {
             text: `Are you sure you want to ${isActive ? 'deactivate' : 'activate'} this leave type?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#2563EB',
-            cancelButtonColor: '#64748B',
+            confirmButtonColor: 'var(--primary-blue)',
+            cancelButtonColor: 'var(--text-muted)',
             confirmButtonText: `Yes, ${isActive ? 'deactivate' : 'activate'} it!`
         });
 
@@ -249,18 +245,36 @@ const LeaveType = () => {
     return (
         <div className="hrm-container">
             <div className="hrm-header">
-                <h1 className="hrm-title">Leave Types</h1>
-                <div className="hrm-header-actions">
-                    <button className="btn-hrm btn-hrm-primary" onClick={() => { resetForm(); setIsModalOpen(true); }}><Plus size={18} /> ADD</button>
-                    <button className="btn-hrm btn-hrm-danger" onClick={handleBulkDelete}><Trash2 size={18} /> DELETE</button>
+                <div>
+                    <h1 className="hrm-title">Leave Types</h1>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        Configure different types of leave available to your employees
+                    </p>
+                </div>
+                <div className="hrm-header-actions" style={{ gap: '12px' }}>
+                    <button className="btn-hrm btn-hrm-primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
+                        <Plus size={18} /> ADD TYPE
+                    </button>
+                    {selectedIds.length > 0 && (
+                        <button className="btn-hrm btn-hrm-danger" onClick={handleBulkDelete}>
+                            <Trash2 size={18} /> DELETE ({selectedIds.length})
+                        </button>
+                    )}
                 </div>
             </div>
 
             <div className="hrm-card">
-                <div className="hrm-card-header" style={{ justifyContent: 'flex-end' }}>
-                    <div className="search-wrapper">
-                        <Search size={16} color="#64748B" />
-                        <input type="text" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <div className="hrm-card-header" style={{ justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                        TOTAL: {filteredData.length} TYPES
+                    </div>
+                    <div style={{ position: 'relative', width: '300px' }}>
+                        <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input 
+                            type="text" className="hrm-input" placeholder="Search leave types..." 
+                            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+                            style={{ paddingLeft: '44px', background: 'var(--bg-main)' }}
+                        />
                     </div>
                 </div>
 
@@ -277,38 +291,58 @@ const LeaveType = () => {
                                 <th>Short Name</th>
                                 <th>Applicable For</th>
                                 <th>Description</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>Loading...</td></tr>
+                                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '60px' }}>
+                                    <div style={{ color: 'var(--text-muted)' }}>Loading leave types...</div>
+                                </td></tr>
                             ) : paginatedData.length > 0 ? paginatedData.map((item, index) => (
                                 <tr key={item._id}>
                                     <td>{(currentPage - 1) * entriesPerPage + index + 1}</td>
                                     <td><input type="checkbox" checked={selectedIds.includes(item._id)} onChange={() => handleSelectRow(item._id)} /></td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button className="btn-action-edit" onClick={() => handleEdit(item)}><Edit2 size={14} /></button>
-                                            <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }} onClick={() => toggleStatus(item._id, item.status)}>
-                                                {item.status === 'Active' ? <ToggleRight size={24} color="#22C55E" /> : <ToggleLeft size={24} color="#94A3B8" />}
-                                            </button>
+                                            <button className="btn-action-edit" onClick={() => handleEdit(item)} title="Edit"><Edit2 size={14} /></button>
+                                            <button className="btn-action-delete" onClick={() => handleDelete(item._id)} title="Delete"><Trash2 size={14} /></button>
                                         </div>
                                     </td>
-                                    <td style={{ fontWeight: '600', color: '#1E293B' }}>{item.name}</td>
-                                    <td>{item.shortName || '--'}</td>
-                                    <td>{item.applicableFor}</td>
-                                    <td style={{ fontSize: '13px', color: '#64748B', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description || '--'}</td>
+                                    <td style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{item.name}</td>
+                                    <td>
+                                        <span style={{ background: 'var(--bg-main)', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', border: '1px solid var(--border)' }}>
+                                            {item.shortName || '--'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`hrm-badge ${item.applicableFor === 'All' ? 'hrm-badge-primary' : item.applicableFor === 'Male Only' ? 'hrm-badge-info' : 'hrm-badge-warning'}`} style={{ fontSize: '10px' }}>
+                                            {item.applicableFor}
+                                        </span>
+                                    </td>
+                                    <td style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {item.description || <span style={{ opacity: 0.4 }}>No description</span>}
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }} onClick={() => toggleStatus(item._id, item.status)}>
+                                            {item.status === 'Active' ? <ToggleRight size={28} color="var(--success)" /> : <ToggleLeft size={28} color="var(--text-muted)" />}
+                                        </button>
+                                    </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>No records found</td></tr>
+                                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '60px' }}>
+                                    <div style={{ color: 'var(--text-muted)' }}>No records found</div>
+                                </td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
 
                 {totalPages > 1 && (
-                    <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9' }}>
-                        <div style={{ fontSize: '13px', color: '#64748B' }}>Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, filteredData.length)} of {filteredData.length} entries</div>
+                    <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                            Showing {indexOfFirstEntry + 1} to {Math.min(indexOfLastEntry, filteredData.length)} of {filteredData.length} entries
+                        </div>
                         <div className="pagination">
                             <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}><ChevronLeft size={16} /></button>
                             {[...Array(totalPages)].map((_, i) => (
@@ -322,9 +356,9 @@ const LeaveType = () => {
 
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content">
+                    <div className="hrm-modal-content" style={{ width: '600px' }}>
                         <div className="hrm-modal-header">
-                            <h2>{isEditing ? 'Edit Leave Type' : 'Add Leave Type'}</h2>
+                            <h2>{isEditing ? 'Update Leave Type' : 'Create Leave Type'}</h2>
                             <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleSubmit}>
@@ -332,18 +366,18 @@ const LeaveType = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                     <div className="hrm-form-group">
                                         <label className="hrm-label">Name <span className="req">*</span></label>
-                                        <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="hrm-input" placeholder="e.g. Casual Leave" required />
+                                        <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="hrm-input" placeholder="e.g. Annual Leave" required />
                                     </div>
                                     <div className="hrm-form-group">
                                         <label className="hrm-label">Short Name</label>
-                                        <input type="text" name="shortName" value={formData.shortName} onChange={handleInputChange} className="hrm-input" placeholder="e.g. CL" />
+                                        <input type="text" name="shortName" value={formData.shortName} onChange={handleInputChange} className="hrm-input" placeholder="e.g. AL" />
                                     </div>
                                 </div>
 
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Applicable For</label>
                                     <select name="applicableFor" value={formData.applicableFor} onChange={handleInputChange} className="hrm-select">
-                                        <option value="All">All</option>
+                                        <option value="All">All Employees</option>
                                         <option value="Male Only">Male Only</option>
                                         <option value="Female Only">Female Only</option>
                                     </select>
@@ -351,7 +385,7 @@ const LeaveType = () => {
 
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Description</label>
-                                    <textarea name="description" value={formData.description} onChange={handleInputChange} className="hrm-textarea" placeholder="More about this leave type..."></textarea>
+                                    <textarea name="description" value={formData.description} onChange={handleInputChange} className="hrm-textarea" placeholder="Explain the purpose or rules for this leave type..." style={{ minHeight: '120px' }}></textarea>
                                 </div>
                             </div>
                             <div className="hrm-modal-footer">

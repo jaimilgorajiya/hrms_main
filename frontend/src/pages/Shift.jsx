@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Users, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import '../styles/ManageShift.css';
 import API_URL from '../config/api';
 
 const Shift = () => {
@@ -42,7 +41,7 @@ const Shift = () => {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            cancelButtonColor: 'var(--text-secondary)',
             confirmButtonText: 'Yes, delete it'
         });
 
@@ -87,7 +86,7 @@ const Shift = () => {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            cancelButtonColor: 'var(--text-secondary)',
             confirmButtonText: 'Yes, delete all'
         });
 
@@ -137,45 +136,52 @@ const Shift = () => {
         shift.shiftCode?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <div className="loading-container">Loading shift records...</div>;
+    if (loading) return (
+        <div className="hrm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div className="animate-spin" style={{ color: 'var(--primary-blue)' }}><Plus size={40} /></div>
+        </div>
+    );
 
     return (
-        <div className="designation-container">
-            <div className="designation-header">
-                <h1 className="profile-title">Manage Shift</h1>
-                <div className="header-actions">
-                    <button className="btn-theme btn-theme-primary" onClick={() => navigate('/admin/shift/add')}>
-                        <Plus size={16} /> ADD
-                    </button>
-                    <button
-                        className="btn-theme btn-theme-danger"
+        <div className="hrm-container">
+            <div className="hrm-header">
+                <div>
+                    <h1 className="hrm-title">Shift Management</h1>
+                    <p className="hrm-subtitle">Configure working hours and weekly off patterns</p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button 
+                        className="btn-hrm btn-hrm-secondary"
                         onClick={handleBulkDelete}
                         disabled={selectedShifts.length === 0}
-                        style={{ opacity: selectedShifts.length === 0 ? 0.6 : 1 }}
+                        style={{ color: 'var(--danger)', opacity: selectedShifts.length === 0 ? 0.5 : 1 }}
                     >
-                        <Trash2 size={16} /> DELETE
+                        <Trash2 size={16} /> Delete Selected ({selectedShifts.length})
+                    </button>
+                    <button className="btn-hrm btn-hrm-primary" onClick={() => navigate('/admin/shift/add')}>
+                        <Plus size={16} /> Add Shift
                     </button>
                 </div>
             </div>
 
-            <div className="designation-card">
-                <div className="table-controls">
-                    <div className="search-control">
-                        <div className="search-wrapper">
-                            <Search size={18} color="var(--text-light)" />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by name or code..."
-                                style={{ fontSize: '15px' }}
-                            />
-                        </div>
+            <div className="hrm-card" style={{ marginBottom: '24px' }}>
+                <div style={{ padding: '24px' }}>
+                    <div className="hrm-search-wrapper" style={{ maxWidth: '400px' }}>
+                        <Search size={18} className="hrm-search-icon" />
+                        <input
+                            type="text"
+                            className="hrm-input hrm-search-input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search by shift name or code..."
+                        />
                     </div>
                 </div>
+            </div>
 
-                <div className="table-wrapper">
-                    <table className="designation-table">
+            <div className="hrm-card">
+                <div className="hrm-table-container">
+                    <table className="hrm-table">
                         <thead>
                             <tr>
                                 <th style={{ textAlign: 'center', width: '60px' }}>
@@ -183,21 +189,19 @@ const Shift = () => {
                                         type="checkbox"
                                         checked={selectedShifts.length === filteredShifts.length && filteredShifts.length > 0}
                                         onChange={handleSelectAll}
-                                        style={{ width: '18px', height: '18px' }}
                                     />
                                 </th>
-                                <th style={{ textAlign: 'center', width: '80px' }}>Sr. No</th>
                                 <th style={{ textAlign: 'center', width: '100px' }}>Action</th>
-                                <th style={{ width: '150px' }}>Shift Code</th>
+                                <th>Shift Code</th>
                                 <th>Shift Name</th>
-                                <th style={{ textAlign: 'center', width: '120px' }}>Employees</th>
-                                <th>Week Off</th>
+                                <th style={{ textAlign: 'center' }}>Active Employees</th>
+                                <th>Week Off Pattern</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredShifts.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-light)', fontSize: '16px' }}>
+                                    <td colSpan="6" style={{ textAlign: 'center', padding: '100px', color: 'var(--text-muted)' }}>
                                         No shift configurations found.
                                     </td>
                                 </tr>
@@ -209,23 +213,20 @@ const Shift = () => {
                                                 type="checkbox"
                                                 checked={selectedShifts.includes(shift._id)}
                                                 onChange={() => handleSelectShift(shift._id)}
-                                                style={{ width: '18px', height: '18px' }}
                                             />
                                         </td>
-                                        <td style={{ textAlign: 'center', fontWeight: '500', color: 'var(--text-light)' }}>
-                                            {index + 1}
-                                        </td>
                                         <td>
-                                            <div className="action-buttons-cell">
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <button
-                                                    className="btn-action-edit"
+                                                    className="icon-btn"
                                                     onClick={() => navigate(`/admin/shift/edit/${shift._id}`)}
                                                     title="Edit Shift"
                                                 >
                                                     <Edit2 size={16} />
                                                 </button>
                                                 <button
-                                                    className="btn-action-delete"
+                                                    className="icon-btn"
+                                                    style={{ color: 'var(--danger)' }}
                                                     onClick={() => handleDelete(shift._id)}
                                                     title="Delete Shift"
                                                 >
@@ -234,22 +235,22 @@ const Shift = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="percentage" style={{ background: '#F1F5F9', color: '#475569', padding: '4px 10px', borderRadius: '6px', fontSize: '14px', fontWeight: '700', border: '1px solid #E2E8F0' }}>
+                                            <span className="hrm-badge" style={{ background: 'var(--bg-main)', color: 'var(--text-dark)', border: '1px solid var(--border)' }}>
                                                 {shift.shiftCode || `S${index + 1}`}
                                             </span>
                                         </td>
-                                        <td style={{ fontWeight: '700', color: 'var(--text-dark)', fontSize: '18px' }}>
-                                            {shift.shiftName}
+                                        <td>
+                                            <div style={{ fontWeight: '700', color: 'var(--text-dark)', fontSize: '15px' }}>{shift.shiftName}</div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#2563EB', fontWeight: '600' }}>
-                                                <Users size={16} />
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary-blue)', fontWeight: '800', background: 'var(--primary-light)', padding: '6px 12px', borderRadius: '10px' }}>
+                                                <Users size={14} />
                                                 {shift.employeeCount || 0}
                                             </div>
                                         </td>
-                                        <td style={{ color: 'var(--text-main)', fontSize: '15px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Calendar size={15} color="#64748B" />
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '600' }}>
+                                                <Calendar size={14} />
                                                 {shift.weekOffDays?.length > 0 ? shift.weekOffDays.join(', ') : shift.weekOffType}
                                             </div>
                                         </td>

@@ -56,7 +56,7 @@ import LeaveBalance from './pages/LeaveBalance';
 import LeaveHistory from './pages/LeaveHistory';
 import UseMobileApp from './pages/employee/UseMobileApp';
 import MonthlyAttendance from './pages/MonthlyAttendance';
-import PunchOutRequests from './pages/PunchOutRequests';
+import PendingAttendance from "./pages/PendingAttendance";
 import MonthlyPayout from './pages/MonthlyPayout';
 import PayoutHistory from './pages/PayoutHistory';
 import GenerateSalarySlip from './pages/GenerateSalarySlip';
@@ -155,8 +155,8 @@ function App() {
               <Route path="employees/promotion" element={<EmployeePromotion />} />
               <Route path="employees/*" element={<ModulePlaceholder title="Employee Management" />} />
               <Route path="shifts/*" element={<ModulePlaceholder title="Shift Operations" />} />
-              <Route path="attendance/punch-request" element={<PunchOutRequests />} />
-              <Route path="attendance/punch-missing" element={<PunchOutRequests />} />
+              <Route path="attendance/punch-request" element={<PendingAttendance />} />
+              <Route path="attendance/punch-missing" element={<PendingAttendance />} />
               <Route path="attendance/request" element={<AdminRequests />} />
               <Route path="monthly-payout" element={<MonthlyPayout />} />
               <Route path="payout-history" element={<PayoutHistory />} />

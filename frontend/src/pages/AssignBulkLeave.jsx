@@ -46,11 +46,11 @@ const AssignBulkLeave = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
-                    <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#0F172A', margin: '0 0 6px' }}>Assign Leaves</h1>
-                    <p style={{ color: '#64748B', margin: 0, fontSize: '14px', fontWeight: '600' }}>Manage annual leave allotments and bulk credits for the roster</p>
+                    <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 6px' }}>Assign Leaves</h1>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px', fontWeight: '600' }}>Manage annual leave allotments and bulk credits for the roster</p>
                 </div>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '350px' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input 
                         type="text" 
                         placeholder="Search by name or ID..."
@@ -78,9 +78,9 @@ const AssignBulkLeave = () => {
                         <div style={{ padding: '8px', background: 'rgba(59, 100, 139, 0.1)', borderRadius: '10px' }}>
                             <Users size={18} color="#3B648B" />
                         </div>
-                        <h2 style={{ fontSize: '17px', fontWeight: '800', color: '#1E293B', margin: 0 }}>Enrollment Roster</h2>
+                        <h2 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Enrollment Roster</h2>
                    </div>
-                   <div style={{ fontSize: '13px', color: '#64748B', fontWeight: '700' }}>
+                   <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700' }}>
                         Total: <span style={{ color: '#3B648B' }}>{filteredEmployees.length}</span> Employees
                    </div>
                 </div>
@@ -88,26 +88,26 @@ const AssignBulkLeave = () => {
                 {loading ? (
                     <div style={{ padding: '100px', textAlign: 'center' }}>
                         <Loader2 className="animate-spin" size={40} color="#3B648B" style={{ margin: '0 auto' }} />
-                        <p style={{ marginTop: '20px', color: '#64748B', fontWeight: '700' }}>Synchronizing data...</p>
+                        <p style={{ marginTop: '20px', color: 'var(--text-secondary)', fontWeight: '700' }}>Synchronizing data...</p>
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>No.</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', minWidth: '150px' }}>Manage</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', minWidth: '250px' }}>Employee Details</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Work Hub</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Department</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Joining</th>
-                                    <th style={{ padding: '16px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Paid Leave</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>No.</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', minWidth: '150px' }}>Manage</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', minWidth: '250px' }}>Employee Details</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Work Hub</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Department</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Joining</th>
+                                    <th style={{ padding: '16px 24px', textAlign: 'center', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Paid Leave</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredEmployees.map((emp, idx) => (
                                     <tr key={emp._id} style={{ borderBottom: '1px solid #F1F5F9', transition: '0.15s' }}>
-                                        <td style={{ padding: '16px 24px', fontWeight: '700', color: '#94A3B8' }}>{idx + 1}</td>
+                                        <td style={{ padding: '16px 24px', fontWeight: '700', color: 'var(--text-muted)' }}>{idx + 1}</td>
                                         <td style={{ padding: '16px 24px' }}>
                                             <button 
                                                 onClick={() => navigate(`/admin/leave/assign/add?empId=${emp._id}`)}
@@ -127,22 +127,22 @@ const AssignBulkLeave = () => {
                                                     {emp.name.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: '800', color: '#1E293B', fontSize: '14px' }}>{emp.name}</div>
-                                                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>{emp.employeeId || 'IIPL-000'}</div>
+                                                    <div style={{ fontWeight: '800', color: 'var(--text-primary)', fontSize: '14px' }}>{emp.name}</div>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>{emp.employeeId || 'IIPL-000'}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px 24px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '700', color: '#475569' }}>
-                                                <Building2 size={14} color="#94A3B8" /> {emp.branch || 'HO'}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                                                <Building2 size={14} color="var(--text-muted)" /> {emp.branch || 'HO'}
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px 24px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '700', color: '#475569' }}>
-                                                <Briefcase size={14} color="#94A3B8" /> {emp.department || 'N/A'}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                                                <Briefcase size={14} color="var(--text-muted)" /> {emp.department || 'N/A'}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '16px 24px', fontSize: '13px', color: '#475569', fontWeight: '600' }}>
+                                        <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>
                                             {emp.dateJoined ? new Date(emp.dateJoined).toLocaleDateString('en-GB') : 'N/A'}
                                         </td>
                                         <td style={{ padding: '16px 24px', textAlign: 'center' }}>

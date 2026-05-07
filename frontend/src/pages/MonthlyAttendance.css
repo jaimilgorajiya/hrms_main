@@ -1,8 +1,8 @@
 :root {
     --bg-primary: #F8FAFC;
     --card-bg: #FFFFFF;
-    --text-main: #1E293B;
-    --text-muted: #64748B;
+    --text-main: var(--text-primary);
+    --text-muted: var(--text-secondary);
     --accent-blue: #3B82F6;
     --accent-teal: #14B8A6;
     --accent-green: #10B981;

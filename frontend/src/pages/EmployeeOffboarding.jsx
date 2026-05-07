@@ -290,7 +290,7 @@ const EmployeeOffboarding = () => {
                     <div style={{ 
                         textAlign: 'center', 
                         padding: '100px 0', 
-                        color: '#94A3B8', 
+                        color: 'var(--text-muted)', 
                         background: 'white', 
                         borderRadius: '24px',
                         border: '2px dashed #E2E8F0'
@@ -301,8 +301,8 @@ const EmployeeOffboarding = () => {
                 ) : (
                     Object.entries(groupedByDepartment).map(([deptName, deptEmployees]) => (
                         <div key={deptName}>
-                            <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#64748B', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {deptName} <span style={{ color: '#94A3B8' }}>({deptEmployees.length})</span>
+                            <h2 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {deptName} <span style={{ color: 'var(--text-muted)' }}>({deptEmployees.length})</span>
                             </h2>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -346,7 +346,7 @@ const EmployeeOffboarding = () => {
 
                                             <div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0F172A', letterSpacing: '-0.3px' }}>{emp.name}</div>
+                                                    <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>{emp.name}</div>
                                                     {emp.status === 'Resigned' && (
                                                         <span style={{ 
                                                             fontSize: '9.5px', 
@@ -369,12 +369,12 @@ const EmployeeOffboarding = () => {
 
                                         {/* Designation */}
                                         <div style={{ flex: '1', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Briefcase size={14} color="#64748B" />
-                                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{emp.designation || 'Specialist'}</span>
+                                            <Briefcase size={14} color="var(--text-secondary)" />
+                                            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>{emp.designation || 'Specialist'}</span>
                                         </div>
 
                                         {/* Branch */}
-                                        <div style={{ flex: '1', fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                                        <div style={{ flex: '1', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>
                                             {emp.branch || emp.workSetup?.location || 'Unassigned'}
                                         </div>
 

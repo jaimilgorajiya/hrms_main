@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin } from 'lucide-react';
+import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -97,7 +97,6 @@ const AdminAttendance = () => {
       const json = await res.json();
       if (json.success) {
         fetchRecords();
-        // Update the selected record state to refresh the drawer UI immediately
         if (selectedRecord && (selectedRecord._id === attendanceId)) {
           setSelectedRecord(prev => ({ ...prev, approvalStatus: status }));
         }
@@ -128,22 +127,21 @@ const AdminAttendance = () => {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="hrm-container">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="hrm-header">
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px' }}>Attendance</h2>
-          <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Monitor employee punch in/out records</p>
+          <h1 className="hrm-title">Attendance Monitoring</h1>
+          <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', fontSize: '14px' }}>Real-time employee punch logs and approval workflow</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* View toggle */}
-          <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '10px', padding: '3px' }}>
+        <div className="hrm-header-actions" style={{ gap: '12px' }}>
+          <div style={{ display: 'flex', background: 'var(--bg-main)', borderRadius: '12px', padding: '4px', border: '1px solid var(--border)' }}>
             {['day', 'month'].map(v => (
               <button key={v} onClick={() => setViewMode(v)} style={{
-                padding: '6px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                padding: '6px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
                 background: viewMode === v ? '#fff' : 'transparent',
-                color: viewMode === v ? '#2563EB' : '#64748b',
-                boxShadow: viewMode === v ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                color: viewMode === v ? 'var(--primary-blue)' : 'var(--text-muted)',
+                boxShadow: viewMode === v ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
                 transition: 'all 0.2s'
               }}>
                 {v === 'day' ? 'Daily' : 'Monthly'}
@@ -151,214 +149,179 @@ const AdminAttendance = () => {
             ))}
           </div>
 
-          {viewMode === 'day' ? (
-            <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: '10px', fontSize: '14px', color: '#334155', outline: 'none' }} />
-          ) : (
-            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid #E2E8F0', borderRadius: '10px', fontSize: '14px', color: '#334155', outline: 'none' }} />
-          )}
+          <div style={{ position: 'relative' }}>
+            {viewMode === 'day' ? (
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="hrm-input" style={{ width: '160px', height: '40px' }} />
+            ) : (
+              <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="hrm-input" style={{ width: '160px', height: '40px' }} />
+            )}
+          </div>
 
-          <button onClick={() => setManualModal(true)} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-            background: '#10B981', color: 'white', border: 'none', borderRadius: '10px',
-            fontSize: '14px', fontWeight: '600', cursor: 'pointer'
-          }}>
-            <Plus size={15} /> Add Attendance
+          <button className="btn-hrm btn-hrm-success" onClick={() => setManualModal(true)} style={{ height: '40px' }}>
+            <Plus size={18} /> MANUAL ENTRY
           </button>
-
-          <button onClick={fetchRecords} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-            background: '#2563EB', color: 'white', border: 'none', borderRadius: '10px',
-            fontSize: '14px', fontWeight: '600', cursor: 'pointer'
-          }}>
-            <RefreshCw size={15} /> Refresh
-          </button>
+          
+          {/* <button className="btn-hrm btn-hrm-primary" onClick={fetchRecords} style={{ height: '40px' }}>
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> REFRESH
+          </button> */}
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '32px' }}>
         {[
-          { label: 'Total', count: records.length, color: '#2563EB', bg: '#EFF6FF', icon: <Users size={18} /> },
-          { label: 'Present', count: counts['Present'] || 0, color: '#10B981', bg: '#ECFDF5', icon: <CheckCircle size={18} /> },
-          { label: 'Absent', count: counts['Absent'] || 0, color: '#EF4444', bg: '#FEF2F2', icon: <XCircle size={18} /> },
-          { label: 'Half Day', count: counts['Half Day'] || 0, color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={18} /> },
-          { label: 'On Leave', count: counts['On Leave'] || 0, color: '#8B5CF6', bg: '#F5F3FF', icon: <Calendar size={18} /> },
-          { label: 'Pending', count: counts.pending, color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={18} /> },
+          { label: 'Total Logs', count: records.length, color: 'var(--primary-blue)', bg: 'var(--primary-light)', icon: <Users size={24} /> },
+          { label: 'Present Today', count: counts['Present'] || 0, color: 'var(--success)', bg: 'var(--success-light)', icon: <CheckCircle size={24} /> },
+          { label: 'Absent Today', count: counts['Absent'] || 0, color: 'var(--danger)', bg: 'var(--danger-light)', icon: <XCircle size={24} /> },
+          { label: 'Half Day', count: counts['Half Day'] || 0, color: 'var(--warning)', bg: 'var(--warning-light)', icon: <Clock size={24} /> },
+          { label: 'Pending Approvals', count: counts.pending, color: '#6366F1', bg: '#EEF2FF', icon: <Clock size={24} /> },
         ].map((s, i) => (
-          <div key={i} style={{
-            background: s.bg, borderRadius: '14px', padding: '18px 20px',
-            borderLeft: `4px solid ${s.color}`, display: 'flex', alignItems: 'center', gap: '14px'
+          <div key={i} className="hrm-card" style={{ 
+            padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', 
+            borderLeft: `5px solid ${s.color}`, transition: 'transform 0.2s ease'
           }}>
-            <div style={{ color: s.color }}>{s.icon}</div>
+            <div style={{ 
+              background: s.bg, color: s.color, width: '56px', height: '56px', 
+              borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+            }}>
+              {s.icon}
+            </div>
             <div>
-              <div style={{ fontSize: '24px', fontWeight: '800', color: s.color, lineHeight: 1 }}>{s.count}</div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', marginTop: '2px' }}>{s.label}</div>
+              <div style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-dark)', lineHeight: 1.1 }}>{s.count}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '700', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Search & Filter */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-          <input
-            type="text" placeholder="Search by name, ID, department..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            style={{
-              width: '100%', padding: '10px 12px 10px 38px', border: '1.5px solid #E2E8F0',
-              borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-              color: '#334155'
-            }}
-          />
+      {/* Main Content Card */}
+      <div className="hrm-card">
+        <div className="hrm-card-header" style={{ justifyContent: 'space-between', padding: '24px' }}>
+          <div style={{ position: 'relative', width: '400px' }}>
+            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text" className="hrm-input" placeholder="Search employee name, ID or department..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              style={{ paddingLeft: '48px', background: 'var(--bg-main)' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>FILTER BY:</label>
+            <select 
+              className="hrm-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ width: '180px', margin: 0, height: '44px' }}
+            >
+              <option value="All">All Attendance Status</option>
+              <option value="Present">Present Only</option>
+              <option value="Absent">Absent Only</option>
+              <option value="Half Day">Half Day Only</option>
+              <option value="On Leave">On Leave Only</option>
+            </select>
+          </div>
         </div>
-        <select 
-          value={statusFilter} 
-          onChange={e => setStatusFilter(e.target.value)}
-          style={{ padding: '9px 15px', border: '1.5px solid #E2E8F0', borderRadius: '10px', fontSize: '14px', outline: 'none', background: '#fff', fontWeight: '600', color: '#475569' }}
-        >
-          <option value="All">All Status</option>
-          <option value="Present">Present</option>
-          <option value="Absent">Absent</option>
-          <option value="Half Day">Half Day</option>
-          <option value="On Leave">On Leave</option>
-        </select>
-      </div>
 
-      {/* Table */}
-      <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-        {loading ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#94A3B8' }}>
-            <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '12px' }} />
-            <p>Loading attendance...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#94A3B8' }}>
-            <Calendar size={40} style={{ marginBottom: '12px', opacity: 0.4 }} />
-            <p style={{ margin: 0, fontWeight: '600' }}>No records found</p>
-            <p style={{ margin: '4px 0 0', fontSize: '13px' }}>No attendance data for the selected {viewMode === 'day' ? 'date' : 'month'}</p>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                  {['Employee', 'Date', 'Status', 'Approval', 'Punch In', 'Punch Out', 'Working Hours', 'Breaks', 'Remarks/Logs'].map(h => (
-                    <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-                  <tbody>
-                    {filtered.map((r, i) => {
-                      const cfg = statusColors[r.status] || { color: '#64748b', bg: '#F8FAFC' };
-                      const photo = getPhotoUrl(r.employee?.profilePhoto);
-                      return (
-                        <tr key={r._id || i} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s', cursor: 'pointer' }}
-                          onClick={() => { setSelectedRecord(r); setDrawerOpen(true); }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={e => e.stopPropagation()}>
-                          {r.approvalStatus === 'Pending' && (
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                                <button onClick={() => handleApproval(r._id, 'Approved')} title="Approve" style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', background: '#ECFDF5', color: '#10B981', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
-                                    <CheckCircle size={16} />
-                                </button>
-                                <button onClick={() => handleApproval(r._id, 'Rejected')} title="Reject" style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}>
-                                    <XCircle size={16} />
-                                </button>
-                            </div>
-                          )}
+        <div className="hrm-table-wrapper" style={{ border: 'none' }}>
+          <table className="hrm-table">
+            <thead>
+              <tr>
+                <th style={{ width: '220px' }}>Employee</th>
+                <th style={{ width: '120px' }}>Date</th>
+                <th style={{ width: '120px' }}>Status</th>
+                <th style={{ width: '140px' }}>Approval</th>
+                <th>Punch In</th>
+                <th>Punch Out</th>
+                <th>Working Hours</th>
+                <th>Breaks</th>
+                <th style={{ minWidth: '200px' }}>Punch Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '80px' }}>
+                  <RefreshCw className="animate-spin" size={32} color="var(--primary-blue)" style={{ marginBottom: '16px' }} />
+                  <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Loading records...</p>
+                </td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '80px' }}>
+                  <Calendar size={48} color="var(--text-muted)" style={{ marginBottom: '16px', opacity: 0.3 }} />
+                  <p style={{ color: 'var(--text-dark)', fontWeight: '800', fontSize: '16px', margin: 0 }}>No records found</p>
+                  <p style={{ color: 'var(--text-muted)', margin: '8px 0 0' }}>Try adjusting your filters or date selection</p>
+                </td></tr>
+              ) : (
+                filtered.map((r, i) => {
+                  return (
+                    <tr key={r._id || i} onClick={() => { setSelectedRecord(r); setDrawerOpen(true); }} style={{ cursor: 'pointer' }}>
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--primary-blue)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '13px' }}>
+                            {r.employee?.name?.charAt(0)}
+                          </div>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '14px' }}>{r.employee?.name || '—'}</div>
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#94A3B8' }}>{r.employee?.employeeId} · {r.employee?.department || '—'}</div>
+                            <div style={{ fontWeight: '700', color: 'var(--text-dark)', fontSize: '14px' }}>{r.employee?.name || '—'}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>{r.employee?.employeeId} · {r.employee?.department || '—'}</div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
-                        {r.date ? new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                      <td style={{ fontSize: '13px', fontWeight: '600' }}>
+                        {r.date ? new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
                       </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                          <span style={{
-                            background: cfg.bg, color: cfg.color, padding: '4px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap'
-                          }}>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={`hrm-badge ${r.status === 'Present' ? 'hrm-badge-success' : r.status === 'Absent' ? 'hrm-badge-danger' : r.status === 'Half Day' ? 'hrm-badge-warning' : 'hrm-badge-primary'}`} style={{ fontSize: '10px' }}>
                             {r.status || '—'}
                           </span>
                           {r.isExtraDay && (
-                            <span style={{
-                              background: '#F5F3FF', color: '#8B5CF6', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.02em', border: '1px solid #DDD6FE'
-                            }}>
-                              Extra Day
-                            </span>
+                            <span className="hrm-badge" style={{ fontSize: '9px', background: '#F5F3FF', color: '#8B5CF6', border: '1px solid #DDD6FE' }}>EXTRA DAY</span>
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span style={{
-                          background: approvalColors[r.approvalStatus]?.bg || '#F8FAFC', 
-                          color: approvalColors[r.approvalStatus]?.color || '#64748b', 
-                          padding: '4px 12px', borderRadius: '999px', fontSize: '12px', 
-                          fontWeight: '700', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px'
+                      <td>
+                        <span className="hrm-badge" style={{ 
+                          fontSize: '10px', 
+                          background: r.approvalStatus === 'Approved' ? 'var(--success-light)' : r.approvalStatus === 'Rejected' ? 'var(--danger-light)' : 'var(--warning-light)',
+                          color: r.approvalStatus === 'Approved' ? 'var(--success)' : r.approvalStatus === 'Rejected' ? 'var(--danger)' : 'var(--warning)',
+                          display: 'inline-flex', alignItems: 'center', gap: '4px'
                         }}>
-                          {approvalColors[r.approvalStatus]?.icon}
+                          {r.approvalStatus === 'Approved' ? <CheckCircle size={12} /> : r.approvalStatus === 'Rejected' ? <XCircle size={12} /> : <Clock size={12} />}
                           {r.approvalStatus || 'Pending'}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <td>
                         {r.punchIn ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogIn size={13} color="#10B981" />{r.punchIn}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '700', color: 'var(--success)' }}>
+                            <LogIn size={13} /> {r.punchIn}
                             {r.punches?.find(p => p.type === 'IN')?.latitude && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${r.punches.find(p => p.type === 'IN').latitude},${r.punches.find(p => p.type === 'IN').longitude}`, '_blank'); }} 
-                                  title="View punch-in location"
-                                  style={{ padding: '3px', borderRadius: '5px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
-                                >
-                                  <MapPin size={12} />
-                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${r.punches.find(p => p.type === 'IN').latitude},${r.punches.find(p => p.type === 'IN').longitude}`, '_blank'); }} 
+                                  style={{ padding: '4px', borderRadius: '6px', border: 'none', background: 'var(--bg-main)', color: 'var(--primary-blue)', cursor: 'pointer' }}><MapPin size={12} /></button>
                             )}
                           </div>
-                        ) : <span style={{ color: '#CBD5E1' }}>—</span>}
+                        ) : <span style={{ color: 'var(--border)' }}>—</span>}
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#334155', whiteSpace: 'nowrap' }}>
+                      <td>
                         {r.punchOut ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><LogOut size={13} color="#EF4444" />{r.punchOut}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '700', color: 'var(--danger)' }}>
+                            <LogOut size={13} /> {r.punchOut}
                             {[...(r.punches || [])].reverse().find(p => p.type === 'OUT')?.latitude && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${[...r.punches].reverse().find(p => p.type === 'OUT').latitude},${[...r.punches].reverse().find(p => p.type === 'OUT').longitude}`, '_blank'); }} 
-                                  title="View punch-out location"
-                                  style={{ padding: '3px', borderRadius: '5px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
-                                >
-                                  <MapPin size={12} />
-                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${[...r.punches].reverse().find(p => p.type === 'OUT').latitude},${[...r.punches].reverse().find(p => p.type === 'OUT').longitude}`, '_blank'); }} 
+                                  style={{ padding: '4px', borderRadius: '6px', border: 'none', background: 'var(--bg-main)', color: 'var(--primary-blue)', cursor: 'pointer' }}><MapPin size={12} /></button>
                             )}
                           </div>
-                        ) : <span style={{ color: '#CBD5E1' }}>—</span>}
+                        ) : <span style={{ color: 'var(--border)' }}>—</span>}
                       </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: '600', color: '#2563EB', whiteSpace: 'nowrap' }}>
-                        {r.workingFormatted || '—'}
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                        {r.breakCount > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Coffee size={13} /> {r.breakCount}</span> : '—'}
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: '12px', color: '#64748b' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '200px' }}>
-                          {r.punches?.map((p, idx) => {
-                            const notes = [p.workSummary, p.earlyReason, p.geofenceReason, p.locationAddress].filter(Boolean).join(' | ');
+                      <td style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary-blue)' }}>{r.workingFormatted || '—'}</td>
+                      <td>{r.breakCount > 0 ? <span className="hrm-badge" style={{ fontSize: '10px', background: '#F5F3FF', color: '#8B5CF6' }}><Coffee size={12} /> {r.breakCount} Breaks</span> : '—'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '240px' }}>
+                          {r.punches?.slice(0, 2).map((p, idx) => {
+                            const notes = [p.workSummary, p.earlyReason, p.geofenceReason].filter(Boolean).join(' | ');
                             if (!notes) return null;
                             return (
                               <div key={idx} style={{ 
-                                padding: '4px 8px', borderRadius: '6px', background: '#F8FAFC', 
-                                border: '1px solid #E2E8F0', fontSize: '11px', lineHeight: 1.3 
+                                padding: '4px 8px', borderRadius: '6px', background: 'var(--bg-main)', 
+                                border: '1px solid var(--border)', fontSize: '10px', color: 'var(--text-secondary)',
+                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                               }}>
-                                <span style={{ fontWeight: '700', color: p.type === 'IN' ? '#10B981' : '#EF4444' }}>{p.type}: </span>
-                                {notes}
+                                <span style={{ fontWeight: '800', color: p.type === 'IN' ? 'var(--success)' : 'var(--danger)' }}>{p.type}: </span>{notes}
                               </div>
                             );
                           })}
@@ -366,142 +329,77 @@ const AdminAttendance = () => {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Detail Drawer */}
       {drawerOpen && selectedRecord && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', justifyContent: 'flex-end' }}>
-          <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }} />
-          <div style={{ 
-            position: 'relative', width: '500px', height: '100%', background: '#fff', 
-            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column',
-            animation: 'slideIn 0.3s ease-out'
+        <div className="hrm-modal-overlay" style={{ justifyContent: 'flex-end', padding: 0 }}>
+          <div onClick={() => setDrawerOpen(false)} style={{ position: 'absolute', inset: 0 }} />
+          <div className="hrm-modal-content" style={{ 
+            width: '500px', height: '100%', borderRadius: 0, margin: 0,
+            display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out'
           }}>
-            <div style={{ padding: '24px', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontWeight: '800', fontSize: '18px' }}>Attendance Details</h3>
-              <button onClick={() => setDrawerOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <XCircle size={24} />
-              </button>
+            <div className="hrm-modal-header" style={{ padding: '24px', background: 'var(--bg-main)' }}>
+              <h2 style={{ margin: 0 }}>Attendance Log Details</h2>
+              <button className="icon-btn" onClick={() => setDrawerOpen(false)}><XCircle size={24} /></button>
             </div>
 
             <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-              {/* Employee Info */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', padding: '16px', background: '#F8FAFC', borderRadius: '12px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '800' }}>
-                  {selectedRecord.employee?.name?.charAt(0)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '16px' }}>{selectedRecord.employee?.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>{selectedRecord.employee?.employeeId} · {selectedRecord.employee?.department}</div>
-                    </div>
-                    <span style={{
-                      background: approvalColors[selectedRecord.approvalStatus]?.bg || '#F8FAFC', 
-                      color: approvalColors[selectedRecord.approvalStatus]?.color || '#64748b', 
-                      padding: '4px 12px', borderRadius: '999px', fontSize: '11px', 
-                      fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px'
-                    }}>
-                      {approvalColors[selectedRecord.approvalStatus]?.icon}
-                      {selectedRecord.approvalStatus || 'Pending'}
-                    </span>
+              <div className="hrm-card" style={{ padding: '20px', marginBottom: '24px', background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'var(--primary-blue)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '20px' }}>
+                    {selectedRecord.employee?.name?.charAt(0)}
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)' }}>{selectedRecord.employee?.name}</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>{selectedRecord.employee?.employeeId} · {selectedRecord.employee?.department}</p>
+                  </div>
+                  <span className="hrm-badge" style={{ 
+                    padding: '6px 16px', background: selectedRecord.approvalStatus === 'Approved' ? 'var(--success-light)' : 'var(--warning-light)',
+                    color: selectedRecord.approvalStatus === 'Approved' ? 'var(--success)' : 'var(--warning)', fontWeight: '800'
+                  }}>
+                    {selectedRecord.approvalStatus || 'Pending'}
+                  </span>
                 </div>
               </div>
 
-              {/* Logs */}
+              <h4 style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px' }}>Punch Timeline</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ fontWeight: '700', fontSize: '14px', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Punch Timeline</div>
                 {selectedRecord.punches?.map((p, idx) => (
-                  <div key={idx} style={{ 
-                    padding: '16px', borderRadius: '12px', border: '1px solid #E2E8F0',
-                    borderLeft: `4px solid ${p.type === 'IN' ? '#10B981' : '#EF4444'}`,
-                    background: p.type === 'IN' ? '#F0FDF4' : '#FEF2F2'
+                  <div key={idx} className="hrm-card" style={{ 
+                    padding: '20px', borderLeft: `5px solid ${p.type === 'IN' ? 'var(--success)' : 'var(--danger)'}`
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: '800', fontSize: '14px', color: p.type === 'IN' ? '#10B981' : '#EF4444' }}>{p.type === 'IN' ? 'Punch In' : 'Punch Out'}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontWeight: '900', fontSize: '14px', color: p.type === 'IN' ? 'var(--success)' : 'var(--danger)' }}>{p.type === 'IN' ? 'PUNCH IN' : 'PUNCH OUT'}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '700' }}>{new Date(p.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-                        {(p.latitude && p.longitude) && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); window.open(`https://www.google.com/maps?q=${p.latitude},${p.longitude}`, '_blank'); }} 
-                            title="View location on map"
-                            style={{ padding: '4px', borderRadius: '6px', border: 'none', background: '#F1F5F9', color: '#2563EB', cursor: 'pointer', display: 'flex' }}
-                          >
-                            <MapPin size={14} />
-                          </button>
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-dark)' }}>{new Date(p.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                        {p.latitude && (
+                          <button onClick={() => window.open(`https://www.google.com/maps?q=${p.latitude},${p.longitude}`, '_blank')}
+                            style={{ padding: '6px', borderRadius: '8px', border: 'none', background: 'var(--bg-main)', color: 'var(--primary-blue)', cursor: 'pointer' }}><MapPin size={14} /></button>
                         )}
                       </div>
                     </div>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {p.workSummary && (
-                        <div style={{ fontSize: '12px' }}>
-                          <span style={{ fontWeight: '700', color: '#64748B' }}>Work Report: </span>
-                          <span style={{ color: '#334155' }}>{p.workSummary}</span>
-                        </div>
-                      )}
-                      {p.lateReason && (
-                        <div style={{ fontSize: '12px' }}>
-                          <span style={{ fontWeight: '700', color: '#64748B' }}>Late Reason: </span>
-                          <span style={{ color: '#334155' }}>{p.lateReason}</span>
-                        </div>
-                      )}
-                      {p.earlyReason && (
-                        <div style={{ fontSize: '12px' }}>
-                          <span style={{ fontWeight: '700', color: '#64748B' }}>Early Out Reason: </span>
-                          <span style={{ color: '#334155' }}>{p.earlyReason}</span>
-                        </div>
-                      )}
-                      {p.geofenceReason && (
-                        <div style={{ fontSize: '12px' }}>
-                          <span style={{ fontWeight: '700', color: '#64748B' }}>Out of Range Reason: </span>
-                          <span style={{ color: '#334155', fontWeight: '600' }}>{p.geofenceReason}</span>
-                        </div>
-                      )}
-                      {p.locationAddress && (
-                        <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                          <Search size={12} /> {p.locationAddress}
-                        </div>
-                      )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {p.workSummary && <div style={{ fontSize: '13px' }}><b style={{ color: 'var(--text-muted)' }}>Work Summary:</b> <span style={{ color: 'var(--text-dark)' }}>{p.workSummary}</span></div>}
+                      {p.geofenceReason && <div style={{ fontSize: '13px', background: 'var(--warning-light)', padding: '8px', borderRadius: '8px' }}><b style={{ color: 'var(--warning)' }}>Out of Range:</b> <span style={{ color: 'var(--text-dark)' }}>{p.geofenceReason}</span></div>}
+                      {p.locationAddress && <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '4px' }}><MapPin size={12} /> {p.locationAddress}</div>}
                     </div>
                   </div>
                 ))}
-                {/* Breaks */}
-                {selectedRecord.breaks?.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
-                    <div style={{ fontWeight: '700', fontSize: '14px', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Breaks Taken</div>
-                    {selectedRecord.breaks.map((b, idx) => (
-                      <div key={idx} style={{ 
-                        padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #F1F5F9',
-                        background: '#FAF5FF', borderLeft: '4px solid #8B5CF6'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: '800', fontSize: '13px', color: '#8B5CF6' }}>{b.type || 'General'} Break</span>
-                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>
-                            {new Date(b.start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                            {' - '}
-                            {b.end ? new Date(b.end).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Ongoing'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Approval Actions */}
               {selectedRecord.approvalStatus === 'Pending' && (
-                <div style={{ marginTop: '32px', padding: '20px', borderRadius: '16px', background: '#F1F5F9', border: '1px dashed #CBD5E1' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '12px', textAlign: 'center' }}>Review this record</div>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button onClick={() => handleApproval(selectedRecord._id, 'Approved')} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#10B981', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Approve</button>
-                    <button onClick={() => handleApproval(selectedRecord._id, 'Rejected')} style={{ flex: 1, padding: '12px', borderRadius: '10px', background: '#EF4444', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Reject</button>
+                <div style={{ marginTop: '32px', padding: '24px', borderRadius: '20px', background: 'var(--bg-main)', border: '2px dashed var(--border)' }}>
+                  <p style={{ fontWeight: '800', fontSize: '15px', textAlign: 'center', margin: '0 0 20px' }}>Final Review & Approval</p>
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <button className="btn-hrm btn-hrm-success" onClick={() => handleApproval(selectedRecord._id, 'Approved')} style={{ flex: 1, height: '48px' }}>APPROVE</button>
+                    <button className="btn-hrm btn-hrm-danger" onClick={() => handleApproval(selectedRecord._id, 'Rejected')} style={{ flex: 1, height: '48px' }}>REJECT</button>
                   </div>
                 </div>
               )}
@@ -512,92 +410,62 @@ const AdminAttendance = () => {
 
       {/* Manual Add Modal */}
       {manualModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div onClick={() => setManualModal(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }} />
-          <div style={{ position: 'relative', background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-            <div style={{ padding: '24px', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Add Attendance</h3>
-                <button onClick={() => setManualModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}><XCircle size={20} /></button>
-              </div>
+        <div className="hrm-modal-overlay">
+          <div className="hrm-modal-content" style={{ maxWidth: '540px' }}>
+            <div className="hrm-modal-header">
+              <h2>Add Manual Attendance</h2>
+              <button className="icon-btn" onClick={() => setManualModal(false)}><X size={20} /></button>
             </div>
             
-            <form onSubmit={handleManualSubmit} style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
+            <form onSubmit={handleManualSubmit}>
+              <div className="hrm-modal-body">
+                <div className="hrm-form-group">
                   <SearchableSelect
-                    label="Select Employee"
-                    required
-                    placeholder="Search an employee..."
-                    searchable={true}
+                    label="Select Employee" required placeholder="Search an employee by name or ID..."
                     options={employees.map(emp => ({ label: `${emp.name} (${emp.employeeId})`, value: emp._id }))}
                     value={manualData.employeeId}
                     onChange={(val) => setManualData({ ...manualData, employeeId: val })}
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end' }}>
-                  <div>
-                    <label className="hrm-label">Date</label>
-                    <input type="date" required className="hrm-input"
-                      value={manualData.date}
-                      onChange={e => setManualData({...manualData, date: e.target.value})}
-                      style={{ height: '48px' }}
-                    />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div className="hrm-form-group">
+                    <label className="hrm-label">Date <span className="req">*</span></label>
+                    <input type="date" required className="hrm-input" value={manualData.date} onChange={e => setManualData({...manualData, date: e.target.value})} />
                   </div>
-                  <div>
-                    <SearchableSelect
-                      label="Status"
-                      required
-                      options={[
-                        { label: 'Present', value: 'Present' },
-                        { label: 'Absent', value: 'Absent' },
-                        { label: 'Half Day', value: 'Half Day' },
-                        { label: 'On Leave', value: 'On Leave' },
-                      ]}
-                      value={manualData.status}
-                      onChange={(val) => setManualData({ ...manualData, status: val })}
-                    />
+                  <div className="hrm-form-group">
+                    <label className="hrm-label">Status <span className="req">*</span></label>
+                    <select className="hrm-select" value={manualData.status} onChange={e => setManualData({ ...manualData, status: e.target.value })}>
+                      <option value="Present">Present</option>
+                      <option value="Absent">Absent</option>
+                      <option value="Half Day">Half Day</option>
+                      <option value="On Leave">On Leave</option>
+                    </select>
                   </div>
                 </div>
 
                 {manualData.status !== 'Absent' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>In Time</label>
-                      <input type="time"
-                        value={manualData.inTime}
-                        onChange={e => setManualData({...manualData, inTime: e.target.value})}
-                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid #E2E8F0', outline: 'none' }}
-                      />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className="hrm-form-group">
+                      <label className="hrm-label">Punch In Time</label>
+                      <input type="time" className="hrm-input" value={manualData.inTime} onChange={e => setManualData({...manualData, inTime: e.target.value})} />
                     </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Out Time</label>
-                      <input type="time"
-                        value={manualData.outTime}
-                        onChange={e => setManualData({...manualData, outTime: e.target.value})}
-                        style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid #E2E8F0', outline: 'none' }}
-                      />
+                    <div className="hrm-form-group">
+                      <label className="hrm-label">Punch Out Time</label>
+                      <input type="time" className="hrm-input" value={manualData.outTime} onChange={e => setManualData({...manualData, outTime: e.target.value})} />
                     </div>
                   </div>
                 )}
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Remark</label>
-                  <textarea
-                    value={manualData.remark}
-                    onChange={e => setManualData({...manualData, remark: e.target.value})}
-                    placeholder="E.g. Technical issue, Manual entry..."
-                    style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1.5px solid #E2E8F0', outline: 'none', resize: 'none', height: '60px' }}
-                  />
+                <div className="hrm-form-group">
+                  <label className="hrm-label">Administrator Remarks</label>
+                  <textarea className="hrm-textarea" value={manualData.remark} onChange={e => setManualData({...manualData, remark: e.target.value})} placeholder="Reason for manual entry..." style={{ height: '80px' }} />
                 </div>
-
-                <button type="submit" disabled={formLoading} style={{
-                  marginTop: '10px', width: '100%', padding: '12px', borderRadius: '12px',
-                  background: '#2563EB', color: '#fff', border: 'none', fontWeight: '700',
-                  cursor: 'pointer', transition: 'all 0.2s', opacity: formLoading ? 0.7 : 1
-                }}>
-                  {formLoading ? <RefreshCw className="animate-spin" size={18} /> : 'Save Attendance'}
+              </div>
+              <div className="hrm-modal-footer">
+                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setManualModal(false)}>CANCEL</button>
+                <button type="submit" className="btn-hrm btn-hrm-primary" disabled={formLoading} style={{ minWidth: '160px' }}>
+                  {formLoading ? <RefreshCw className="animate-spin" size={18} /> : 'SAVE ATTENDANCE'}
                 </button>
               </div>
             </form>
@@ -606,8 +474,9 @@ const AdminAttendance = () => {
       )}
 
       <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );

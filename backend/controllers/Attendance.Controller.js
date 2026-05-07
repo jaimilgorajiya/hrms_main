@@ -4,7 +4,8 @@ import { calculatePenaltyAmount } from './PenaltyRule.Controller.js';
 import User from "../models/User.Model.js";
 import Shift from "../models/Shift.Model.js";
 import Attendance from "../models/Attendance.Model.js";
-import { computeWorkingMinutes, formatMinutes } from "../utils/attendance.js";
+import Branch from "../models/Branch.Model.js";
+import { computeWorkingMinutes, formatMinutes, getDistance } from "../utils/attendance.js";
 import Notification from "../models/Notification.Model.js";
 
 // Notify admin when employee punches in or out
@@ -191,6 +192,26 @@ export const togglePunch = async (req, res) => {
     const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress } = req.body;
         const date = getTodayStr();
         const now = new Date();
+
+        // Server-side Geofence Validation
+        const emp = await User.findById(req.user._id);
+        if (emp?.branch && latitude && longitude) {
+            let branch = await Branch.findOne({ branchName: emp.branch, adminId: emp.adminId || emp._id });
+            if (!branch) {
+                const escaped = emp.branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                branch = await Branch.findOne({ branchName: { $regex: new RegExp(`^${escaped}$`, 'i') }, adminId: emp.adminId || emp._id });
+            }
+            if (branch && branch.latitude !== 0) {
+                const distance = getDistance(latitude, longitude, branch.latitude, branch.longitude);
+                const radius = branch.radius || 200;
+                const { shift } = await getEmployeeShiftToday(req.user._id);
+                if (distance > radius) {
+                    if (shift?.requireOutOfRangeReason && !geofenceReason) {
+                        return res.status(400).json({ success: false, requireOutOfRangeReason: true, message: "You are out of office range. Please provide a reason." });
+                    }
+                }
+            }
+        }
 
         let record = await Attendance.findOne({ employee: req.user._id, date });
 
@@ -794,13 +815,7 @@ export const addManualAttendance = async (req, res) => {
 export const getMissingAttendance = async (req, res) => {
     try {
         const { date, month } = req.query;
-        let query = {
-            $or: [
-                { status: "Absent" },
-                { approvalStatus: "Rejected" }
-            ]
-        };
-
+        let query = {};
         if (date) query.date = date;
         else if (month) query.date = { $regex: `^${month}` };
 
@@ -808,13 +823,38 @@ export const getMissingAttendance = async (req, res) => {
             .populate('employee', 'name employeeId department designation profilePhoto')
             .sort({ date: -1 });
 
-        const formatted = records.map(r => {
+        // Filter for "missing" attendance logic:
+        // 1. Absent
+        // 2. Rejected
+        // 3. Punched IN but never Punched OUT (Missing punch out)
+        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+        const todayStr = istNow.toISOString().split('T')[0];
+
+        const missingRecords = records.filter(r => {
+            if (r.status === "Absent" || r.approvalStatus === "Rejected") return true;
+            
+            const hasIn = r.punches.some(p => p.type === 'IN');
+            const hasOut = r.punches.some(p => p.type === 'OUT');
+            
+            if (hasIn && !hasOut && r.date !== todayStr) {
+                return true;
+            }
+            return false;
+        });
+
+        const formatted = missingRecords.map(r => {
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
+            
+            let missingReason = r.status;
+            if (r.approvalStatus === 'Rejected') missingReason = 'Rejected';
+            else if (r.punches.some(p => p.type === 'IN') && !r.punches.some(p => p.type === 'OUT')) missingReason = 'Missing Punch Out';
+
             return {
                 _id: r._id,
                 date: r.date,
                 status: r.status,
+                missingReason,
                 employee: r.employee,
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,

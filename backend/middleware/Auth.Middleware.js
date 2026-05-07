@@ -29,12 +29,27 @@ const verifyToken = async (req, res, next) => {
         // Check account status - auto logout ex-employees
         const today = new Date();
         today.setHours(0,0,0,0);
-        
+
+        let effectiveExitDate = user.exitDate ? new Date(user.exitDate) : null;
+
+        if (!effectiveExitDate && user.status === 'Resigned') {
+            const Resignation = (await import('../models/Resignation.Model.js')).default;
+            const resignation = await Resignation.findOne({
+                employeeId: user._id,
+                status: 'Approved',
+                lastWorkingDay: { $exists: true }
+            }).sort({ createdAt: -1 });
+            if (resignation?.lastWorkingDay) {
+                effectiveExitDate = new Date(resignation.lastWorkingDay);
+                await User.findByIdAndUpdate(user._id, { exitDate: resignation.lastWorkingDay });
+            }
+        }
+
         const isAllowed = 
             user.role === 'Admin' || 
             user.status === 'Active' || 
             user.status === 'Onboarding' || 
-            (user.status === 'Resigned' && (!user.exitDate || new Date(user.exitDate) >= today));
+            (user.status === 'Resigned' && (!effectiveExitDate || effectiveExitDate >= today));
 
         if (!isAllowed) {
             return res.status(403).json({ success: false, message: "Account is blocked." });

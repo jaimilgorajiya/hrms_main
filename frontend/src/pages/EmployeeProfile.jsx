@@ -803,9 +803,9 @@ const EmployeeProfile = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <button className="icon-btn" onClick={() => navigate('/admin/employees/list')} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
-                        <ArrowLeft size={20} color="#64748b" />
+                        <ArrowLeft size={20} color="var(--text-secondary)" />
                     </button>
-                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employee Profile</h1>
+                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employee Profile</h1>
                 </div>
             </div>
 
@@ -825,8 +825,8 @@ const EmployeeProfile = () => {
                     <Clock size={20} color="#3B648B" />
                 </div>
                 <div>
-                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600', display: 'block' }}>Employee joined since:</span>
-                    <span style={{ fontSize: '16px', color: '#1e293b', fontWeight: '800' }}>{calculateExperience(formData.dateJoined)}</span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', display: 'block' }}>Employee joined since:</span>
+                    <span style={{ fontSize: '16px', color: 'var(--text-primary)', fontWeight: '800' }}>{calculateExperience(formData.dateJoined)}</span>
                 </div>
             </div>
 
@@ -855,7 +855,7 @@ const EmployeeProfile = () => {
                                 <input type="file" hidden onChange={handleFileChange} accept="image/*" />
                             </label>
                         </div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: '0 0 5px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 5px' }}>
                             {formData.name}
                             {formData.status === 'Resigned' && (
                                 <>
@@ -875,26 +875,26 @@ const EmployeeProfile = () => {
                                 </>
                             )}
                         </h2>
-                        <p style={{ fontSize: '14px', color: '#64748b', fontWeight: '600', margin: '0 0 20px' }}>{formData.designation || 'Web Developer'}</p>
+                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600', margin: '0 0 20px' }}>{formData.designation || 'Web Developer'}</p>
                         
                         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Phone size={14} color="#64748b" />
+                                    <Phone size={14} color="var(--text-secondary)" />
                                 </div>
-                                <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>{formData.countryCode} {formData.phone}</span>
+                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>{formData.countryCode} {formData.phone}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Mail size={14} color="#64748b" />
+                                    <Mail size={14} color="var(--text-secondary)" />
                                 </div>
-                                <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formData.email}</span>
+                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formData.email}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <User size={14} color="#64748b" />
+                                    <User size={14} color="var(--text-secondary)" />
                                 </div>
-                                <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>{formData.gender}</span>
+                                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>{formData.gender}</span>
                             </div>
                         </div>
 
@@ -933,24 +933,24 @@ const EmployeeProfile = () => {
                         ) : (
                             <div style={{ marginTop: '25px', borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Resignation Date:</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '800' }}>Resignation Date:</span>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>
                                         {(formData.resignationDate || resignationInfo?.noticeDate) ? new Date(formData.resignationDate || resignationInfo?.noticeDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Company Last Day:</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '800' }}>Company Last Day:</span>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>
                                         {(formData.exitDate || resignationInfo?.lastWorkingDay) ? new Date(formData.exitDate || resignationInfo?.lastWorkingDay).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Perform By:</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{companyName}</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '800' }}>Perform By:</span>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>{companyName}</span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '800' }}>Resignation Remark:</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{formData.exitReason || '-'}</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '800' }}>Resignation Remark:</span>
+                                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>{formData.exitReason || '-'}</span>
                                 </div>
 
                                 {formData.status !== 'Resigned' && (
@@ -1132,7 +1132,7 @@ const EmployeeProfile = () => {
                                     <>
                                         <div className="ss-form-group" style={{ gridColumn: 'span 2', marginBottom: '10px' }}>
                                             <label className="ss-label" style={{ opacity: 0.6 }}>Email ID (Read Only)</label>
-                                            <input type="email" name="email" value={formData.email || ''} readOnly disabled className="ss-input disabled-input" style={{ background: '#f8fafc', color: '#94a3b8' }} />
+                                            <input type="email" name="email" value={formData.email || ''} readOnly disabled className="ss-input disabled-input" style={{ background: '#f8fafc', color: 'var(--text-muted)' }} />
                                         </div>
                                         <PhoneInput 
                                             label="Mobile No." 
@@ -1232,7 +1232,7 @@ const EmployeeProfile = () => {
                              {activeTab === 'Experience' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', gridColumn: 'span 2' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Past Experience</h3>
+                                        <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Past Experience</h3>
                                         <button onClick={() => setIsExpModalOpen(true)} style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textTransform: 'uppercase' }}><Plus size={16} /> ADD PAST EXPERIENCE</button>
                                     </div>
                                     <div className="hrm-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
@@ -1253,7 +1253,7 @@ const EmployeeProfile = () => {
                                                 {formData.pastExperience?.length > 0 ? formData.pastExperience.map((exp, idx) => (
                                                     <tr key={idx}>
                                                         <td style={{ padding: '10px 5px' }}>{idx + 1}</td>
-                                                        <td style={{ fontWeight: '700', color: '#1E293B', padding: '10px 5px' }}>{exp.companyName}</td>
+                                                        <td style={{ fontWeight: '700', color: 'var(--text-primary)', padding: '10px 5px' }}>{exp.companyName}</td>
                                                         <td style={{ padding: '10px 5px' }}>{exp.designation}</td>
                                                         <td style={{ padding: '10px 5px', fontSize: '13px' }}>{new Date(exp.workFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                                         <td style={{ padding: '10px 5px', fontSize: '13px' }}>{exp.isCurrent ? 'Current' : new Date(exp.workTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
@@ -1272,7 +1272,7 @@ const EmployeeProfile = () => {
                                                     </tr>
                                                 )) : (
                                                     <tr>
-                                                        <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontStyle: 'italic' }}>
+                                                        <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                                             No past experience records found.
                                                         </td>
                                                     </tr>
@@ -1286,7 +1286,7 @@ const EmployeeProfile = () => {
                             {activeTab === 'Documents' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', gridColumn: 'span 2' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Employee Documents</h3>
+                                        <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Employee Documents</h3>
                                         <button onClick={() => setIsDocModalOpen(true)} style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textTransform: 'uppercase' }}><Plus size={16} /> ADD DOCUMENT</button>
                                     </div>
                                     <div className="hrm-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
@@ -1305,7 +1305,7 @@ const EmployeeProfile = () => {
                                                 {formData.documents?.length > 0 ? formData.documents.map((doc, idx) => (
                                                     <tr key={idx}>
                                                         <td style={{ padding: '10px 5px' }}>{idx + 1}</td>
-                                                        <td style={{ fontWeight: '700', color: '#1E293B', padding: '10px 5px' }}>{doc.documentType?.name || 'Unknown'}</td>
+                                                        <td style={{ fontWeight: '700', color: 'var(--text-primary)', padding: '10px 5px' }}>{doc.documentType?.name || 'Unknown'}</td>
                                                         <td style={{ padding: '10px 5px' }}>{doc.documentNumber || '-'}</td>
                                                         <td style={{ padding: '10px 5px', fontSize: '13px' }}>{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : '-'}</td>
                                                         <td style={{ padding: '10px 5px' }}>{doc.fileUrl ? (
@@ -1327,7 +1327,7 @@ const EmployeeProfile = () => {
                                                     </tr>
                                                 )) : (
                                                     <tr>
-                                                        <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontStyle: 'italic' }}>
+                                                        <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                                             No documents uploaded yet.
                                                         </td>
                                                     </tr>
@@ -1392,7 +1392,7 @@ const EmployeeProfile = () => {
                                     <div className="ss-form-group">
                                         <label className="ss-label" style={{ fontSize: '12px' }}>Work To</label>
                                         <input type="date" className="ss-input" disabled={expFormData.isCurrent} value={expFormData.workTo} onChange={e => setExpFormData(p => ({ ...p, workTo: e.target.value }))} />
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', marginTop: '5px', cursor: 'pointer', fontWeight: '600', color: '#64748b' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', marginTop: '5px', cursor: 'pointer', fontWeight: '600', color: 'var(--text-secondary)' }}>
                                             <input type="checkbox" checked={expFormData.isCurrent} onChange={e => setExpFormData(p => ({ ...p, isCurrent: e.target.checked }))} /> Currently working here
                                         </label>
                                     </div>
@@ -1466,7 +1466,7 @@ const EmployeeProfile = () => {
                                 })()}
                             </div>
                             <div className="hrm-modal-footer">
-                                <button type="button" onClick={() => setIsDocModalOpen(false)} style={{ background: 'white', color: '#64748b', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                                <button type="button" onClick={() => setIsDocModalOpen(false)} style={{ background: 'white', color: 'var(--text-secondary)', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
                                 <button type="submit" style={{ background: '#3B648B', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Upload Document</button>
                             </div>
                         </form>
@@ -1479,8 +1479,8 @@ const EmployeeProfile = () => {
                 <div className="hrm-modal-overlay" style={{ zIndex: 9999 }}>
                     <div className="hrm-modal-content" style={{ width: '90%', maxWidth: '900px', height: '85vh', display: 'flex', flexDirection: 'column', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                         <div className="hrm-modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: 0 }}>Document Quick View</h2>
-                            <button onClick={() => setViewingDoc(null)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#ef4444'; }} onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}>
+                            <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Document Quick View</h2>
+                            <button onClick={() => setViewingDoc(null)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', color: 'var(--text-secondary)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#ef4444'; }} onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; }}>
                                 <X size={20} />
                             </button>
                         </div>

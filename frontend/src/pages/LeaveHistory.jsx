@@ -56,7 +56,7 @@ const LeaveHistory = () => {
     <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px' }}>
         <div>
-          <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#0F172A', margin: '0 0 8px' }}>Leave Request History</h2>
+          <h2 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 8px' }}>Leave Request History</h2>
          
         </div>
         <button 
@@ -64,7 +64,7 @@ const LeaveHistory = () => {
           style={{
             display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px',
             background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '15px',
-            fontSize: '14px', fontWeight: '700', cursor: 'pointer', color: '#334155',
+            fontSize: '14px', fontWeight: '700', cursor: 'pointer', color: 'var(--text-primary)',
             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', transition: 'all 0.2s'
           }}
         >
@@ -78,13 +78,13 @@ const LeaveHistory = () => {
         display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center'
       }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-          <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text" placeholder="Search by employee, ID, or reason..."
             value={search} onChange={e => setSearch(e.target.value)}
             style={{
               width: '100%', padding: '14px 14px 14px 48px', border: '1.5px solid #F1F5F9',
-              borderRadius: '16px', fontSize: '14px', outline: 'none', color: '#334155',
+              borderRadius: '16px', fontSize: '14px', outline: 'none', color: 'var(--text-primary)',
               background: '#F8FAFC', fontWeight: '600'
             }}
           />
@@ -92,26 +92,26 @@ const LeaveHistory = () => {
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '10px 16px', borderRadius: '16px', border: '1.5px solid #F1F5F9' }}>
-            <Calendar size={16} color="#64748B" />
+            <Calendar size={16} color="var(--text-secondary)" />
             <input 
               type="date" 
               value={startDate} 
               onChange={e => setStartDate(e.target.value)}
-              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '700', color: '#334155' }}
+              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}
             />
-            <span style={{ color: '#94A3B8', fontWeight: '800' }}>—</span>
+            <span style={{ color: 'var(--text-muted)', fontWeight: '800' }}>—</span>
             <input 
               type="date" 
               value={endDate} 
               onChange={e => setEndDate(e.target.value)}
-              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '700', color: '#334155' }}
+              style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}
             />
           </div>
 
           <select 
             value={filterStatus} 
             onChange={e => setFilterStatus(e.target.value)}
-            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
           >
             <option value="All">Statuses</option>
             <option value="Approved">Approved</option>
@@ -122,7 +122,7 @@ const LeaveHistory = () => {
           <select 
             value={filterType} 
             onChange={e => setFilterType(e.target.value)}
-            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: '#475569', cursor: 'pointer' }}
+            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
           >
             <option value="All">All Types</option>
             <option value="Leave">Leave</option>
@@ -138,7 +138,7 @@ const LeaveHistory = () => {
             <p style={{ marginTop: '20px', fontWeight: '700' }}>Retrieving archive records...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '100px', textAlign: 'center', color: '#94A3B8' }}>
+          <div style={{ padding: '100px', textAlign: 'center', color: 'var(--text-muted)' }}>
             <FileText size={64} style={{ marginBottom: '24px', opacity: 0.2 }} />
             <p style={{ fontSize: '18px', fontWeight: '700' }}>No historical records found</p>
             <p style={{ fontSize: '14px', fontWeight: '500' }}>Try adjusting your search or filters</p>
@@ -164,16 +164,16 @@ const LeaveHistory = () => {
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: '#F1F5F9', border: '1px solid #E2E8F0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {r.employee?.profilePhoto ? (
                                 <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : <User size={22} color="#94A3B8" />}
+                            ) : <User size={22} color="var(--text-muted)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '800', fontSize: '15px', color: '#1E293B' }}>{r.employee?.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>{r.employee?.employeeId}</div>
+                          <div style={{ fontWeight: '800', fontSize: '15px', color: 'var(--text-primary)' }}>{r.employee?.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>{r.employee?.employeeId}</div>
                         </div>
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontWeight: '700', fontSize: '14px', color: '#334155' }}>
+                      <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>
                         {r.requestType === 'Leave' ? (
                           <span>{r.fromDate === r.toDate ? r.fromDate : `${r.fromDate} — ${r.toDate}`}</span>
                         ) : (
@@ -206,20 +206,20 @@ const LeaveHistory = () => {
                       )}
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748B' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
                          {new Date(r.appliedAt || r.createdAt).toLocaleDateString('en-GB')}
                       </div>
                     </td>
                     <td style={tdStyle}>
                        {r.status !== 'Pending' ? (
                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>{r.status}</div>
-                            <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>{r.status}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
                                {r.actionDate ? new Date(r.actionDate).toLocaleDateString('en-GB') : 'Processed'}
                             </div>
                          </div>
                        ) : (
-                         <span style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic' }}>Awaiting...</span>
+                         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Awaiting...</span>
                        )}
                     </td>
                   </tr>
@@ -234,7 +234,7 @@ const LeaveHistory = () => {
   );
 };
 
-const thStyle = { padding: '20px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const thStyle = { padding: '20px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const tdStyle = { padding: '20px 24px', fontSize: '14px' };
 
 export default LeaveHistory;

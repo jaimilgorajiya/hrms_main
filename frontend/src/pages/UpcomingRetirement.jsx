@@ -28,8 +28,8 @@ const StatCard = ({ label, value, bg, color }) => (
             <span style={{ fontSize: 18, fontWeight: 800, color }}>{value}</span>
         </div>
         <div>
-            <p style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: '#1E293B', marginTop: 2 }}>{value}</p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>{value}</p>
         </div>
     </div>
 );
@@ -236,7 +236,7 @@ const UpcomingRetirement = () => {
                     <div>
                         <label className="hrm-label">Search</label>
                         <div className="search-wrapper">
-                            <Search size={15} color="#64748B" />
+                            <Search size={15} color="var(--text-secondary)" />
                             <input type="text" placeholder="Employee name..." value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
                     </div>
@@ -249,10 +249,10 @@ const UpcomingRetirement = () => {
             {/* Table */}
             <div className="hrm-card">
                 <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>
-                        <strong style={{ color: '#1E293B' }}>{filtered.length}</strong> employee(s) found
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong> employee(s) found
                     </span>
-                    <span style={{ fontSize: 12, color: '#94A3B8' }}>Employees retiring within the next 6 months</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Employees retiring within the next 6 months</span>
                 </div>
                 <div className="hrm-table-wrapper">
                     <table className="hrm-table">
@@ -270,10 +270,10 @@ const UpcomingRetirement = () => {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading...</td></tr>
+                                <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading...</td></tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" style={{ textAlign: 'center', padding: 60, color: '#94A3B8' }}>
+                                    <td colSpan="8" style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
                                         <Filter size={36} style={{ opacity: 0.3, marginBottom: 12, display: 'block', margin: '0 auto 12px' }} />
                                         No retirement records found
                                     </td>
@@ -289,13 +289,13 @@ const UpcomingRetirement = () => {
                                                     {r.name?.charAt(0)?.toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontWeight: 600, color: '#1E293B', fontSize: 13 }}>{r.name}</p>
-                                                    <p style={{ fontSize: 11, color: '#94A3B8' }}>{r.employmentType || '--'}</p>
+                                                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>{r.name}</p>
+                                                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.employmentType || '--'}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ fontSize: 13, color: '#475569' }}>{fmt(r.dateOfBirth)}</td>
-                                        <td style={{ fontSize: 13, color: '#475569' }}>
+                                        <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{fmt(r.dateOfBirth)}</td>
+                                        <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                                             {fmt(r.retirementDate)}
                                             {r.status === 'Extended' && r.originalRetirementDate && (
                                                 <p style={{ fontSize: 11, color: '#7C3AED', marginTop: 2 }}>
@@ -308,8 +308,8 @@ const UpcomingRetirement = () => {
                                                 {r.daysRemaining < 0 ? `${Math.abs(r.daysRemaining)}d overdue` : `${r.daysRemaining} days`}
                                             </span>
                                         </td>
-                                        <td style={{ fontSize: 13, color: '#475569' }}>{r.department || '--'}</td>
-                                        <td style={{ fontSize: 13, color: '#475569' }}>{r.designation || '--'}</td>
+                                        <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r.department || '--'}</td>
+                                        <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{r.designation || '--'}</td>
                                         <td>
                                             <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: sc.bg, color: sc.color }}>
                                                 {r.status}
@@ -356,8 +356,8 @@ const UpcomingRetirement = () => {
                     <div style={{ background: 'white', borderRadius: 16, padding: 32, width: 480, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>Retirement Details</h2>
-                            <button onClick={() => setViewRecord(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 20 }}>✕</button>
+                            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Retirement Details</h2>
+                            <button onClick={() => setViewRecord(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 20 }}>✕</button>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             {[
@@ -373,8 +373,8 @@ const UpcomingRetirement = () => {
                                 ['Branch', viewRecord.branch || '--'],
                             ].map(([label, value]) => (
                                 <div key={label} style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 14px' }}>
-                                    <p style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</p>
-                                    <p style={{ fontSize: 14, fontWeight: 600, color: '#1E293B', marginTop: 4 }}>{value}</p>
+                                    <p style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6 }}>{label}</p>
+                                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>{value}</p>
                                 </div>
                             ))}
                         </div>
@@ -388,7 +388,7 @@ const UpcomingRetirement = () => {
                         )}
                         {viewRecord.notificationsSent?.length > 0 && (
                             <div style={{ marginTop: 16 }}>
-                                <p style={{ fontSize: 12, color: '#64748B', fontWeight: 700, marginBottom: 8 }}>Notifications Sent</p>
+                                <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 8 }}>Notifications Sent</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {viewRecord.notificationsSent.map((n, i) => (
                                         <span key={i} style={{ fontSize: 11, background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>

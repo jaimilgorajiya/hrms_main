@@ -56,7 +56,7 @@ const PendingAttendance = () => {
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
-      cancelButtonColor: '#64748B',
+      cancelButtoncolor: 'var(--text-secondary)',
       confirmButtonText: `Yes, ${status}`
     });
 
@@ -120,14 +120,14 @@ const PendingAttendance = () => {
       {/* Header section with Stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 8px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>
             Pending Approvals
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ background: '#FFFBEB', color: '#B45309', padding: '4px 12px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', border: '1px solid #FEF3C7' }}>
               {records.length} Records Requiring Review
             </span>
-            <button onClick={fetchPending} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600' }}>
+            <button onClick={fetchPending} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600' }}>
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
           </div>
@@ -158,7 +158,7 @@ const PendingAttendance = () => {
         {/* Search & Filter Bar */}
         <div style={{ background: '#fff', padding: '16px', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               placeholder="Search by employee name, ID or date..."
@@ -167,7 +167,7 @@ const PendingAttendance = () => {
               style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '14px', border: '1.5px solid #F1F5F9', background: '#F8FAFC', outline: 'none', fontSize: '14px', fontWeight: '600', transition: 'all 0.2s' }}
             />
           </div>
-          <button style={{ padding: '14px', borderRadius: '14px', border: '1.5px solid #F1F5F9', background: '#fff', color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <button style={{ padding: '14px', borderRadius: '14px', border: '1.5px solid #F1F5F9', background: '#fff', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <Filter size={18} />
           </button>
         </div>
@@ -177,15 +177,15 @@ const PendingAttendance = () => {
           {loading ? (
              <div style={{ padding: '100px', textAlign: 'center' }}>
                 <RefreshCw size={40} color="#2563EB" className="animate-spin" style={{ marginBottom: '16px' }} />
-                <p style={{ fontWeight: '700', color: '#475569' }}>Identifying pending records...</p>
+                <p style={{ fontWeight: '700', color: 'var(--text-secondary)' }}>Identifying pending records...</p>
              </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '100px 20px', textAlign: 'center' }}>
                <div style={{ width: '80px', height: '80px', borderRadius: '30px', background: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                   <CheckCircle size={40} color="#0EA5E9" />
                </div>
-               <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1E293B', margin: '0 0 8px' }}>All Caught Up!</h3>
-               <p style={{ color: '#64748B', fontSize: '14px', maxWidth: '300px', margin: '0 auto' }}>No attendance records are currently waiting for your approval.</p>
+               <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 8px' }}>All Caught Up!</h3>
+               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '300px', margin: '0 auto' }}>No attendance records are currently waiting for your approval.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -223,18 +223,18 @@ const PendingAttendance = () => {
                               {r.employee?.name?.charAt(0)}
                            </div>
                            <div>
-                              <div style={{ fontWeight: '800', fontSize: '14px', color: '#0F172A' }}>{r.employee?.name}</div>
-                              <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>#{r.employee?.employeeId}</div>
+                              <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>{r.employee?.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>#{r.employee?.employeeId}</div>
                            </div>
                         </div>
                       </td>
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                           <div style={{ fontWeight: '700', fontSize: '14px', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <CalendarIcon size={14} color="#94A3B8" />
+                           <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <CalendarIcon size={14} color="var(--text-muted)" />
                               {new Date(r.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                            </div>
-                           <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', alignSelf: 'flex-start' }}>
+                           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', alignSelf: 'flex-start' }}>
                               {r.isExtraDay ? 'Extra Day (Week Off)' : 'Regular Shift'}
                            </div>
                         </div>
@@ -294,7 +294,7 @@ const PendingAttendance = () => {
                               <XCircle size={20} />
                            </button>
                            <button 
-                            style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#F1F5F9', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#F1F5F9', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                             title="Details"
                            >
                               <ChevronRight size={20} />
@@ -319,7 +319,7 @@ const PendingAttendance = () => {
   );
 };
 
-const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const tdStyle = { padding: '20px', fontSize: '14px' };
 
 export default PendingAttendance;

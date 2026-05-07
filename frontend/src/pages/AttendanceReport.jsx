@@ -15,9 +15,9 @@ const SummaryCard = ({ icon, label, value, color }) => (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '18px 22px', flex: 1, minWidth: 130 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <div style={{ color, background: color + '20', borderRadius: 8, padding: 6, display: 'flex' }}>{icon}</div>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>{label}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</span>
         </div>
-        <div style={{ fontSize: 26, fontWeight: 700, color: '#1e293b' }}>{value}</div>
+        <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
     </div>
 );
 
@@ -165,18 +165,18 @@ const AttendanceReport = () => {
                 <div className="hrm-card">
                     <div className="hrm-card-body">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-                            <div style={{ fontWeight: 600, fontSize: 15, color: '#1e293b' }}>
+                            <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>
                                 {filtered.length} record{filtered.length !== 1 ? 's' : ''} found
-                                {from && to && <span style={{ fontWeight: 400, color: '#64748b', fontSize: 13 }}> · {from} to {to}</span>}
+                                {from && to && <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 13 }}> · {from} to {to}</span>}
                             </div>
                             <div style={{ position: 'relative' }}>
-                                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                                 <input className="hrm-input" style={{ paddingLeft: 30, width: 220 }} placeholder="Search name, ID, dept..." value={search} onChange={e => setSearch(e.target.value)} />
                             </div>
                         </div>
 
                         {filtered.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
+                            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
                                 <FileText size={40} style={{ opacity: 0.3, marginBottom: 10 }} />
                                 <p>No records found for the selected filters.</p>
                             </div>
@@ -204,9 +204,9 @@ const AttendanceReport = () => {
                                             return (
                                                 <tr key={i}>
                                                     <td style={{ fontWeight: 500 }}>{r.date}</td>
-                                                    <td style={{ color: '#64748b' }}>{r.employeeId}</td>
+                                                    <td style={{ color: 'var(--text-secondary)' }}>{r.employeeId}</td>
                                                     <td style={{ fontWeight: 600 }}>{r.name}</td>
-                                                    <td style={{ color: '#64748b' }}>{r.department}</td>
+                                                    <td style={{ color: 'var(--text-secondary)' }}>{r.department}</td>
                                                     <td>
                                                         {st ? (
                                                             <span style={{ background: st.bg, color: st.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 500 }}>{r.status}</span>
@@ -240,7 +240,7 @@ const AttendanceReport = () => {
             )}
 
             {!searched && !loading && (
-                <div style={{ textAlign: 'center', padding: '80px 0', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
                     <FileText size={48} style={{ opacity: 0.3, marginBottom: 12 }} />
                     <p style={{ fontSize: 15 }}>Set your filters and click Generate to view the report.</p>
                 </div>

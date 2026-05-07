@@ -39,7 +39,7 @@ const EmployeeResignation = () => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#EF4444',
-      cancelButtonColor: '#64748B',
+      cancelButtoncolor: 'var(--text-secondary)',
       confirmButtonText: 'Yes, Submit Resignation'
     });
 
@@ -58,7 +58,7 @@ const EmployeeResignation = () => {
         } else {
           Swal.fire('Error', json.message || 'Submission failed', 'error');
         }
-      } catch (e) {
+      } catch {
         Swal.fire('Error', 'Network error', 'error');
       } finally {
         setSubmitting(false);
@@ -83,8 +83,8 @@ const EmployeeResignation = () => {
   return (
     <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#0F172A', margin: '0 0 4px' }}>Resignation</h2>
-        <p style={{ color: '#64748B', margin: 0, fontSize: '14px' }}>Initiate your resignation process or track your request status</p>
+        <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', margin: '0 0 4px' }}>Resignation</h2>
+        <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>Initiate your resignation process or track your request status</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: resignation ? '1fr' : '1fr 350px', gap: '32px' }}>
@@ -107,18 +107,18 @@ const EmployeeResignation = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-                   <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Applied On</div>
-                   <div style={{ fontSize: '16px', fontWeight: '700', color: '#1E293B' }}>{new Date(resignation.createdAt).toLocaleDateString()}</div>
+                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Applied On</div>
+                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(resignation.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-                   <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Requested LWD</div>
-                   <div style={{ fontSize: '16px', fontWeight: '700', color: '#1E293B' }}>{new Date(resignation.lastWorkingDay).toLocaleDateString()}</div>
+                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Requested LWD</div>
+                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(resignation.lastWorkingDay).toLocaleDateString()}</div>
                 </div>
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                 <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px' }}>Reason for Resignation</div>
-                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9', color: '#475569', lineHeight: '1.6', fontSize: '14px' }}>
+                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px' }}>Reason for Resignation</div>
+                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9', color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '14px' }}>
                    {resignation.reason}
                  </div>
               </div>
@@ -134,9 +134,9 @@ const EmployeeResignation = () => {
             <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '10px' }}>Notice Details</label>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '10px' }}>Notice Details</label>
                   <div style={{ position: 'relative' }}>
-                    <Calendar size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <Calendar size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input 
                       type="date"
                       value={lastWorkingDay}
@@ -145,11 +145,11 @@ const EmployeeResignation = () => {
                       min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
-                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '8px' }}>Please select your preferred last working day based on your notice period.</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>Please select your preferred last working day based on your notice period.</p>
                 </div>
 
                 <div style={{ marginBottom: '32px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '10px' }}>Reason for Resignation</label>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '10px' }}>Reason for Resignation</label>
                   <textarea 
                     value={reason}
                     onChange={e => setReason(e.target.value)}
@@ -191,18 +191,18 @@ const EmployeeResignation = () => {
             </div>
 
             <div style={{ background: '#F8FAFC', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '24px' }}>
-               <h4 style={{ margin: '0 0 16px', color: '#1E293B', fontWeight: '800' }}>Next Steps</h4>
+               <h4 style={{ margin: '0 0 16px', color: 'var(--text-primary)', fontWeight: '800' }}>Next Steps</h4>
                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#2563EB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>1</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Submit your request through this panel.</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Submit your request through this panel.</p>
                </div>
                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>2</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Management will review and approve/reject your request.</p>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>2</div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Management will review and approve/reject your request.</p>
                </div>
                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>3</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>Once approved, your LWD will be finalized and offboarding initiated.</p>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>3</div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Once approved, your LWD will be finalized and offboarding initiated.</p>
                </div>
             </div>
           </div>

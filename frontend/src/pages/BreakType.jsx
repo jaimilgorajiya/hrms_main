@@ -1,7 +1,7 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Coffee, Utensils, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Coffee, Utensils, Clock, ToggleLeft, ToggleRight, Save, RotateCcw, AlertCircle, Settings } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const BreakType = () => {
@@ -15,8 +15,6 @@ const BreakType = () => {
         name: '',
         minutes: ''
     });
-
-    
 
     useEffect(() => {
         fetchBreakTypes();
@@ -65,13 +63,7 @@ const BreakType = () => {
 
             const data = await response.json();
             if (data.success) {
-                Swal.fire({
-                    title: 'Success!',
-                    text: isEditing ? 'Break Type updated successfully.' : 'Break Type added successfully.',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
+                Swal.fire({ title: 'Success!', text: isEditing ? 'Break Type updated' : 'Break Type added', icon: 'success', timer: 1500, showConfirmButton: false });
                 setIsModalOpen(false);
                 setFormData({ name: '', minutes: '' });
                 setIsEditing(false);
@@ -80,7 +72,7 @@ const BreakType = () => {
                 Swal.fire('Error', data.message || 'Something went wrong', 'error');
             }
         } catch (error) {
-            Swal.fire('Error', 'Failed to save break type', 'error');
+            Swal.fire('Error', 'Failed to save', 'error');
         }
     };
 
@@ -100,9 +92,9 @@ const BreakType = () => {
             text: "This action cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Yes, delete '
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, delete it'
         });
 
         if (result.isConfirmed) {
@@ -114,24 +106,24 @@ const BreakType = () => {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Deleted!', 'Break type has been removed.', 'success');
+                    Swal.fire('Deleted!', 'Break type removed.', 'success');
                     fetchBreakTypes();
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to delete break type', 'error');
+                Swal.fire('Error', 'Failed to delete', 'error');
             }
         }
     };
 
     const toggleStatus = async (id, currentStatus) => {
         const result = await Swal.fire({
-            title: currentStatus ? 'Deactivate Break Type?' : 'Activate Break Type?',
-            text: `Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this break type?`,
+            title: currentStatus ? 'Deactivate Break?' : 'Activate Break?',
+            text: `Confirm to ${currentStatus ? 'deactivate' : 'activate'} this break type.`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#2563EB',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: `Yes, ${currentStatus ? 'deactivate' : 'activate'} it!`
+            confirmButtonColor: 'var(--primary-blue)',
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, proceed'
         });
 
         if (result.isConfirmed) {
@@ -147,68 +139,87 @@ const BreakType = () => {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: `Break type ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
-                        icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    Swal.fire({ title: 'Success!', text: `Break type ${!currentStatus ? 'activated' : 'deactivated'}`, icon: 'success', timer: 1500, showConfirmButton: false });
                     fetchBreakTypes();
                 }
             } catch (error) {
-                console.error("Error toggling status:", error);
-                Swal.fire('Error', 'Failed to update status', 'error');
+                Swal.fire('Error', 'Failed to update', 'error');
             }
         }
     };
 
-    if (loading) return <div className="loading-container">Loading...</div>;
+    if (loading) return (
+        <div className="hrm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+            <div style={{ color: 'var(--text-muted)' }}>Loading Break Configurations...</div>
+        </div>
+    );
 
     return (
-        <div className="designation-container">
-            <div className="designation-header">
-                <h1 className="profile-title">Break Type</h1>
-                <div className="header-actions">
-                    <button className="btn-theme btn-theme-primary" onClick={() => { setIsEditing(false); setFormData({ name: '', minutes: '' }); setIsModalOpen(true); }}>
-                        <Plus size={16} /> ADD
-                    </button>
+        <div className="hrm-container">
+            <div className="hrm-header">
+                <div>
+                    <h1 className="hrm-title">Shift Break Types</h1>
+                    <p className="hrm-subtitle">Manage default break durations and categories available during shifts</p>
                 </div>
+                <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ name: '', minutes: '' }); setIsModalOpen(true); }}>
+                    <Plus size={18} /> ADD NEW BREAK
+                </button>
             </div>
 
-            <div className="break-type-grid">
-                {breakTypes.map((bt, index) => (
-                    <div key={bt._id} className={`break-type-card ${bt.isActive ? 'active' : ''}`}>
-                        <div className="card-top">
-                            <span className="break-name">{bt.name}</span>
-                            <span className="break-index">#{index + 1}</span>
-                        </div>
-                        <div className="card-body">
-                            <div className="break-label-pill">
-                                <Coffee size={14} />
-                                <span>{bt.name}</span>
-                            </div>
-                            <div className="info-row">
-                                <div className="info-item">
-                                    <Clock size={16} className="text-muted" />
-                                    <span>Minutes</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
+                {breakTypes.length === 0 ? (
+                    <div className="hrm-card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '80px', borderStyle: 'dashed' }}>
+                        <Coffee size={48} style={{ opacity: 0.1, margin: '0 auto 16px' }} />
+                        <p style={{ color: 'var(--text-muted)', fontWeight: '600' }}>No break types configured yet.</p>
+                    </div>
+                ) : breakTypes.map((bt, index) => (
+                    <div key={bt._id} className="hrm-card" style={{ opacity: bt.isActive ? 1 : 0.75, transition: 'all 0.3s ease' }}>
+                        <div style={{ padding: '28px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{ padding: '12px', background: 'var(--primary-light)', borderRadius: '14px', color: 'var(--primary-blue)', border: '1px solid var(--primary-light)' }}>
+                                        <Coffee size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--text-dark)' }}>{bt.name}</h3>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px' }}>CATEGORY #{index + 1}</div>
+                                    </div>
                                 </div>
-                                <span className="info-value">{bt.minutes}</span>
+                                <div className={`hrm-badge ${bt.isActive ? 'hrm-badge-primary' : 'hrm-badge-secondary'}`} style={{ padding: '4px 12px' }}>
+                                    {bt.isActive ? 'Active' : 'Inactive'}
+                                </div>
                             </div>
-                        </div>
-                        <div className="card-footer">
-                            <div className="footer-left-actions" style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn-action-edit" onClick={() => handleEdit(bt)} title="Edit">
-                                    <Edit2 size={16} />
-                                </button>
-                                <button className="btn-action-delete" onClick={() => handleDelete(bt._id)} title="Delete">
-                                    <Trash2 size={16} />
-                                </button>
+
+                            <div style={{ display: 'flex', gap: '16px', padding: '18px', background: 'var(--bg-main)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '24px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '700' }}>
+                                    <Clock size={18} color="var(--primary-blue)" />
+                                    <span>Duration:</span>
+                                    <span style={{ color: 'var(--text-dark)', fontWeight: '800', marginLeft: '4px', fontSize: '16px' }}>
+                                        {bt.minutes} {bt.minutes !== "As Per Shift" ? 'Minutes' : ''}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="status-toggle-wrapper">
-                                <span className="status-text">{bt.isActive ? 'Active' : 'Inactive'}</span>
-                                <button className="toggle-btn" onClick={() => toggleStatus(bt._id, bt.isActive)}>
-                                    {bt.isActive ? <ToggleRight size={28} className="text-primary-blue" /> : <ToggleLeft size={28} className="text-muted" />}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="icon-btn" onClick={() => handleEdit(bt)} title="Edit Settings">
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button className="icon-btn" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(bt._id)} title="Remove Break Type">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => toggleStatus(bt._id, bt.isActive)}
+                                    style={{
+                                        background: 'transparent', border: 'none', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '10px',
+                                        color: bt.isActive ? 'var(--success)' : 'var(--text-muted)',
+                                        fontWeight: '800', fontSize: '13px', padding: '4px 8px', borderRadius: '8px'
+                                    }}
+                                >
+                                    {bt.isActive ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                                    <span style={{ width: '60px' }}>{bt.isActive ? 'ENABLED' : 'DISABLED'}</span>
                                 </button>
                             </div>
                         </div>
@@ -217,45 +228,42 @@ const BreakType = () => {
             </div>
 
             {isModalOpen && (
-                <div className="modal-theme-overlay">
-                    <div className="modal-theme-content" style={{ maxWidth: '540px' }}>
-                        <div className="modal-theme-header" style={{ padding: '20px 24px', background: 'white', color: '#1E293B', borderBottom: '1px solid #F1F5F9' }}>
-                            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#334155' }}>{isEditing ? 'Update Break Type' : 'Add New Break Type'}</h2>
-                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px' }}><X size={20} /></button>
+                <div className="hrm-modal-overlay">
+                    <div className="hrm-modal-content" style={{ width: '500px' }}>
+                        <div className="hrm-modal-header">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Settings size={24} color="var(--primary-blue)" />
+                                <h2>{isEditing ? 'Edit Break Configuration' : 'Create Break Category'}</h2>
+                            </div>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-theme-body" style={{ padding: '30px 24px' }}>
-                                <div className="form-group-hrm" style={{ marginBottom: '24px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569', fontSize: '14px' }}>Break Type <span className="text-danger">*</span></label>
-                                    <input 
-                                        type="text" 
-                                        className="form-control-hrm" 
-                                        name="name" 
-                                        value={formData.name} 
-                                        onChange={handleInputChange} 
-                                        placeholder="e.g. Lunch Break" 
-                                        required 
-                                        style={{ height: '45px', fontSize: '14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}
-                                    />
+                            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+                                <div className="hrm-form-group">
+                                    <label className="hrm-label">Break Category Name <span className="req">*</span></label>
+                                    <input type="text" name="name" className="hrm-input" value={formData.name} onChange={handleInputChange} placeholder="e.g. Lunch Break" required />
                                 </div>
-                                <div className="form-group-hrm">
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#475569', fontSize: '14px' }}>Break Time (Minutes)</label>
-                                    <input 
-                                        type="text" 
-                                        className="form-control-hrm" 
-                                        name="minutes" 
-                                        value={formData.minutes} 
-                                        onChange={handleInputChange} 
-                                        placeholder="e.g. 30" 
-                                        style={{ height: '45px', fontSize: '14px', borderRadius: '8px', border: '1px solid #E2E8F0' }}
-                                    />
+                                <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                    <label className="hrm-label">Default Duration (Minutes)</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input type="number" name="minutes" className="hrm-input" value={formData.minutes} onChange={handleInputChange} placeholder="30" />
+                                        <Clock size={16} style={{ position: 'absolute', right: '12px', top: '13px', color: 'var(--text-muted)' }} />
+                                    </div>
+                                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <AlertCircle size={12} /> Leave empty to allow shift-specific durations.
+                                    </p>
                                 </div>
                             </div>
-                            <div className="modal-theme-footer" style={{ borderTop: '1px solid #F1F5F9', justifyContent: 'flex-end', gap: '12px', padding: '20px 24px', background: 'white' }}>
-                                <button type="button" className="btn-theme btn-theme-secondary" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #CBD5E1', color: '#334155', padding: '10px 24px', borderRadius: '10px', fontWeight: '700', fontSize: '14px' }}>Cancel</button>
-                                <button type="submit" className="btn-theme btn-theme-primary" style={{ padding: '10px 30px', borderRadius: '10px', fontWeight: '700', fontSize: '14px' }}>
-                                    <Check size={18} style={{ marginRight: '6px' }} /> {isEditing ? 'Save' : 'Save'}
-                                </button>
+                            <div className="hrm-modal-footer">
+                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)}>CANCEL</button>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button type="button" onClick={() => setFormData({ name: '', minutes: '' })} className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)' }}>
+                                        <RotateCcw size={16} /> RESET
+                                    </button>
+                                    <button type="submit" className="btn-hrm btn-hrm-primary">
+                                        <Save size={18} /> {isEditing ? 'UPDATE BREAK' : 'SAVE BREAK'}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>

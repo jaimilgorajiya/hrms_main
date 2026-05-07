@@ -283,7 +283,7 @@ const MonthlyPayout = () => {
                                 borderRadius: '12px',
                                 border: '1px solid #e2e8f0',
                                 fontWeight: '600',
-                                color: '#1e293b',
+                                color: 'var(--text-primary)',
                                 background: 'white',
                                 height: '42px',
                                 cursor: 'pointer',
@@ -313,33 +313,33 @@ const MonthlyPayout = () => {
                             {loading ? (
                                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>Analyzing payroll data...</td></tr>
                             ) : filtered.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No eligible employees found for this month.</td></tr>
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No eligible employees found for this month.</td></tr>
                             ) : filtered.map((s, i) => (
                                 <tr key={i} onClick={() => setSelectedEmp(s)} style={{ cursor: 'pointer' }}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <div style={{ width: '35px', height: '35px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <User size={18} color="#64748b" />
+                                                <User size={18} color="var(--text-secondary)" />
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 600 }}>{s.employee.name}</div>
-                                                <div style={{ fontSize: '11px', color: '#64748b' }}>{s.employee.employeeId}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{s.employee.employeeId}</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 500, color: s.isInitiated ? '#94a3b8' : '#10b981' }}>{s.attendance.present + (s.attendance.halfDay * 0.5) + s.attendance.weekOff + s.attendance.holiday} / {s.daysInMonth} Days</div>
-                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>{s.attendance.present}P | {s.attendance.absent}A | {s.attendance.paidLeave}L</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{s.attendance.present}P | {s.attendance.absent}A | {s.attendance.paidLeave}L</div>
                                     </td>
                                     <td>
                                         <div style={{ color: s.isInitiated ? '#94a3b8' : '#ef4444', fontWeight: 600 }}>-₹{s.penalties.total.toLocaleString()}</div>
-                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Policy Penalties</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Policy Penalties</div>
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '16px', fontWeight: 700, color: s.isInitiated ? '#94a3b8' : '#2563eb' }}>
                                             ₹{s.salary.accruedNet.toLocaleString()}
                                         </div>
-                                        <div style={{ fontSize: '10px', color: '#64748b' }}>Gross: ₹{s.salary.monthlyGross}</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Gross: ₹{s.salary.monthlyGross}</div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -380,7 +380,7 @@ const MonthlyPayout = () => {
                         <div className="hrm-modal-header">
                             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Payout Audit: {selectedEmp.employee.name}</h2>
                             <button 
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} 
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} 
                                 onClick={() => setSelectedEmp(null)}
                             >
                                 <X size={20}/>
@@ -389,7 +389,7 @@ const MonthlyPayout = () => {
                         <div className="hrm-modal-body">
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div className="hrm-card" style={{ padding: '15px', background: '#f8fafc' }}>
-                                    <h4 style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={14}/> Attendance Breakdown</h4>
+                                    <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={14}/> Attendance Breakdown</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#059669', fontWeight: 600 }}>{selectedEmp.attendance.present}</span> Present</div>
                                         <div style={{ fontSize: '13px' }}><span style={{ color: '#ef4444', fontWeight: 600 }}>{selectedEmp.attendance.absent}</span> Absent</div>
@@ -403,11 +403,11 @@ const MonthlyPayout = () => {
                                 </div>
 
                                 <div className="hrm-card" style={{ padding: '15px', background: '#f8fafc' }}>
-                                    <h4 style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={14}/> Hours Analysis</h4>
+                                    <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={14}/> Hours Analysis</h4>
                                     <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#334155' }}>{selectedEmp.hours.worked}</div>
-                                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Total Worked this Month</div>
-                                        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px' }}>Shift Expectancy: {selectedEmp.hours.expected}</div>
+                                        <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedEmp.hours.worked}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Total Worked this Month</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '10px' }}>Shift Expectancy: {selectedEmp.hours.expected}</div>
                                     </div>
                                 </div>
 
@@ -461,7 +461,7 @@ const MonthlyPayout = () => {
                                             />
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                             <span style={{ fontSize: '11px', color: '#64748b' }}>Adjustment Reason:</span>
+                                             <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Adjustment Reason:</span>
                                              <input 
                                                 type="text" 
                                                 className="hrm-input" 

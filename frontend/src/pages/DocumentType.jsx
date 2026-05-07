@@ -12,7 +12,11 @@ import {
     ToggleRight, 
     FileText, 
     Settings,
-    Shield
+    Shield,
+    AlertCircle,
+    Info,
+    Save,
+    RotateCcw
 } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -51,7 +55,6 @@ const DocumentType = () => {
             if (data.success && Array.isArray(data.documentTypes)) {
                 setDocuments(data.documentTypes);
             } else if (Array.isArray(data)) {
-                // Fallback for old raw array format just in case
                 setDocuments(data);
             }
         } catch (error) {
@@ -116,13 +119,13 @@ const DocumentType = () => {
 
     const handleDelete = async (id) => {
         const result = await Swal.fire({
-            title: 'Are you sure?',
-            text: "You won't be able to revert this!",
+            title: 'Delete Document Type?',
+            text: "This action cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3B648B',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, delete it'
         });
 
         if (result.isConfirmed) {
@@ -148,8 +151,8 @@ const DocumentType = () => {
             text: `Are you sure you want to delete ${selectedIds.length} records?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3B648B',
-            confirmButtonText: 'Yes, delete all!'
+            confirmButtonColor: 'var(--danger)',
+            confirmButtonText: 'Yes, delete all'
         });
 
         if (result.isConfirmed) {
@@ -172,13 +175,13 @@ const DocumentType = () => {
 
     const handleToggleStatus = async (id, currentStatus) => {
         const result = await Swal.fire({
-            title: 'Update Status?',
+            title: currentStatus ? 'Deactivate Document?' : 'Activate Document?',
             text: `Are you sure you want to ${currentStatus ? 'Deactivate' : 'Activate'} this document type?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3B648B',
-            cancelButtonColor: '#d33',
-            confirmButtonText: `Yes, ${currentStatus ? 'Deactivate' : 'Activate'} it!`
+            confirmButtonColor: 'var(--primary-blue)',
+            cancelButtonColor: 'var(--text-secondary)',
+            confirmButtonText: 'Yes, proceed'
         });
 
         if (result.isConfirmed) {
@@ -189,7 +192,7 @@ const DocumentType = () => {
                 if (response.ok) {
                     Swal.fire({
                         title: 'Updated!',
-                        text: 'Status has been changed successfully.',
+                        text: 'Status updated successfully.',
                         icon: 'success',
                         timer: 1000,
                         showConfirmButton: false
@@ -230,7 +233,8 @@ const DocumentType = () => {
 
     // Pagination & Search Logic
     const filteredDocs = documents.filter(doc => 
-        doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (doc.shortName && doc.shortName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     const indexOfLastRecord = currentPage * entriesPerPage;
@@ -238,115 +242,191 @@ const DocumentType = () => {
     const currentRecords = filteredDocs.slice(indexOfFirstRecord, indexOfLastRecord);
     const totalPages = Math.ceil(filteredDocs.length / entriesPerPage);
 
-    if (loading) return <div className="loading-container">Scanning Documents...</div>;
-
     return (
         <div className="hrm-container">
             <div className="hrm-header">
-                <h1 className="hrm-title">Employee Document Types</h1>
-                <div className="hrm-header-actions">
+                <div>
+                    <h1 className="hrm-title">Employee Document Types</h1>
+                    <p className="hrm-subtitle">Manage KYC and compliance documents required for employees</p>
+                </div>
+                <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn-hrm btn-hrm-primary">
-                        <Plus size={18} /> ADD
+                        <Plus size={18} /> ADD DOCUMENT TYPE
                     </button>
-                    <button 
-                        onClick={handleBulkDelete} 
-                        className="btn-hrm btn-hrm-danger"
-                        disabled={selectedIds.length === 0}
-                        style={{ opacity: selectedIds.length === 0 ? 0.6 : 1, cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer' }}
-                    >
-                        <Trash2 size={18} /> DELETE
-                    </button>
+                    {selectedIds.length > 0 && (
+                        <button onClick={handleBulkDelete} className="btn-hrm btn-hrm-danger">
+                            <Trash2 size={18} /> DELETE SELECTED ({selectedIds.length})
+                        </button>
+                    )}
                 </div>
             </div>
 
             <div className="hrm-card">
-                <div className="hrm-card-body">
-                    
-
-                    <div className="hrm-table-wrapper">
-                        <table className="hrm-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '40px' }}>
-                                        <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === currentRecords.length && currentRecords.length > 0} />
-                                    </th>
-                                    <th>Sr. No</th>
-                                    <th>Name</th>
-                                    <th>Before Onboarding</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {currentRecords.map((doc, index) => (
-                                    <tr key={doc._id}>
-                                        <td>
-                                            <input type="checkbox" checked={selectedIds.includes(doc._id)} onChange={() => handleRowSelect(doc._id)} />
-                                        </td>
-                                        <td>{indexOfFirstRecord + index + 1}</td>
-                                        <td>{doc.name}</td>
-                                        <td>{doc.requiredBeforeOnboarding}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <button onClick={() => handleEdit(doc)} className="btn-action-edit">
-                                                    <Edit2 size={14} />
-                                                </button>
-                                                <button onClick={() => handleToggleStatus(doc._id, doc.status)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
-                                                    {doc.status ? <ToggleRight size={28} color="#22c55e" /> : <ToggleLeft size={28} color="#94a3b8" />}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                <div className="hrm-card-header" style={{ justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                        TOTAL: {filteredDocs.length} DOCUMENTS
+                    </div>
+                    <div className="hrm-search-wrapper" style={{ width: '300px' }}>
+                        <Search size={16} className="hrm-search-icon" />
+                        <input 
+                            type="text" 
+                            className="hrm-input hrm-search-input" 
+                            placeholder="Search by name..." 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                        />
                     </div>
                 </div>
-            </div>
 
-            {/* Modal */}
-            {isModalOpen && (
-                <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content" style={{ width: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                        <div className="hrm-modal-header" style={{ background: '#3B648B', flexShrink: 0 }}>
-                            <h2 style={{ color: 'white' }}>{isEditing ? 'Edit Document Type' : 'Add Document Type'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
-                                <X size={20} />
+                <div className="hrm-table-container">
+                    <table className="hrm-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '40px' }}>
+                                    <input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === currentRecords.length && currentRecords.length > 0} />
+                                </th>
+                                <th style={{ width: '60px' }}>Sr. No</th>
+                                <th>Document Name</th>
+                                <th>Short Name</th>
+                                <th style={{ textAlign: 'center' }}>Required Before Onboarding</th>
+                                <th style={{ textAlign: 'center' }}>Status</th>
+                                <th style={{ textAlign: 'right' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" style={{ textAlign: 'center', padding: '60px' }}>
+                                        <div style={{ color: 'var(--text-muted)' }}>Loading documents...</div>
+                                    </td>
+                                </tr>
+                            ) : currentRecords.length > 0 ? currentRecords.map((doc, index) => (
+                                <tr key={doc._id}>
+                                    <td>
+                                        <input type="checkbox" checked={selectedIds.includes(doc._id)} onChange={() => handleRowSelect(doc._id)} />
+                                    </td>
+                                    <td>{indexOfFirstRecord + index + 1}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ background: 'var(--bg-main)', padding: '6px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                <FileText size={16} color="var(--primary-blue)" />
+                                            </div>
+                                            <span style={{ fontWeight: '700', color: 'var(--text-dark)' }}>{doc.name}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className="hrm-badge" style={{ background: 'var(--bg-main)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                                            {doc.shortName || '--'}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <span className={`hrm-badge ${doc.requiredBeforeOnboarding === 'Yes' ? 'hrm-badge-primary' : 'hrm-badge-secondary'}`}>
+                                            {doc.requiredBeforeOnboarding}
+                                        </span>
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <button onClick={() => handleToggleStatus(doc._id, doc.status)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                            {doc.status ? <ToggleRight size={28} color="var(--success)" /> : <ToggleLeft size={28} color="var(--text-muted)" />}
+                                        </button>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <button onClick={() => handleEdit(doc)} className="icon-btn" title="Edit">
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button onClick={() => handleDelete(doc._id)} className="icon-btn" style={{ color: 'var(--danger)' }} title="Delete">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="7" style={{ textAlign: 'center', padding: '60px' }}>
+                                        <AlertCircle size={32} style={{ opacity: 0.1, margin: '0 auto 12px' }} />
+                                        <div style={{ color: 'var(--text-muted)' }}>No document types found matching your search.</div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {totalPages > 1 && (
+                    <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                            Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, filteredDocs.length)} of {filteredDocs.length} entries
+                        </div>
+                        <div className="pagination">
+                            <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                <ChevronLeft size={16} />
+                            </button>
+                            {[...Array(totalPages)].map((_, i) => (
+                                <button key={i} className={`page-btn ${currentPage === i + 1 ? 'active' : ''}`} onClick={() => setCurrentPage(i + 1)}>
+                                    {i + 1}
+                                </button>
+                            ))}
+                            <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                <ChevronRight size={16} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                            <div className="hrm-modal-body" style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    </div>
+                )}
+            </div>
+
+            {isModalOpen && (
+                <div className="hrm-modal-overlay">
+                    <div className="hrm-modal-content" style={{ width: '600px' }}>
+                        <div className="hrm-modal-header" style={{ background: 'var(--primary-blue)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <Shield size={24} color="white" />
+                                <h2 style={{ color: 'white', margin: 0 }}>{isEditing ? 'Update Document Configuration' : 'Configure New Document'}</h2>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                     <div className="hrm-form-group">
-                                        <label className="hrm-label">ID Proof Name <span className="req">*</span></label>
+                                        <label className="hrm-label">Document Display Name <span className="req">*</span></label>
                                         <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="hrm-input" required placeholder="e.g. Aadhar Card" />
                                     </div>
                                     <div className="hrm-form-group">
-                                        <label className="hrm-label">Document Short Name</label>
-                                        <input type="text" name="shortName" value={formData.shortName} onChange={handleInputChange} className="hrm-input" placeholder="e.g. Aadhar" />
+                                        <label className="hrm-label">Short Name / Code</label>
+                                        <input type="text" name="shortName" value={formData.shortName} onChange={handleInputChange} className="hrm-input" placeholder="e.g. AADHAR" />
                                     </div>
 
-                                    <div className="hrm-form-group">
+                                    <div className="hrm-form-group" style={{ gridColumn: 'span 2' }}>
                                         <SearchableSelect 
                                             label="Required Before Onboarding"
                                             required={true}
                                             options={[
-                                                { value: 'No', label: 'No' },
-                                                { value: 'Yes', label: 'Yes' }
+                                                { value: 'No', label: 'No (Can be uploaded after joining)' },
+                                                { value: 'Yes', label: 'Yes (Mandatory for joining)' }
                                             ]}
                                             value={formData.requiredBeforeOnboarding}
                                             onChange={(val) => handleSelectChange('requiredBeforeOnboarding', val)}
                                         />
+                                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Info size={12} /> This setting enforces document collection during the digital onboarding flow.
+                                        </p>
                                     </div>
-                                
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer" style={{ flexShrink: 0, padding: '20px', borderTop: '1px solid #e2e8f0' }}>
-                                <button type="submit" className="btn-hrm btn-hrm-primary" style={{ textTransform: 'none' }}>
-                                    <Check size={18} /> {isEditing ? 'SAVE CHANGES' : 'ADD'}
+                            <div className="hrm-modal-footer">
+                                <button type="button" onClick={() => { resetForm(); setIsModalOpen(false); }} className="btn-hrm btn-hrm-secondary">
+                                    CANCEL
                                 </button>
-                                <button type="button" onClick={resetForm} className="btn-hrm btn-hrm-danger" style={{ textTransform: 'none' }}>
-                                    <X size={18} /> RESET
-                                </button>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button type="button" onClick={resetForm} className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)' }}>
+                                        <RotateCcw size={16} /> RESET
+                                    </button>
+                                    <button type="submit" className="btn-hrm btn-hrm-primary">
+                                        <Save size={18} /> {isEditing ? 'UPDATE CONFIG' : 'SAVE DOCUMENT'}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>

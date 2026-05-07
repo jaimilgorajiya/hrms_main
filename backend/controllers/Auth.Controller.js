@@ -114,9 +114,27 @@ const checkPhone = async (req, res) => {
         const today = new Date();
         today.setHours(0,0,0,0);
 
+        // Check resignation last working day — also look up Resignation record as fallback
+        // in case exitDate wasn't synced to the User document
+        let effectiveExitDate = user.exitDate ? new Date(user.exitDate) : null;
+
+        if (!effectiveExitDate && user.status === 'Resigned') {
+            const Resignation = (await import('../models/Resignation.Model.js')).default;
+            const resignation = await Resignation.findOne({ 
+                employeeId: user._id, 
+                status: 'Approved',
+                lastWorkingDay: { $exists: true }
+            }).sort({ createdAt: -1 });
+            if (resignation?.lastWorkingDay) {
+                effectiveExitDate = new Date(resignation.lastWorkingDay);
+                // Sync it back to the user record so future checks are fast
+                await User.findByIdAndUpdate(user._id, { exitDate: resignation.lastWorkingDay });
+            }
+        }
+
         const isBlocked = 
             (user.status && !["Active", "Onboarding", "Resigned"].includes(user.status)) ||
-            (user.status === "Resigned" && user.exitDate && new Date(user.exitDate) < today);
+            (user.status === "Resigned" && effectiveExitDate && effectiveExitDate < today);
 
         if (isBlocked) {
             return res.status(403).json({ success: false, message: "Account is blocked. Contact admin." });
@@ -132,13 +150,13 @@ const checkPhone = async (req, res) => {
 
 const generateTokenAndSetCookie = (userId, res) => {
     const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: "3650d", // 10 years
+        expiresIn: "30d", // 30 days
     });
 
     res.cookie("jwt", token, {
-        maxAge: 10 * 365 * 24 * 60 * 60 * 1000, // 10 years in ms
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
         httpOnly: true,
-        secure: false, // Set to true only in production with HTTPS
+        secure: process.env.NODE_ENV === 'production',
         sameSite: "lax",
         path: "/",
     });

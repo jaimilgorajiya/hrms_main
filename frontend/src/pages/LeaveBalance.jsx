@@ -69,7 +69,7 @@ const LeaveBalance = () => {
             case 'Approved': return { bg: '#ECFDF5', color: '#059669', icon: CheckCircle2 };
             case 'Pending': return { bg: '#FFF7ED', color: '#EA580C', icon: Clock };
             case 'Rejected': return { bg: '#FEF2F2', color: '#DC2626', icon: XCircle };
-            default: return { bg: '#F1F5F9', color: '#475569', icon: AlertCircle };
+            default: return { bg: '#F1F5F9', color: 'var(--text-secondary)', icon: AlertCircle };
         }
     };
 
@@ -77,8 +77,8 @@ const LeaveBalance = () => {
         <div style={{ padding: '35px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
             {/* Header */}
             <div style={{ marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0F172A', marginBottom: '8px' }}>Individual Leave Portfolio</h1>
-                <p style={{ color: '#64748B', fontSize: '15px', fontWeight: '600' }}>Comprehensive entitlement tracking and history for specific staff members.</p>
+                <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Individual Leave Portfolio</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '600' }}>Comprehensive entitlement tracking and history for specific staff members.</p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '35px', alignItems: 'start' }}>
@@ -96,7 +96,7 @@ const LeaveBalance = () => {
                 }}>
                     <div style={{ padding: '20px', borderBottom: '1.5px solid #F1F5F9' }}>
                         <div style={{ position: 'relative' }}>
-                            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
                                 type="text" 
                                 placeholder="Find employee..."
@@ -194,8 +194,8 @@ const LeaveBalance = () => {
                             <div style={{ padding: '20px', background: 'white', borderRadius: '50%', marginBottom: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.05)' }}>
                                 <User size={40} color="#CBD5E1" />
                             </div>
-                            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#475569', marginBottom: '8px' }}>Select an Employee</h3>
-                            <p style={{ color: '#94A3B8', fontSize: '14px', textAlign: 'center', fontWeight: '600' }}>Pick a team member from the sidebar to view their comprehensive leave balance and historical data.</p>
+                            <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '8px' }}>Select an Employee</h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center', fontWeight: '600' }}>Pick a team member from the sidebar to view their comprehensive leave balance and historical data.</p>
                         </div>
                     ) : detailsLoading ? (
                         <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -211,8 +211,8 @@ const LeaveBalance = () => {
                                         <Calendar size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Total Entitlement</div>
-                                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#1E293B' }}>{employeeData?.totalEntitlement?.toFixed(2) || '0.00'}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '2px' }}>Total Entitlement</div>
+                                        <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)' }}>{employeeData?.totalEntitlement?.toFixed(2) || '0.00'}</div>
                                     </div>
                                 </div>
                                 <div style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -220,8 +220,8 @@ const LeaveBalance = () => {
                                         <TrendingUp size={24} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>Total Used</div>
-                                        <div style={{ fontSize: '24px', fontWeight: '900', color: '#1E293B' }}>{employeeData?.used?.toFixed(2) || '0.00'}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '2px' }}>Total Used</div>
+                                        <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)' }}>{employeeData?.used?.toFixed(2) || '0.00'}</div>
                                     </div>
                                 </div>
                                 <div style={{ background: '#3B648B', padding: '24px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '20px', color: 'white', boxShadow: '0 10px 20px rgba(59,100,139,0.2)' }}>
@@ -242,12 +242,12 @@ const LeaveBalance = () => {
                                         <Briefcase size={20} color="#3B648B" />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Active Policy Group</div>
-                                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#1E293B' }}>{employeeData?.leaveGroup || 'N/A'}</div>
+                                        <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Active Policy Group</div>
+                                        <div style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)' }}>{employeeData?.leaveGroup || 'N/A'}</div>
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Employee ID</div>
+                                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Employee ID</div>
                                     <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B648B' }}>{employeeData?.employeeId}</div>
                                 </div>
                             </div>
@@ -256,18 +256,18 @@ const LeaveBalance = () => {
                             <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', overflow: 'hidden' }}>
                                 <div style={{ padding: '20px 25px', borderBottom: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <History size={18} color="#3B648B" />
-                                    <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#1E293B', margin: 0 }}>Approval History</h3>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', margin: 0 }}>Approval History</h3>
                                 </div>
 
                                 <div style={{ overflowX: 'auto' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
                                             <tr style={{ background: '#F8FAFC' }}>
-                                                <th style={{ padding: '15px 25px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Period</th>
-                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Duration</th>
-                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Days</th>
-                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Status</th>
-                                                <th style={{ padding: '15px 25px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Reason</th>
+                                                <th style={{ padding: '15px 25px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Period</th>
+                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Duration</th>
+                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Days</th>
+                                                <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Status</th>
+                                                <th style={{ padding: '15px 25px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Reason</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -281,16 +281,16 @@ const LeaveBalance = () => {
                                                 return (
                                                     <tr key={req._id} style={{ borderBottom: '1.5px solid #F8FAFC' }}>
                                                         <td style={{ padding: '18px 25px' }}>
-                                                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>
+                                                            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
                                                                 {start.toLocaleDateString('en-GB')} - {end.toLocaleDateString('en-GB')}
                                                             </div>
                                                         </td>
                                                         <td style={{ padding: '18px 25px', textAlign: 'center' }}>
-                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', background: '#F1F5F9', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' }}>
+                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', background: '#F1F5F9', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' }}>
                                                                 {req.leaveDuration}
                                                             </div>
                                                         </td>
-                                                        <td style={{ padding: '18px 25px', textAlign: 'center', fontWeight: '900', color: '#1E293B' }}>
+                                                        <td style={{ padding: '18px 25px', textAlign: 'center', fontWeight: '900', color: 'var(--text-primary)' }}>
                                                             {dayCount}
                                                         </td>
                                                         <td style={{ padding: '18px 25px', textAlign: 'center' }}>
@@ -309,7 +309,7 @@ const LeaveBalance = () => {
                                                             </div>
                                                         </td>
                                                         <td style={{ padding: '18px 25px', maxWidth: '250px' }}>
-                                                            <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                                 {req.reason}
                                                             </div>
                                                         </td>
@@ -317,7 +317,7 @@ const LeaveBalance = () => {
                                                 );
                                             }) : (
                                                 <tr>
-                                                    <td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: '#94A3B8', fontWeight: '700' }}>
+                                                    <td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '700' }}>
                                                         No history found for this employee.
                                                     </td>
                                                 </tr>

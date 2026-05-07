@@ -81,7 +81,7 @@ const LeaveGroup = () => {
             <div className="hrm-card">
                 <div className="hrm-card-header" style={{ justifyContent: 'flex-end' }}>
                     <div className="search-wrapper">
-                        <Search size={16} color="#64748B" />
+                        <Search size={16} color="var(--text-secondary)" />
                         <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                     </div>
                 </div>
@@ -110,12 +110,12 @@ const LeaveGroup = () => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <button className="btn-action-edit" onClick={() => navigate(`/admin/leave/group/edit/${item._id}`)}><Edit2 size={14} /></button>
                                             <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }} onClick={() => toggleStatus(item._id, item.status)}>
-                                                {item.status === 'Active' ? <ToggleRight size={24} color="#22C55E" /> : <ToggleLeft size={24} color="#94A3B8" />}
+                                                {item.status === 'Active' ? <ToggleRight size={24} color="#22C55E" /> : <ToggleLeft size={24} color="var(--text-muted)" />}
                                             </button>
                                             <button className="btn-action-delete" onClick={() => handleDelete(item._id)}><Trash2 size={14} /></button>
                                         </div>
                                     </td>
-                                    <td style={{ fontWeight: 600, color: '#1E293B' }}>{item.leaveGroupName}</td>
+                                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.leaveGroupName}</td>
                                     <td>{item.leaveBalanceVisibility}</td>
                                     <td><span style={{ background: item.isPaidLeave ? '#F0FDF4' : '#F8FAFC', color: item.isPaidLeave ? '#16A34A' : '#64748B', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{item.isPaidLeave ? 'Yes' : 'No'}</span></td>
                                     <td>{item.isPaidLeave ? item.leaveAllocationType : '--'}</td>
@@ -129,7 +129,7 @@ const LeaveGroup = () => {
                 </div>
                 {totalPages > 1 && (
                     <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9' }}>
-                        <div style={{ fontSize: 13, color: '#64748B' }}>Showing {(currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, filtered.length)} of {filtered.length} entries</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Showing {(currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, filtered.length)} of {filtered.length} entries</div>
                         <div className="pagination">
                             <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}><ChevronLeft size={16} /></button>
                             {[...Array(totalPages)].map((_, i) => <button key={i} className={`page-btn ${currentPage === i + 1 ? 'active' : ''}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>)}

@@ -52,15 +52,15 @@ const EmployeePayslips = () => {
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '100px' }}>
                     <div className="loading-spinner"></div>
-                    <p style={{ marginTop: '10px', color: '#64748b' }}>Fetching your earnings statement...</p>
+                    <p style={{ marginTop: '10px', color: 'var(--text-secondary)' }}>Fetching your earnings statement...</p>
                 </div>
             ) : slips.length === 0 ? (
                 <div className="hrm-card" style={{ textAlign: 'center', padding: '60px', borderRadius: '15px' }}>
                     <div style={{ background: '#f8fafc', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                         <FileText size={40} color="#cbd5e1" />
                     </div>
-                    <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1e293b' }}>No Payslips Found</h2>
-                    <p style={{ color: '#64748b', maxWidth: '300px', margin: '10px auto' }}>Your payslips will appear here once they are published by the payroll administrator.</p>
+                    <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>No Payslips Found</h2>
+                    <p style={{ color: 'var(--text-secondary)', maxWidth: '300px', margin: '10px auto' }}>Your payslips will appear here once they are published by the payroll administrator.</p>
                 </div>
             ) : (
                 <div className="hrm-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
@@ -71,15 +71,15 @@ const EmployeePayslips = () => {
                                     <Calendar size={24} color="#2563eb" />
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Salary</div>
-                                    <div style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>₹{slip.finalPayout.toLocaleString()}</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Salary</div>
+                                    <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>₹{slip.finalPayout.toLocaleString()}</div>
                                 </div>
                             </div>
                             
-                            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#1e293b', marginBottom: '5px' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '5px' }}>
                                 {getMonthName(slip.month)}
                             </h3>
-                            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '20px' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
                                 Reference ID: #{slip._id.toString().slice(-6).toUpperCase()}
                             </p>
 

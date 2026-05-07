@@ -48,7 +48,7 @@ const AdminDeleteAttendance = () => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#EF4444',
-      cancelButtonColor: '#64748B',
+      cancelButtoncolor: 'var(--text-secondary)',
       confirmButtonText: 'Yes, mark as absent!'
     });
 
@@ -133,16 +133,16 @@ const AdminDeleteAttendance = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 8px' }}> Delete Attendance</h1>
-          <p style={{ color: '#64748B', fontWeight: '500', margin: 0 }}>Permanently remove erroneous logs. Deleting records marks the employee as "Absent" to maintain history.</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}> Delete Attendance</h1>
+          <p style={{ color: 'var(--text-secondary)', fontWeight: '500', margin: 0 }}>Permanently remove erroneous logs. Deleting records marks the employee as "Absent" to maintain history.</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '14px', padding: '0 12px' }}>
-            <CalendarIcon size={18} color="#64748B" />
+            <CalendarIcon size={18} color="var(--text-secondary)" />
             <input 
               type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: 'none', padding: '12px', fontSize: '14px', fontWeight: '700', color: '#1E293B', outline: 'none' }}
+              style={{ border: 'none', padding: '12px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <button onClick={fetchRecords} disabled={loading} style={iconButtonStyle('#fff', '#64748B', '#E2E8F0')}>
@@ -154,7 +154,7 @@ const AdminDeleteAttendance = () => {
       {/* Control Bar */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" placeholder="Search employee, ID, or department..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '16px', border: '1.5px solid #E2E8F0', fontSize: '14px', fontWeight: '600', outline: 'none' }}
@@ -177,8 +177,8 @@ const AdminDeleteAttendance = () => {
             <div style={{ width: '80px', height: '80px', borderRadius: '30px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
               <AlertCircle size={40} color="#CBD5E1" />
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#475569' }}>No records to display</h3>
-            <p style={{ color: '#94A3B8', fontSize: '14px' }}>No logs found for the selected filter or date.</p>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-secondary)' }}>No records to display</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No logs found for the selected filter or date.</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -207,16 +207,16 @@ const AdminDeleteAttendance = () => {
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                          {r.employee?.profilePhoto ? <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={20} color="#94A3B8" />}
+                          {r.employee?.profilePhoto ? <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={20} color="var(--text-muted)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '800', fontSize: '14px', color: '#1E293B' }}>{r.employee?.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>{r.employee?.employeeId}</div>
+                          <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>{r.employee?.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>{r.employee?.employeeId}</div>
                         </div>
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#475569', marginBottom: '4px' }}>{r.date}</div>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>{r.date}</div>
                       <span style={statusBadge(r.status)}>{r.status}</span>
                     </td>
                     <td style={tdStyle}>
@@ -268,7 +268,7 @@ const iconButtonStyle = (bg, color, border) => ({
   border: `1.5px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
 });
 
-const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const tdStyle = { padding: '20px', fontSize: '14px' };
 
 const statusBadge = (status) => {

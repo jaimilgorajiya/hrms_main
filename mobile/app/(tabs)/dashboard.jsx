@@ -467,6 +467,11 @@ export default function Dashboard() {
         accuracy: Location.Accuracy.High, 
         timeout: 10000 
       });
+      if (loc.mocked) {
+        Toast.show({ type: 'error', text1: 'Fake Location Detected', text2: 'Please disable mock locations.' });
+        setLoading(false);
+        return;
+      }
       const { latitude, longitude } = loc.coords;
       console.log('Mobile Location:', { latitude, longitude });
 

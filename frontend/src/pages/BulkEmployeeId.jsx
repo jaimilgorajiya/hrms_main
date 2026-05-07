@@ -243,7 +243,7 @@ const BulkEmployeeId = () => {
                 <div>
                     <h1 className="hrm-title">Update Bulk Employee ID</h1>
                     {empIdFormat && (
-                        <p style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                        <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                             Current format: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563EB' }}>{buildId(empIdFormat, 1)}</span>, <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563EB' }}>{buildId(empIdFormat, 2)}</span>...
                         </p>
                     )}
@@ -266,7 +266,7 @@ const BulkEmployeeId = () => {
             <div className="hrm-card" style={{ padding: '20px 24px', marginBottom: 20 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 16, alignItems: 'end' }}>
                     <div>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Branch</label>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Branch</label>
                         <SearchableSelect
                             options={[{ value: '', label: 'All Branches' }, ...branches.map(b => ({ value: b.branchName, label: b.branchName }))]}
                             value={filterBranch}
@@ -275,7 +275,7 @@ const BulkEmployeeId = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Department</label>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Department</label>
                         <SearchableSelect
                             options={[{ value: '', label: 'All Departments' }, ...filteredDepts.map(d => ({ value: d.name, label: d.name }))]}
                             value={filterDept}
@@ -284,7 +284,7 @@ const BulkEmployeeId = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Status</label>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Status</label>
                         <SearchableSelect
                             options={[
                                 { value: '', label: 'All Status' },
@@ -300,9 +300,9 @@ const BulkEmployeeId = () => {
                     </div>
                     
                     <div>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Search</label>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>Search</label>
                         <div className="search-wrapper">
-                            <Search size={15} color="#64748B" />
+                            <Search size={15} color="var(--text-secondary)" />
                             <input type="text" placeholder="Name or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                         </div>
                     </div>
@@ -320,16 +320,16 @@ const BulkEmployeeId = () => {
             {/* Table */} 
             {fetched && (
                 <div className="hrm-card">
-                    <div style={{ padding: '12px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>
-                            Showing <strong style={{ color: '#1E293B' }}>{filtered.length}</strong> of <strong style={{ color: '#1E293B' }}>{employees.length}</strong> employees
+                    <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            Showing <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{employees.length}</strong> employees
                             {selectedIds.size > 0 && (
-                                <span style={{ marginLeft: 12, color: '#2563EB', fontWeight: 700 }}>
+                                <span style={{ marginLeft: 12, color: 'var(--accent-primary)', fontWeight: 700 }}>
                                     · {selectedIds.size} selected
                                 </span>
                             )}
                         </span>
-                        <span style={{ fontSize: 12, color: '#94A3B8' }}>Check employees, then edit IDs or apply format</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Check employees, then edit IDs or apply format</span>
                     </div>
                     <div className="hrm-table-wrapper">
                         <table className="hrm-table">
@@ -354,20 +354,15 @@ const BulkEmployeeId = () => {
                             </thead>
                             <tbody>
                                 {filtered.length === 0 ? (
-                                    <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>No employees found</td></tr>
+                                    <tr><td colSpan="7" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No employees found</td></tr>
                                 ) : filtered.map((emp) => {
                                     const isChecked = selectedIds.has(emp._id);
                                     const changed = editedIds[emp._id] !== emp.employeeId;
                                     const highlight = isChecked && changed;
                                     return (
-                                        <tr key={emp._id} style={{ background: highlight ? '#FFFBEB' : isChecked ? '#F0F7FF' : undefined }}>
+                                        <tr key={emp._id} style={{ background: highlight ? 'rgba(245,166,35,0.08)' : isChecked ? 'var(--accent-primary-glow)' : undefined }}>
                                             <td style={{ textAlign: 'center' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isChecked}
-                                                    onChange={() => toggleSelect(emp._id)}
-                                                    style={{ cursor: 'pointer', width: 15, height: 15, accentColor: '#2563EB' }}
-                                                />
+                                                <input type="checkbox" checked={isChecked} onChange={() => toggleSelect(emp._id)} style={{ cursor: 'pointer', width: 15, height: 15, accentColor: 'var(--accent-primary)' }} />
                                             </td>
                                             <td>
                                                 <input
@@ -375,21 +370,17 @@ const BulkEmployeeId = () => {
                                                     value={editedIds[emp._id] || ''}
                                                     onChange={e => handleIdChange(emp._id, e.target.value)}
                                                     style={{
-                                                        width: 147,
-                                                        padding: '6px 10px',
-                                                        border: `1.5px solid ${highlight ? '#F59E0B' : '#E2E8F0'}`,
-                                                        borderRadius: 8,
-                                                        fontSize: 13,
-                                                        fontWeight: 700,
+                                                        width: 147, padding: '6px 10px',
+                                                        border: `1px solid ${highlight ? 'var(--accent-amber)' : 'var(--border)'}`,
+                                                        borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 700,
                                                         fontFamily: 'monospace',
-                                                        color: highlight ? '#92400E' : '#1E293B',
-                                                        background: highlight ? '#FFFBEB' : '#F8FAFC',
-                                                        outline: 'none',
-                                                        transition: 'all 0.2s'
+                                                        color: highlight ? 'var(--accent-amber)' : 'var(--text-primary)',
+                                                        background: highlight ? 'rgba(245,166,35,0.08)' : 'var(--bg-base)',
+                                                        outline: 'none', transition: 'all 0.2s'
                                                     }}
                                                 />
                                             </td>
-                                            <td style={{ fontWeight: 600, color: '#1E293B' }}>{emp.name}</td>
+                                            <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{emp.name}</td>
                                             <td>{emp.branch || '--'}</td>
                                             <td>{emp.department || '--'}</td>
                                             <td>{emp.designation || '--'}</td>
@@ -409,11 +400,11 @@ const BulkEmployeeId = () => {
                         </table>
                     </div>
                     {checkedChangedCount > 0 && (
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'flex-end', gap: 12, background: '#FFFBEB' }}>
-                            <span style={{ fontSize: 13, color: '#92400E', fontWeight: 600, alignSelf: 'center' }}>
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 12, background: 'var(--bg-elevated)' }}>
+                            <span style={{ fontSize: 13, color: 'var(--accent-amber)', fontWeight: 600, alignSelf: 'center' }}>
                                 {checkedChangedCount} unsaved change(s) in selected employees
                             </span>
-                            <button className="btn-hrm btn-hrm-primary" onClick={handleSave} disabled={saving}>
+                            <button className="btn-primary" onClick={handleSave} disabled={saving}>
                                 <Save size={15} /> {saving ? 'SAVING...' : 'SAVE CHANGES'}
                             </button>
                         </div>
@@ -422,7 +413,7 @@ const BulkEmployeeId = () => {
             )}
 
             {!fetched && !loading && (
-                <div style={{ textAlign: 'center', padding: '80px 0', color: '#94A3B8' }}>
+                <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
                     <Filter size={40} style={{ marginBottom: 16, opacity: 0.3 }} />
                     <p style={{ fontSize: 15, fontWeight: 500 }}>Set your filters and click GET to load employees</p>
                 </div>

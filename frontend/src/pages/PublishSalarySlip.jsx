@@ -127,7 +127,7 @@ const PublishSalarySlip = () => {
             </div>
 
             <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#64748b' }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                     {selectedIds.length > 0 && <span>Ready to publish: <strong>{selectedIds.length}</strong> slips</span>}
                 </div>
                 <button 
@@ -160,7 +160,7 @@ const PublishSalarySlip = () => {
                             {loading ? (
                                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>Loading generated slips...</td></tr>
                             ) : filteredPayouts.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No generated slips waiting to be published for this month.</td></tr>
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No generated slips waiting to be published for this month.</td></tr>
                             ) : filteredPayouts.map((p, i) => (
                                 <tr key={i} onClick={() => toggleSelect(p._id)} style={{ cursor: 'pointer' }}>
                                     <td onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
@@ -168,14 +168,14 @@ const PublishSalarySlip = () => {
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>{p.employeeId?.employeeId}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.employeeId?.employeeId}</div>
                                     </td>
                                     <td>
                                         <div style={{ fontSize: '14px', fontWeight: 500 }}>{p.month}</div>
-                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Slip Prepared</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Slip Prepared</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 700, color: '#0f172a' }}>₹{p.finalPayout.toLocaleString()}</div>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout.toLocaleString()}</div>
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

@@ -6,6 +6,10 @@ import connectDB from './config/db.js';
 import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
+import mongoSanitize from 'express-mongo-sanitize';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import hpp from 'hpp';
 
 
 const serviceAccountPath = path.resolve('serviceAccountKey.json');
@@ -68,6 +72,13 @@ initCronJobs();
 verifyEmailConfig();
 
 app.use(express.json());
+app.use(helmet({ crossOriginResourcePolicy: false }));
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5000 // Allow up to 5000 requests per 15 mins for all APIs (adjust if needed)
+});
+app.use('/api', limiter);
+app.use(hpp());
 app.use(cors({
     origin: [
         process.env.CLIENT_URL, 

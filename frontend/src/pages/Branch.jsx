@@ -1,8 +1,9 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Building2, MapPin, Grip, GripVertical } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Building2, MapPin, Grip, GripVertical, Save } from 'lucide-react';
 import Swal from 'sweetalert2';
+import SearchableSelect from '../components/SearchableSelect';
 
 const Branch = () => {
     const [branches, setBranches] = useState([]);
@@ -104,8 +105,8 @@ const Branch = () => {
             text: "This action cannot be undone!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-muted)',
             confirmButtonText: 'Yes, delete branch'
         });
 
@@ -179,8 +180,13 @@ const Branch = () => {
     return (
         <div className="hrm-container">
             <div className="hrm-header">
-                <h1 className="hrm-title">Branches</h1>
-                <div className="hrm-header-actions">
+                <div>
+                    <h1 className="hrm-title">Branches</h1>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        Manage your physical locations and geofencing settings
+                    </p>
+                </div>
+                <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     {isReordering ? (
                         <>
                             <button className="btn-hrm btn-hrm-primary" onClick={handleSaveOrder}><Check size={18} /> SAVE ORDER</button>
@@ -189,53 +195,77 @@ const Branch = () => {
                     ) : (
                         <>
                             <button className="btn-hrm btn-hrm-secondary" onClick={() => setIsReordering(true)}>CHANGE ORDER</button>
-                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 }); setIsModalOpen(true); }}><Plus size={18} /> ADD BRANCH</button>
+                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 }); setIsModalOpen(true); }}>
+                                <Plus size={18} /> ADD BRANCH
+                            </button>
                         </>
                     )}
                 </div>
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '100px 0', color: '#64748B' }}>Loading branches...</div>
+                <div style={{ textAlign: 'center', padding: '120px 0', color: 'var(--text-muted)' }}>Loading branches...</div>
             ) : (
-                <div className="branch-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
                     {branches.length === 0 ? (
-                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '100px 0', color: '#94A3B8' }}>
-                            <Building2 size={48} style={{ marginBottom: '15px', opacity: 0.3 }} />
-                            <p>No branches found. Add your first branch.</p>
+                        <div className="hrm-card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '100px 0', borderStyle: 'dashed' }}>
+                            <Building2 size={48} color="var(--text-muted)" style={{ marginBottom: '16px', opacity: 0.3 }} />
+                            <p style={{ color: 'var(--text-muted)' }}>No branches found. Add your first branch.</p>
                         </div>
                     ) : (
                         branches.map((branch, index) => (
                             <div 
                                 key={branch._id} 
-                                className={`branch-card ${isReordering ? 'draggable' : ''} ${draggedItem === branch ? 'dragging' : ''}`}
+                                className={`hrm-card ${isReordering ? 'draggable' : ''}`}
                                 draggable={isReordering}
                                 onDragStart={(e) => onDragStart(e, index)}
                                 onDragOver={(e) => onDragOver(e, index)}
                                 onDragEnd={onDragEnd}
-                                style={{ padding: '30px' }}
+                                style={{ 
+                                    padding: '30px', border: '1px solid var(--border)', 
+                                    transition: 'all 0.3s ease', position: 'relative',
+                                    opacity: draggedItem === branch ? 0.4 : 1,
+                                    transform: draggedItem === branch ? 'scale(0.98)' : 'none'
+                                }}
                             >
                                 {isReordering && (
-                                    <div className="drag-handle" style={{ top: '15px', right: '15px' }}>
+                                    <div style={{ position: 'absolute', top: '16px', right: '16px', color: 'var(--text-muted)', cursor: 'grab' }}>
                                         <GripVertical size={20} />
                                     </div>
                                 )}
-                                <div style={{ background: '#EEF2FF', padding: '15px', borderRadius: '12px', display: 'inline-flex', marginBottom: '20px' }}>
-                                    <Building2 size={32} color="#3B82FB" />
+                                <div style={{ background: 'var(--primary-light)', padding: '16px', borderRadius: '16px', display: 'inline-flex', marginBottom: '24px' }}>
+                                    <Building2 size={32} color="var(--primary-blue)" />
                                 </div>
-                                <div style={{ fontSize: '18px', fontWeight: '800', color: '#1E293B', marginBottom: '8px' }}>{branch.branchName}</div>
-                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748B', background: '#F1F5F9', padding: '4px 12px', borderRadius: '20px', marginBottom: '12px' }}>{branch.branchType}</div>
-                                {branch.branchCode && (
-                                    <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '4px' }}>Code: {branch.branchCode}</div>
-                                )}
-                                <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <MapPin size={14} /> {branch.latitude || 0}, {branch.longitude || 0}
+                                <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '8px', margin: 0 }}>{branch.branchName}</h3>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                                    <span className="hrm-badge hrm-badge-primary" style={{ fontSize: '11px' }}>{branch.branchType}</span>
+                                    {branch.branchCode && <span className="hrm-badge" style={{ fontSize: '11px', background: 'var(--bg-main)', color: 'var(--text-muted)' }}>{branch.branchCode}</span>}
                                 </div>
-                                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>Radius: {branch.radius || 500}m</div>
+                                
+                                <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <MapPin size={14} /> Location Data
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>LATITUDE</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)' }}>{branch.latitude || '0.000'}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>LONGITUDE</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)' }}>{branch.longitude || '0.000'}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>GEOFENCE RADIUS</div>
+                                        <span className="hrm-badge hrm-badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>{branch.radius || 500}m</span>
+                                    </div>
+                                </div>
+
                                 {!isReordering && (
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '25px' }}>
-                                        <button className="btn-action-edit" onClick={() => handleEdit(branch)} title="Edit"><Edit2 size={16} /></button>
-                                        <button className="btn-action-delete" onClick={() => handleDelete(branch._id)} title="Delete"><Trash2 size={16} /></button>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        <button className="btn-action-edit" onClick={() => handleEdit(branch)} title="Edit" style={{ flex: 1, height: '36px', borderRadius: '10px' }}><Edit2 size={16} /> Edit</button>
+                                        <button className="btn-action-delete" onClick={() => handleDelete(branch._id)} title="Delete" style={{ flex: 1, height: '36px', borderRadius: '10px' }}><Trash2 size={16} /> Remove</button>
                                     </div>
                                 )}
                             </div>
@@ -246,55 +276,128 @@ const Branch = () => {
 
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content">
-                        <div className="hrm-modal-header">
-                            <h2>{isEditing ? 'Edit Branch' : 'Add New Branch'}</h2>
-                            <button className="icon-btn" style={{ border: 'none' }} onClick={() => setIsModalOpen(false)}><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="hrm-modal-body">
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Branch Name <span className="req">*</span></label>
-                                        <input type="text" className="hrm-input" name="branchName" value={formData.branchName} onChange={handleInputChange} placeholder="e.g. Pune Office" required />
-                                    </div>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">Branch Code</label>
-                                        <input type="text" className="hrm-input" name="branchCode" value={formData.branchCode} onChange={handleInputChange} placeholder="e.g. PN-01" />
-                                    </div>
+                    <div className="hrm-modal-content" style={{ maxWidth: '650px', width: '100%' }}>
+                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ 
+                                    background: 'var(--primary-gradient)', 
+                                    padding: '10px', 
+                                    borderRadius: '12px', 
+                                    color: 'white',
+                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                                }}>
+                                    <Building2 size={20} />
                                 </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Branch Type <span className="req">*</span></label>
-                                    <select className="hrm-select" name="branchType" value={formData.branchType} onChange={handleInputChange} required>
-                                        <option value="">-- Select Type --</option>
-                                        <option value="Non-Metro city">Non-Metro city</option>
-                                        <option value="Metro city">Metro city</option>
-                                    </select>
-                                </div>
-                                <div style={{ marginTop: '20px', padding: '15px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#1E293B', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <MapPin size={16} /> Geofencing Settings
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                        {isEditing ? 'Update Branch' : 'Create New Branch'}
                                     </h3>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-                                        <div className="hrm-form-group">
-                                            <label className="hrm-label">Latitude</label>
-                                            <input type="number" step="any" className="hrm-input" name="latitude" value={formData.latitude} onChange={handleInputChange} placeholder="e.g. 19.076" />
-                                        </div>
-                                        <div className="hrm-form-group">
-                                            <label className="hrm-label">Longitude</label>
-                                            <input type="number" step="any" className="hrm-input" name="longitude" value={formData.longitude} onChange={handleInputChange} placeholder="e.g. 72.877" />
-                                        </div>
-                                        <div className="hrm-form-group">
-                                            <label className="hrm-label">Radius (meters)</label>
-                                            <input type="number" className="hrm-input" name="radius" value={formData.radius} onChange={handleInputChange} placeholder="500" />
-                                        </div>
-                                    </div>
-                                    <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px' }}>Geofencing ensures employees punch in within this radius of the coordinates.</p>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                        Configure branch details and attendance geofencing
+                                    </p>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer">
-                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)}>CANCEL</button>
-                                <button type="submit" className="btn-hrm btn-hrm-primary"><Check size={18} /> {isEditing ? 'UPDATE' : 'SAVE'}</button>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
+                                        <label className="hrm-label">Branch Name <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                        <input 
+                                            type="text" 
+                                            className="hrm-input" 
+                                            name="branchName" 
+                                            value={formData.branchName} 
+                                            onChange={handleInputChange} 
+                                            placeholder="e.g. Headquarters" 
+                                            style={{ height: '52px' }}
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
+                                        <label className="hrm-label">Branch Code</label>
+                                        <input 
+                                            type="text" 
+                                            className="hrm-input" 
+                                            name="branchCode" 
+                                            value={formData.branchCode} 
+                                            onChange={handleInputChange} 
+                                            placeholder="e.g. HQ-01" 
+                                            style={{ height: '52px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="hrm-form-group" style={{ marginBottom: '32px' }}>
+                                    <SearchableSelect 
+                                        label="Branch Type"
+                                        required={true}
+                                        options={[
+                                            { value: 'Non-Metro city', label: 'Non-Metro City' },
+                                            { value: 'Metro city', label: 'Metro City' }
+                                        ]}
+                                        value={formData.branchType}
+                                        onChange={(val) => setFormData({ ...formData, branchType: val })}
+                                    />
+                                </div>
+                                
+                                <div style={{ 
+                                    padding: '24px', 
+                                    background: '#F1F5F9', 
+                                    borderRadius: '20px', 
+                                    border: '1px solid #E2E8F0',
+                                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+                                }}>
+                                    <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: 'var(--primary-blue)', display: 'flex' }}>
+                                            <MapPin size={16} />
+                                        </div>
+                                        GEOFENCING CONFIGURATION
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                        <div className="hrm-form-group" style={{ margin: 0 }}>
+                                            <label className="hrm-label" style={{ fontSize: '11px' }}>LATITUDE</label>
+                                            <input 
+                                                type="number" step="any" className="hrm-input" name="latitude" 
+                                                value={formData.latitude} onChange={handleInputChange} 
+                                                placeholder="0.000000" style={{ background: 'white', height: '48px' }}
+                                            />
+                                        </div>
+                                        <div className="hrm-form-group" style={{ margin: 0 }}>
+                                            <label className="hrm-label" style={{ fontSize: '11px' }}>LONGITUDE</label>
+                                            <input 
+                                                type="number" step="any" className="hrm-input" name="longitude" 
+                                                value={formData.longitude} onChange={handleInputChange} 
+                                                placeholder="0.000000" style={{ background: 'white', height: '48px' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
+                                        <label className="hrm-label" style={{ fontSize: '11px' }}>DETECTION RADIUS (METERS)</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input 
+                                                type="number" className="hrm-input" name="radius" 
+                                                value={formData.radius} onChange={handleInputChange} 
+                                                placeholder="500" style={{ background: 'white', height: '48px', paddingRight: '44px' }}
+                                            />
+                                            <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>m</span>
+                                        </div>
+                                        <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px', lineHeight: '1.5', fontStyle: 'italic' }}>
+                                            Employees must be within this distance of the coordinates to verify their location during attendance marking.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                                <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
+                                    DISCARD
+                                </button>
+                                <button type="submit" className="btn-hrm btn-hrm-primary" style={{ padding: '12px 32px' }}>
+                                    <Save size={18} /> {isEditing ? 'UPDATE BRANCH' : 'SAVE BRANCH'}
+                                </button>
                             </div>
                         </form>
                     </div>

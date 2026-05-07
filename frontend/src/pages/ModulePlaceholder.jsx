@@ -33,14 +33,14 @@ const ModulePlaceholder = ({ title }) => {
       <h2 style={{ 
         fontSize: '32px', 
         fontWeight: '800', 
-        color: '#0F172A', 
+        color: 'var(--text-primary)', 
         margin: '0 0 12px 0',
         letterSpacing: '-0.02em'
       }}>{title} Module</h2>
       
       <p style={{ 
         fontSize: '16px', 
-        color: '#64748B', 
+        color: 'var(--text-secondary)', 
         maxWidth: '400px', 
         lineHeight: '1.6',
         margin: '0 0 32px 0'
@@ -62,7 +62,7 @@ const ModulePlaceholder = ({ title }) => {
             background: 'white',
             border: '1px solid #E2E8F0',
             borderRadius: '12px',
-            color: '#0F172A',
+            color: 'var(--text-primary)',
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.2s'

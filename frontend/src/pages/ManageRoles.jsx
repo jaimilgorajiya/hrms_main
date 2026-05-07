@@ -273,7 +273,7 @@ const ManageRoles = () => {
                     <h1 className="hrm-title">
                         Sidebar Setup
                     </h1>
-                    <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '600', marginTop: '6px' }}>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '6px' }}>
                         Configure the modules that appear in your sidebar
                     </p>
                 </div>
@@ -290,120 +290,120 @@ const ManageRoles = () => {
             </div>
 
             <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
-                {/* Right Side: Permission Matrix */}
-                <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.04)' }}>
-                    <div style={{ padding: '25px 30px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    {/* Card Header */}
+                    <div className="card-header" style={{ justifyContent: 'space-between' }}>
                         <div>
-                            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#1E293B' }}>Sidebar Setup</h2>
-                            <p style={{ fontSize: '12px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Configure feature-level access for your admin sidebar</p>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>Sidebar Setup</span>
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Configure feature-level access for your admin sidebar</p>
                         </div>
-                        <div style={{ display: 'flex', gap: '15px' }}>
-                            <button 
-                                onClick={() => {
-                                    setPermissions(flattenToPermissionRows());
-                                }}
-                                style={{ background: 'none', border: 'none', color: '#3B648B', fontSize: '12px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase' }}
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <button
+                                onClick={() => setPermissions(flattenToPermissionRows())}
+                                style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
                             >
-                                Check All
+                                CHECK ALL
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setPermissions([{ module: 'Core HRMS', subModule: 'Employee & Management', childModule: 'Sidebar Setup', access: true }])}
-                                style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '12px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase' }}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em' }}
                             >
-                                Clear All
+                                CLEAR ALL
                             </button>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#fff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#3B648B' }}>{permissions.length}</span>
-                                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748B' }}>Active</span>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', background: 'var(--bg-elevated)', padding: '5px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--accent-primary)' }}>{permissions.length}</span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Active</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ padding: '20px' }}>
+                    {/* Module List */}
+                    <div style={{ padding: '16px' }}>
                         {moduleStructure.map((moduleObj, mIdx) => {
                             const isFullySelected = isModuleFullySelected(moduleObj);
                             const isPartiallySelected = isModulePartiallySelected(moduleObj);
                             const isExpanded = expandedModules[moduleObj.title];
 
                             return (
-                                <div key={mIdx} style={{ marginBottom: '15px', border: '1.5px solid #F1F5F9', borderRadius: '16px', overflow: 'hidden' }}>
+                                <div key={mIdx} style={{ marginBottom: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                                     {/* Parent Module Row */}
-                                    <div 
-                                        style={{ 
-                                            padding: '15px 20px', 
-                                            background: isExpanded ? '#F1F5F9' : 'white', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
+                                    <div
+                                        style={{
+                                            padding: '14px 18px',
+                                            background: isExpanded ? 'var(--bg-elevated)' : 'var(--bg-surface)',
+                                            display: 'flex', alignItems: 'center',
+                                            cursor: 'pointer', transition: 'background 0.2s'
                                         }}
                                         onClick={() => toggleExpand(moduleObj.title)}
                                     >
-                                        <div 
+                                        <div
                                             onClick={(e) => { e.stopPropagation(); toggleModuleAll(moduleObj); }}
-                                            style={{ marginRight: '15px', color: isFullySelected ? '#3B648B' : isPartiallySelected ? '#3B648B' : '#CBD5E1' }}
+                                            style={{ marginRight: '14px', color: isFullySelected || isPartiallySelected ? 'var(--accent-primary)' : 'var(--text-muted)' }}
                                         >
-                                            {isFullySelected ? <CheckSquare size={20} /> : isPartiallySelected ? <div style={{width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #3B648B', borderRadius: '4px'}}><div style={{width: 10, height: 2, background: '#3B648B'}}></div></div> : <Square size={20} />}
+                                            {isFullySelected
+                                                ? <CheckSquare size={20} />
+                                                : isPartiallySelected
+                                                    ? <div style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--accent-primary)', borderRadius: '4px' }}>
+                                                        <div style={{ width: 10, height: 2, background: 'var(--accent-primary)' }} />
+                                                      </div>
+                                                    : <Square size={20} />
+                                            }
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                                            <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{moduleObj.title}</span>
-                                        </div>
+                                        <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', flex: 1 }}>{moduleObj.title}</span>
                                         {moduleObj.subModules && (
-                                            <div style={{ color: '#94A3B8' }}>
-                                                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                            <div style={{ color: 'var(--text-muted)' }}>
+                                                {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Submodules Row */}
+                                    {/* Submodules */}
                                     {isExpanded && moduleObj.subModules && (
-                                        <div style={{ background: '#FCFDFF', padding: '10px 20px 20px 55px' }}>
+                                        <div style={{ background: 'var(--bg-base)', padding: '10px 18px 18px 52px', borderTop: '1px solid var(--border)' }}>
                                             {moduleObj.subModules.map((sub, sIdx) => (
-                                                <div key={sIdx} style={{ marginTop: '15px' }}>
-                                                    <div 
-                                                        style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: sub.children ? '10px' : '0' }}
+                                                <div key={sIdx} style={{ marginTop: '14px' }}>
+                                                    <div
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: sub.children ? '10px' : '0' }}
                                                         onClick={(e) => { e.stopPropagation(); toggleSubModuleAll(moduleObj, sub); }}
                                                     >
-                                                        <div style={{ color: getSubSelectionState(moduleObj, sub) === 'full' ? '#3B648B' : getSubSelectionState(moduleObj, sub) === 'partial' ? '#3B648B' : '#CBD5E1' }}>
+                                                        <div style={{ color: getSubSelectionState(moduleObj, sub) !== 'none' ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
                                                             {getSubSelectionState(moduleObj, sub) === 'full'
-                                                                ? <CheckSquare size={18} />
+                                                                ? <CheckSquare size={17} />
                                                                 : getSubSelectionState(moduleObj, sub) === 'partial'
-                                                                    ? <div style={{width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #3B648B', borderRadius: '4px'}}><div style={{width: 9, height: 2, background: '#3B648B'}}></div></div>
-                                                                    : <Square size={18} />
+                                                                    ? <div style={{ width: 17, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--accent-primary)', borderRadius: '3px' }}>
+                                                                        <div style={{ width: 8, height: 2, background: 'var(--accent-primary)' }} />
+                                                                      </div>
+                                                                    : <Square size={17} />
                                                             }
                                                         </div>
-                                                        <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569' }}>{sub.title}</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>{sub.title}</span>
                                                     </div>
 
-                                                    {/* Child Modules (Nested) */}
                                                     {sub.children && (
-                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginLeft: '30px' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginLeft: '28px' }}>
                                                             {sub.children.map((child, cIdx) => {
                                                                 const isActive = isPermissionactive(moduleObj.title, sub.title, child);
                                                                 const isLocked = child === 'Sidebar Setup';
                                                                 return (
-                                                                    <div 
-                                                                        key={cIdx} 
+                                                                    <div
+                                                                        key={cIdx}
                                                                         onClick={() => !isLocked && togglePermission(moduleObj.title, sub.title, child)}
-                                                                        style={{ 
-                                                                            display: 'flex', 
-                                                                            alignItems: 'center', 
-                                                                            gap: '10px', 
-                                                                            padding: '8px 12px', 
-                                                                            borderRadius: '8px', 
-                                                                            border: '1px solid',
-                                                                            borderColor: isLocked ? '#94A3B8' : isActive ? 'rgba(59, 100, 139, 0.2)' : '#F1F5F9',
-                                                                            background: isLocked ? '#F1F5F9' : isActive ? 'rgba(59, 100, 139, 0.05)' : 'white',
+                                                                        style={{
+                                                                            display: 'flex', alignItems: 'center', gap: '9px',
+                                                                            padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                                                                            border: `1px solid ${isLocked ? 'var(--border)' : isActive ? 'rgba(108,99,255,0.3)' : 'var(--border-subtle)'}`,
+                                                                            background: isLocked ? 'var(--bg-elevated)' : isActive ? 'var(--accent-primary-glow)' : 'var(--bg-surface)',
                                                                             cursor: isLocked ? 'not-allowed' : 'pointer',
                                                                             transition: 'all 0.15s',
-                                                                            opacity: isLocked ? 0.8 : 1
+                                                                            opacity: isLocked ? 0.7 : 1
                                                                         }}
                                                                     >
-                                                                        <div style={{ color: isLocked ? '#64748B' : isActive ? '#3B648B' : '#CBD5E1' }}>
-                                                                            {isActive ? <CheckSquare size={16} /> : <Square size={16} />}
+                                                                        <div style={{ color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)', flexShrink: 0 }}>
+                                                                            {isActive ? <CheckSquare size={15} /> : <Square size={15} />}
                                                                         </div>
-                                                                        <span style={{ fontSize: '13px', fontWeight: '600', color: isLocked ? '#64748B' : isActive ? '#3B648B' : '#64748B' }}>
-                                                                            {child} {isLocked && <span style={{ marginLeft: '6px', fontSize: '9px', background: '#94A3B8', color: 'white', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle', fontWeight: 800 }}>LOCKED</span>}
+                                                                        <span style={{ fontSize: '13px', fontWeight: '600', color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>
+                                                                            {child}
+                                                                            {isLocked && <span style={{ marginLeft: '6px', fontSize: '9px', background: 'var(--bg-elevated)', color: 'var(--text-muted)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700, border: '1px solid var(--border)' }}>LOCKED</span>}
                                                                         </span>
                                                                     </div>
                                                                 );
@@ -420,13 +420,6 @@ const ManageRoles = () => {
                     </div>
                 </div>
             </div>
-            
-            <style>{`
-                input:focus, textarea:focus, select:focus {
-                    border-color: #3B648B !important;
-                    box-shadow: 0 0 0 4px rgba(59, 100, 139, 0.08);
-                }
-            `}</style>
         </div>
     );
 };

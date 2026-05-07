@@ -47,7 +47,7 @@ const PayoutHistory = () => {
             case 'Published': return { background: '#ecfdf5', color: '#059669' }; // Green
             case 'Generated': return { background: '#eff6ff', color: '#2563eb' }; // Blue
             case 'Initiated': return { background: '#fffbeb', color: '#d97706' }; // Amber
-            default: return { background: '#f1f5f9', color: '#64748b' };
+            default: return { background: '#f1f5f9', color: 'var(--text-secondary)' };
         }
     };
 
@@ -99,19 +99,19 @@ const PayoutHistory = () => {
                             {loading ? (
                                 <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>Loading archive...</td></tr>
                             ) : filteredPayouts.length === 0 ? (
-                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No payroll records found for this period.</td></tr>
+                                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No payroll records found for this period.</td></tr>
                             ) : filteredPayouts.map((p, i) => (
                                 <tr key={i}>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.month}</div>
-                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Cycle Reference</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Cycle Reference</div>
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>{p.employeeId?.employeeId}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.employeeId?.employeeId}</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 700, color: '#0f172a' }}>₹{p.finalPayout?.toLocaleString()}</div>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout?.toLocaleString()}</div>
                                     </td>
                                     <td>
                                         <span className="status-badge" style={{ fontSize: '10px', ...getStatusStyle(p.status) }}>
@@ -119,10 +119,10 @@ const PayoutHistory = () => {
                                         </span>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                                             By {p.initiatedBy?.name || 'System'}
                                         </div>
-                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
                                             {new Date(p.initiatedAt).toLocaleString()}
                                         </div>
                                     </td>

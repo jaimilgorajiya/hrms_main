@@ -34,36 +34,113 @@ const ResetPassword = () => {
     };
 
     if (!token) return (
-        <div style={wrap}>
-            <div style={card}>
-                <p style={{ color: '#ef4444', textAlign: 'center' }}>Invalid or missing reset token.</p>
-                <button style={btn} onClick={() => navigate('/login')}>Back to Login</button>
+        <div className="login-page">
+            <div className="login-container">
+                <div className="logo-wrapper">
+                    <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" />
+                </div>
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+                    <p style={{ color: '#ef4444', fontWeight: '700', marginBottom: '24px' }}>Invalid or missing reset token.</p>
+                    <button className="login-btn" onClick={() => navigate('/login')}>Back to Login</button>
+                </div>
             </div>
         </div>
     );
 
     return (
-        <div style={wrap}>
-            <div style={card}>
+        <div className="login-page">
+            <div className="login-container">
+                <div className="logo-wrapper">
+                    <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" />
+                </div>
+
                 {!done ? (
                     <>
-                        <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#1e293b' }}>Set New Password</h2>
-                        <p style={{ margin: '0 0 24px', fontSize: 14, color: '#64748b' }}>Enter your new password below.</p>
-                        {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
-                        <form onSubmit={handleSubmit}>
-                            <label style={label}>New Password</label>
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={input} placeholder="Min. 6 characters" />
-                            <label style={label}>Confirm Password</label>
-                            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required style={input} placeholder="Repeat password" />
-                            <button type="submit" disabled={loading} style={btn}>{loading ? 'Resetting...' : 'Reset Password'}</button>
+                        <h2 style={{ margin: '0 0 8px', fontSize: '24px', fontWeight: '800', color: '#1E293B', textAlign: 'center' }}>Set New Password</h2>
+                        <p style={{ margin: '0 0 32px', fontSize: '14px', color: '#64748B', textAlign: 'center', fontWeight: '500' }}>Secure your account with a strong password</p>
+                        
+                        {error && (
+                            <div style={{ 
+                                background: '#FEF2F2', 
+                                border: '1px solid #FEE2E2',
+                                color: '#991B1B', 
+                                padding: '12px 16px', 
+                                borderRadius: '12px', 
+                                marginBottom: '24px', 
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <span>⚠️</span> {error}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+                            <div className="form-group">
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Password</label>
+                                <div className="input-wrapper">
+                                    <input 
+                                        type="password" 
+                                        value={password} 
+                                        onChange={e => setPassword(e.target.value)} 
+                                        required 
+                                        placeholder="Enter new password" 
+                                        style={{ width: '100%', padding: '14px 16px', border: '1.5px solid #E2E8F0', borderRadius: '12px', fontSize: '15px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ marginTop: '20px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Confirm Password</label>
+                                <div className="input-wrapper">
+                                    <input 
+                                        type="password" 
+                                        value={confirm} 
+                                        onChange={e => setConfirm(e.target.value)} 
+                                        required 
+                                        placeholder="Repeat your password" 
+                                        style={{ width: '100%', padding: '14px 16px', border: '1.5px solid #E2E8F0', borderRadius: '12px', fontSize: '15px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={loading} className="login-btn" style={{ marginTop: '32px' }}>
+                                {loading ? 'Updating Password...' : 'Reset Password'}
+                            </button>
+
+                            <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                                <a onClick={() => navigate('/login')} style={{ fontSize: '14px', fontWeight: '700', color: '#2563EB', cursor: 'pointer' }}>
+                                    ← Back to Login
+                                </a>
+                            </div>
                         </form>
                     </>
                 ) : (
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-                        <h2 style={{ margin: '0 0 8px', color: '#1e293b' }}>Password Reset!</h2>
-                        <p style={{ color: '#64748b', marginBottom: 24 }}>Your password has been updated. You can now log in.</p>
-                        <button style={btn} onClick={() => navigate('/login')}>Go to Login</button>
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <div style={{ 
+                            width: '80px', 
+                            height: '80px', 
+                            background: '#F0FDF4', 
+                            borderRadius: '50%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            margin: '0 auto 24px',
+                            color: '#16A34A',
+                            fontSize: '40px'
+                        }}>
+                            ✅
+                        </div>
+                        <h2 style={{ margin: '0 0 12px', fontSize: '24px', fontWeight: '800', color: '#1E293B' }}>Password Reset!</h2>
+                        <p style={{ color: '#64748B', fontSize: '15px', fontWeight: '500', marginBottom: '32px', lineHeight: '1.6' }}>
+                            Your password has been successfully updated. You can now use your new password to access your account.
+                        </p>
+                        <button className="login-btn" onClick={() => navigate('/login')}>
+                            Login Now
+                        </button>
                     </div>
                 )}
             </div>
@@ -71,10 +148,5 @@ const ResetPassword = () => {
     );
 };
 
-const wrap = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9' };
-const card = { background: '#fff', borderRadius: 16, padding: 36, width: '100%', maxWidth: 420, boxShadow: '0 10px 40px rgba(0,0,0,0.1)' };
-const input = { width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none', marginBottom: 16, boxSizing: 'border-box', display: 'block' };
-const label = { display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 };
-const btn = { width: '100%', padding: '13px', background: '#2563EB', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 700, color: '#fff', fontSize: 15, marginTop: 4 };
-
 export default ResetPassword;
+

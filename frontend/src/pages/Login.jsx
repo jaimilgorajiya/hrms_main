@@ -440,8 +440,8 @@ const Login = ({ isRegister }) => {
             onClick={e => e.stopPropagation()}>
             {!forgotDone ? (
               <>
-                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#1e293b' }}>Forgot Password</h3>
-                <p style={{ margin: '0 0 24px', fontSize: 14, color: '#64748b' }}>Enter your email and we'll send you a reset link.</p>
+                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>Forgot Password</h3>
+                <p style={{ margin: '0 0 24px', fontSize: 14, color: 'var(--text-secondary)' }}>Enter your email and we'll send you a reset link.</p>
                 {forgotError && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{forgotError}</div>}
                 <form onSubmit={handleForgotSubmit}>
                   <input
@@ -454,7 +454,7 @@ const Login = ({ isRegister }) => {
                   />
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button type="button" onClick={() => setForgotOpen(false)}
-                      style={{ flex: 1, padding: '12px', background: '#f1f5f9', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: '#475569' }}>
+                      style={{ flex: 1, padding: '12px', background: '#f1f5f9', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: 'var(--text-secondary)' }}>
                       Cancel
                     </button>
                     <button type="submit" disabled={forgotLoading}
@@ -467,8 +467,8 @@ const Login = ({ isRegister }) => {
             ) : (
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
                 <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
-                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#1e293b' }}>Check your email</h3>
-                <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>If <strong>{forgotEmail}</strong> is registered, a reset link has been sent. Check your inbox.</p>
+                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>Check your email</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>If <strong>{forgotEmail}</strong> is registered, a reset link has been sent. Check your inbox.</p>
                 <button onClick={() => setForgotOpen(false)}
                   style={{ padding: '12px 32px', background: '#2563EB', border: 'none', borderRadius: 10, cursor: 'pointer', fontWeight: 600, color: '#fff', fontSize: 14 }}>
                   Done

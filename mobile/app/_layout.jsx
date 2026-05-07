@@ -6,6 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
+export { ErrorBoundary } from 'expo-router';
+
 function RootLayoutNav() {
   const { user, loading } = useAuth();
   const segments = useSegments();

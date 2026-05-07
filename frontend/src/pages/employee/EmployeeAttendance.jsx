@@ -13,7 +13,7 @@ const statusConfig = {
   'On Leave': { label: 'On Leave', color: '#8B5CF6', bg: '#F5F3FF' },
   Incomplete: { label: 'Incomplete', color: '#F97316', bg: '#FFF7ED' },
   'Clocked In': { label: 'Clocked In', color: '#F97316', bg: '#FFF7ED' },
-  weekend: { label: 'Weekend', color: '#94A3B8', bg: '#F8FAFC' },
+  weekend: { label: 'Weekend', color: 'var(--text-muted)', bg: '#F8FAFC' },
 };
 
 const EmployeeAttendance = () => {

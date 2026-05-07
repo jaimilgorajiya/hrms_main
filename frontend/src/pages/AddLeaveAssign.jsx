@@ -145,12 +145,12 @@ const AddLeaveAssign = () => {
         <div className="hrm-container">
             <div className="hrm-header" style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button onClick={() => navigate(-1)} style={{ background: 'white', border: '1.5px solid #E2E8F0', padding: '10px', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}>
+                    <button onClick={() => navigate(-1)} style={{ background: 'white', border: '1.5px solid #E2E8F0', padding: '10px', borderRadius: '12px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                         <ChevronLeft size={20} />
                     </button>
                     <div>
                         <h1 className="hrm-title" style={{ fontSize: '24px' }}>Leave Assign to Employee</h1>
-                        <p style={{ color: '#64748B', fontSize: '13px', fontWeight: '600' }}>Configure individual leave quotas and groups</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>Configure individual leave quotas and groups</p>
                     </div>
                 </div>
             </div>
@@ -159,7 +159,7 @@ const AddLeaveAssign = () => {
                 <form onSubmit={handleSubmit}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px', marginBottom: '35px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>Employee</label>
+                            <label style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>Employee</label>
                             {(() => {
                                 const emp = employees.find(e => e._id === selectedEmployee);
                                 return (
@@ -176,15 +176,15 @@ const AddLeaveAssign = () => {
                                             <Briefcase size={16} />
                                         </div>
                                         <div>
-                                            <div style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B' }}>{emp?.name || 'Loading...'}</div>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748B' }}>{emp?.designation || 'Specialist'}</div>
+                                            <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)' }}>{emp?.name || 'Loading...'}</div>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>{emp?.designation || 'Specialist'}</div>
                                         </div>
                                     </div>
                                 );
                             })()}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>Leave Group <span style={{ color: '#EF4444' }}>*</span></label>
+                            <label style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>Leave Group <span style={{ color: '#EF4444' }}>*</span></label>
                             <SearchableSelect 
                                 options={[
                                     { label: '-- Unassign --', value: '' },
@@ -200,11 +200,11 @@ const AddLeaveAssign = () => {
                     {employeeDetails && (
                         <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '16px', marginBottom: '35px', border: '1.5px dashed #E2E8F0', display: 'flex', gap: '50px' }}>
                             <div>
-                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Date Of Joining</div>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Date Of Joining</div>
                                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#3B648B' }}>{employeeDetails.joiningDate}</div>
                             </div>
                             <div>
-                                <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Probation Period End Date</div>
+                                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Probation Period End Date</div>
                                 <div style={{ fontSize: '16px', fontWeight: '800', color: '#3B648B' }}>{employeeDetails.probationEndDate}</div>
                             </div>
                         </div>
@@ -216,14 +216,14 @@ const AddLeaveAssign = () => {
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                                     <thead style={{ background: '#F8FAFC' }}>
                                         <tr>
-                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Leave Type</th>
-                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Paid Leave</th>
-                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Max P.L / Month</th>
+                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Leave Type</th>
+                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Paid Leave</th>
+                                            <th style={{ padding: '15px 20px', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Max P.L / Month</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td style={{ padding: '20px', fontWeight: '700', color: '#334155' }}>{currentGroup?.isPaidLeave ? 'Paid Leave' : 'N/A'}</td>
+                                            <td style={{ padding: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>{currentGroup?.isPaidLeave ? 'Paid Leave' : 'N/A'}</td>
                                             <td style={{ padding: '20px' }}>
                                                 <input 
                                                     type="text" 
@@ -258,7 +258,7 @@ const AddLeaveAssign = () => {
                                     onChange={(e) => setCanApplyUnpaidLeave(e.target.checked)}
                                     style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3B648B' }}
                                 />
-                                <label htmlFor="canUnpaid" style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', cursor: 'pointer' }}>
+                                <label htmlFor="canUnpaid" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', cursor: 'pointer' }}>
                                     Is this employee allowed to apply for Unpaid Leaves?
                                 </label>
                             </div>

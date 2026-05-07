@@ -69,9 +69,9 @@ const AddLeaveGroup = () => {
             </div>
 
             <form onSubmit={handleSubmit}>
-                <div className="hrm-card" style={{ padding: '30px' }}>
+                <div className="hrm-card" style={{ padding: '30px', overflow: 'visible' }}>
                     {/* Section: General Settings */}
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#334155', margin: '0 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         General Settings
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
@@ -103,14 +103,14 @@ const AddLeaveGroup = () => {
                                 onChange={handleChange}
                                 style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3B648B' }}
                             />
-                            <label htmlFor="isPaidLeave" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#475569' }}>Paid Leave</label>
+                            <label htmlFor="isPaidLeave" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: 'var(--text-secondary)' }}>Paid Leave</label>
                         </div>
                     </div>
 
                     {/* Paid Leave Expanded Fields */}
                     {formData.isPaidLeave && (
                         <>
-                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#334155', margin: '32px 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9' }}>
+                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '32px 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9' }}>
                                 Paid Leave Configuration
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>

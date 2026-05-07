@@ -44,6 +44,7 @@ const attendanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ date: 1 }); // Optimize admin queries filtering by date
 
 const Attendance = mongoose.model("Attendance", attendanceSchema);
 export default Attendance;

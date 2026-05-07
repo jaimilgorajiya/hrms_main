@@ -207,7 +207,7 @@ const OnboardingDocSetting = () => {
                     <div className="hrm-card-body">
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                             <div style={{ position: 'relative' }}>
-                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                                 <input 
                                     type="text"
                                     placeholder="Search Employee..."
@@ -255,7 +255,7 @@ const OnboardingDocSetting = () => {
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <UserCheck size={16} color="#64748b" />
+                                                            <UserCheck size={16} color="var(--text-secondary)" />
                                                         </div>
                                                         {emp.name}
                                                     </div>

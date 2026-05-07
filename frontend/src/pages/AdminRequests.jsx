@@ -50,12 +50,12 @@ const MiniCalendar = ({ fromDate, toDate }) => {
 
   return (
     <div style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
-      <div style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b', marginBottom: '12px', textAlign: 'center' }}>
+      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '12px', textAlign: 'center' }}>
         {monthNames[month]} {year}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <div key={d} style={{ fontSize: '10px', fontWeight: '800', color: '#94a3b8', textAlign: 'center', padding: '4px' }}>{d}</div>
+          <div key={d} style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textAlign: 'center', padding: '4px' }}>{d}</div>
         ))}
         {days.map((d, i) => {
           const active = isInRange(d);
@@ -84,7 +84,7 @@ const MiniCalendar = ({ fromDate, toDate }) => {
           );
         })}
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '11px', color: '#64748b', fontWeight: '700' }}>
+      <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>
          Duration: {Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1} Day(s) Selected
       </div>
     </div>
@@ -154,156 +154,146 @@ const AdminRequests = () => {
   });
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+    <div className="hrm-container">
+      <div className="hrm-header">
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', margin: '0 0 4px' }}>Employee Requests</h2>
-          <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Review and approve leave or attendance correction requests</p>
+          <h1 className="hrm-title">Employee Requests</h1>
+          <p className="hrm-subtitle">Review and approve leave or attendance correction requests</p>
         </div>
-        <button onClick={fetchRequests} style={{
-          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-          background: '#fff', border: '1px solid #E2E8F0', borderRadius: '12px',
-          fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: '#64748b'
-        }}>
+        <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests}>
           <RefreshCw size={16} /> Refresh
         </button>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-          <input
-            type="text" placeholder="Search by employee name or ID..."
-            value={search} onChange={e => setSearch(e.target.value)}
-            style={{
-              width: '100%', padding: '12px 12px 12px 42px', border: '1.5px solid #E2E8F0',
-              borderRadius: '12px', fontSize: '14px', outline: 'none', color: '#334155'
-            }}
-          />
+      <div className="hrm-card" style={{ marginBottom: '24px' }}>
+        <div style={{ padding: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div className="hrm-search-wrapper" style={{ flex: 1, minWidth: '300px' }}>
+            <Search size={18} className="hrm-search-icon" />
+            <input
+              type="text" 
+              className="hrm-input hrm-search-input"
+              placeholder="Search by employee name or ID..."
+              value={search} 
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <select 
+              className="hrm-input"
+              style={{ width: '160px' }}
+              value={filterStatus} 
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+
+            <select 
+              className="hrm-input"
+              style={{ width: '200px' }}
+              value={filterType} 
+              onChange={e => setFilterType(e.target.value)}
+            >
+              <option value="All">All Types</option>
+              <option value="Leave">Leave</option>
+              <option value="Attendance Correction">Attendance Correction</option>
+            </select>
+          </div>
         </div>
-
-        <select 
-          value={filterStatus} 
-          onChange={e => setFilterStatus(e.target.value)}
-          style={{ padding: '12px 16px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', background: '#fff' }}
-        >
-          <option value="All">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-        </select>
-
-        <select 
-          value={filterType} 
-          onChange={e => setFilterType(e.target.value)}
-          style={{ padding: '12px 16px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', background: '#fff' }}
-        >
-          <option value="All">All Types</option>
-          <option value="Leave">Leave</option>
-          <option value="Attendance Correction">Attendance Correction</option>
-        </select>
       </div>
 
-      {/* Table */}
-      <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+      <div className="hrm-card">
         {loading ? (
           <div style={{ padding: '80px', textAlign: 'center' }}><RefreshCw className="animate-spin" /></div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '80px', textAlign: 'center', color: '#94A3B8' }}>
-            <FileText size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
+          <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <FileText size={48} style={{ marginBottom: '16px', opacity: 0.3, margin: '0 auto' }} />
             <p style={{ fontWeight: '600' }}>No requests found</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="hrm-table-container">
+            <table className="hrm-table">
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                  <th style={thStyle}>Employee</th>
-                  <th style={thStyle}>Request Type</th>
-                  <th style={thStyle}>Date</th>
-                  <th style={thStyle}>Details</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>Applied On</th>
-                  <th style={thStyle}>Action</th>
+                <tr>
+                  <th>Employee</th>
+                  <th>Request Type</th>
+                  <th>Date</th>
+                  <th>Details</th>
+                  <th>Status</th>
+                  <th>Applied On</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
-                  <tr key={r._id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={tdStyle}>
+                  <tr key={r._id}>
+                    <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                             {r.employee?.profilePhoto ? (
-                                <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', borderRadius: '10px', objectFit: 'cover' }} />
-                            ) : <User size={18} color="#64748b" />}
+                                <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : <User size={18} color="var(--text-secondary)" />}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{r.employee?.name}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>{r.employee?.employeeId}</div>
+                          <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employee?.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.employee?.employeeId}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={tdStyle}>
-                      <span style={{ 
-                        padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700',
-                        ...typeColors[r.requestType]
-                      }}>
+                    <td>
+                      <span className="hrm-badge" style={{ ...(typeColors[r.requestType] || typeColors['Leave']) }}>
                         {r.requestType}
                       </span>
                     </td>
-                    <td style={tdStyle}>
-                      <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                    <td>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-dark)' }}>
                         {r.requestType === 'Leave' && r.fromDate && r.toDate && r.fromDate !== r.toDate 
                           ? `${r.fromDate} to ${r.toDate}` 
                           : (r.date || r.fromDate)}
                       </div>
                     </td>
-                    <td style={tdStyle}>
+                    <td>
                       <div style={{ maxWidth: '250px' }}>
-                        <div style={{ fontSize: '13px', color: '#334155', fontWeight: '500' }}>{r.reason}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500' }}>{r.reason}</div>
                         {r.requestType === 'Attendance Correction' && (
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                             Correction: {r.manualIn ? new Date(r.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
                             {' to '} 
                             {r.manualOut ? new Date(r.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                           </div>
                         )}
                         {r.leaveType && (
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                             Type: {r.leaveType.name}
                           </div>
                         )}
                       </div>
                     </td>
-                    <td style={tdStyle}>
-                      <span style={{ 
-                        padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '700',
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        backgroundColor: statusColors[r.status].bg, color: statusColors[r.status].color
-                      }}>
-                        {statusColors[r.status].icon} {r.status}
+                    <td>
+                      <span className={`hrm-badge ${r.status === 'Approved' ? 'hrm-badge-success' : r.status === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        {statusColors[r.status]?.icon || <Clock size={14} />} {r.status}
                       </span>
                     </td>
-                    <td style={tdStyle}>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>{new Date(r.appliedAt).toLocaleDateString()}</div>
+                    <td>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{new Date(r.appliedAt).toLocaleDateString()}</div>
                     </td>
-                    <td style={tdStyle}>
-                      {r.status === 'Pending' ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                    <td>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        {r.status === 'Pending' ? (
                           <button 
+                            className="btn-hrm btn-hrm-primary"
+                            style={{ padding: '6px 16px', fontSize: '12px' }}
                             onClick={() => { setSelectedRequest(r); setModalOpen(true); }}
-                            style={{ 
-                              padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#2563EB', 
-                              color: '#fff', fontWeight: '700', fontSize: '12px', cursor: 'pointer' 
-                            }}
                           >
                             Review
                           </button>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>Processed</div>
-                      )}
+                        ) : (
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>Processed</div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -315,39 +305,34 @@ const AdminRequests = () => {
 
       {/* Review Modal */}
       {modalOpen && selectedRequest && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div onClick={() => setModalOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }} />
-          <div style={{ position: 'relative', background: '#fff', borderRadius: '32px', width: '100%', maxWidth: '750px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
-            
-            <div style={{ padding: '32px', borderBottom: '1.5px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#0F172A' }}>Review Request</h3>
-              <button 
-                onClick={() => setModalOpen(false)} 
-                style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '8px', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
-              >
+        <div className="hrm-modal-overlay">
+          <div className="hrm-modal-content" style={{ maxWidth: '750px' }}>
+            <div className="hrm-modal-header">
+              <h3 className="hrm-modal-title">Review Request</h3>
+              <button className="icon-btn" onClick={() => setModalOpen(false)}>
                 <XCircle size={20} />
               </button>
             </div>
             
-            <div style={{ padding: '32px' }}>
+            <div className="hrm-modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
                 
                 {/* Left Column: Information */}
                 <div>
-                  <div style={{ marginBottom: '24px', padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0' }}>
-                    <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '10px' }}>
+                  <div style={{ marginBottom: '24px', padding: '20px', background: 'var(--bg-main)', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
                       Core Details
                     </div>
                     
                     <div style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Employee</div>
-                      <div style={{ fontWeight: '800', fontSize: '16px', color: '#0F172A' }}>{selectedRequest.employee?.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748B', fontWeight: '600' }}>{selectedRequest.employee?.employeeId}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Employee</div>
+                      <div style={{ fontWeight: '800', fontSize: '16px', color: 'var(--text-dark)' }}>{selectedRequest.employee?.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>{selectedRequest.employee?.employeeId}</div>
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Period</div>
-                      <div style={{ fontWeight: '800', fontSize: '14px', color: '#312E81' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Period</div>
+                      <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--primary-blue)' }}>
                         {selectedRequest.requestType === 'Leave' && selectedRequest.fromDate && selectedRequest.toDate && selectedRequest.fromDate !== selectedRequest.toDate 
                           ? `${selectedRequest.fromDate} — ${selectedRequest.toDate}` 
                           : (selectedRequest.date || selectedRequest.fromDate)}
@@ -357,13 +342,13 @@ const AdminRequests = () => {
                     {selectedRequest.requestType === 'Leave' && (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                         <div>
-                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Leave Type</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Leave Type</div>
                           <div style={{ marginTop: '4px', padding: '6px 12px', background: '#F5F3FF', color: '#7C3AED', borderRadius: '10px', fontWeight: '800', fontSize: '12px', display: 'inline-block' }}>
                             {selectedRequest.leaveType?.name || 'N/A'}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Category</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Category</div>
                           <div style={{ 
                             marginTop: '4px', padding: '6px 12px', 
                             background: selectedRequest.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB', 
@@ -378,13 +363,14 @@ const AdminRequests = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '10px' }}>Admin Remark</label>
+                  <div className="hrm-form-group">
+                    <label className="hrm-label">Admin Remark</label>
                     <textarea 
+                      className="hrm-input"
                       value={adminRemark} 
                       onChange={e => setAdminRemark(e.target.value)}
                       placeholder="Share your thoughts with the employee..."
-                      style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1.5px solid #E2E8F0', outline: 'none', minHeight: '120px', fontSize: '14px', color: '#334155', background: '#fff', transition: 'border-color 0.2s', resize: 'none' }}
+                      style={{ minHeight: '120px', resize: 'none' }}
                     />
                   </div>
                 </div>
@@ -393,29 +379,29 @@ const AdminRequests = () => {
                 <div>
                    {selectedRequest.requestType === 'Leave' ? (
                      <div style={{ height: '100%' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '12px' }}>Visual Audit</div>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '12px' }}>Visual Audit</div>
                         <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} />
                         
-                        <div style={{ marginTop: '20px', padding: '16px', background: '#F0F9FF', borderRadius: '16px', border: '1px solid #BAE6FD' }}>
-                           <div style={{ fontSize: '11px', fontWeight: '800', color: '#0369A1', textTransform: 'uppercase', marginBottom: '4px' }}>Reason</div>
-                           <p style={{ margin: 0, fontSize: '13px', color: '#0C4A6E', fontWeight: '600', lineHeight: '1.5' }}>{selectedRequest.reason}</p>
+                        <div style={{ marginTop: '20px', padding: '16px', background: 'var(--primary-light)', borderRadius: '16px', border: '1px solid var(--primary-blue)', opacity: 0.8 }}>
+                           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '4px' }}>Reason</div>
+                           <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.5' }}>{selectedRequest.reason}</p>
                         </div>
                      </div>
                    ) : (
-                     <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1.5px solid #E2E8F0', height: '100%' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B', marginBottom: '16px' }}>Correction Details</div>
+                     <div style={{ padding: '20px', background: 'var(--bg-main)', borderRadius: '20px', border: '1px solid var(--border)', height: '100%' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px' }}>Correction Details</div>
                         <div style={{ display: 'grid', gap: '16px' }}>
-                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                             <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Requested In</div>
-                             <div style={{ fontWeight: '800', fontSize: '18px', color: '#2563EB' }}>{selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Requested In</div>
+                             <div style={{ fontWeight: '800', fontSize: '18px', color: 'var(--primary-blue)' }}>{selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                           </div>
-                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                             <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Requested Out</div>
-                             <div style={{ fontWeight: '800', fontSize: '18px', color: '#2563EB' }}>{selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid var(--border)' }}>
+                             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Requested Out</div>
+                             <div style={{ fontWeight: '800', fontSize: '18px', color: 'var(--primary-blue)' }}>{selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                           </div>
                           <div style={{ marginTop: '10px' }}>
-                             <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Reason</div>
-                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#334155', fontWeight: '600' }}>{selectedRequest.reason}</p>
+                             <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Reason</div>
+                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-dark)', fontWeight: '600' }}>{selectedRequest.reason}</p>
                           </div>
                         </div>
                      </div>
@@ -425,16 +411,18 @@ const AdminRequests = () => {
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '40px' }}>
                 <button 
+                  className="btn-hrm btn-hrm-success"
+                  style={{ flex: 1.2, height: '56px', fontSize: '16px' }}
                   disabled={actionLoading}
                   onClick={() => handleAction(selectedRequest._id, 'Approved')}
-                  style={{ flex: 1.2, padding: '16px', borderRadius: '18px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '800', fontSize: '16px', cursor: 'pointer', transition: 'transform 0.1s, opacity 0.2s', opacity: actionLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                 >
                   Confirm Approval
                 </button>
                 <button 
+                  className="btn-hrm btn-hrm-secondary"
+                  style={{ flex: 1, height: '56px', fontSize: '16px', color: 'var(--danger)' }}
                   disabled={actionLoading}
                   onClick={() => handleAction(selectedRequest._id, 'Rejected')}
-                  style={{ flex: 1, padding: '16px', borderRadius: '18px', border: '1.5px solid #F1F5F9', background: '#fff', color: '#EF4444', fontWeight: '800', fontSize: '16px', cursor: 'pointer', transition: 'background 0.2s', opacity: actionLoading ? 0.7 : 1 }}
                 >
                   Reject
                 </button>
@@ -447,7 +435,7 @@ const AdminRequests = () => {
   );
 };
 
-const thStyle = { padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const tdStyle = { padding: '16px', fontSize: '14px', color: '#334155' };
+const thStyle = { padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const tdStyle = { padding: '16px', fontSize: '14px', color: 'var(--text-primary)' };
 
 export default AdminRequests;

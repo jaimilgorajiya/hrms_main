@@ -97,8 +97,8 @@ const AddAttendance = () => {
         <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
                 <div>
-                    <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px' }}>Add & Correct Attendance</h2>
-                    <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Resolve missing logs and rejected attendance records</p>
+                    <h2 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 4px' }}>Add & Correct Attendance</h2>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>Resolve missing logs and rejected attendance records</p>
                 </div>
                 <button 
                     onClick={() => handleOpenModal()}
@@ -114,7 +114,7 @@ const AddAttendance = () => {
 
             {/* Filter */}
             <div style={{ position: 'relative', marginBottom: '20px', maxWidth: '400px' }}>
-                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input 
                     type="text" placeholder="Search missing records..." 
                     value={search} onChange={e => setSearch(e.target.value)}
@@ -127,20 +127,20 @@ const AddAttendance = () => {
                 {loading ? (
                     <div style={{ padding: '100px', textAlign: 'center' }}>
                         <RefreshCw className="animate-spin" size={32} color="#2563EB" />
-                        <p style={{ marginTop: '16px', color: '#64748b', fontWeight: '600' }}>Fetching queue...</p>
+                        <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontWeight: '600' }}>Fetching queue...</p>
                     </div>
                 ) : filtered.length === 0 ? (
                     <div style={{ padding: '80px', textAlign: 'center' }}>
                         <CheckCircle size={48} color="#10B981" style={{ opacity: 0.3, marginBottom: '16px' }} />
-                        <h3 style={{ margin: 0, color: '#0f172a' }}>All Clear!</h3>
-                        <p style={{ color: '#64748b', marginTop: '8px' }}>No rejected or missing attendance records found matching your search.</p>
+                        <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>All Clear!</h3>
+                        <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>No rejected or missing attendance records found matching your search.</p>
                     </div>
                 ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                                 {['Employee', 'Date', 'Previous Status', 'Current Logs', 'Action'].map(h => (
-                                    <th key={h} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
+                                    <th key={h} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -153,12 +153,12 @@ const AddAttendance = () => {
                                                 {r.employee?.name?.charAt(0)}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: '700', color: '#0f172a' }}>{r.employee?.name}</div>
-                                                <div style={{ fontSize: '12px', color: '#94A3B8' }}>{r.employee?.employeeId} · {r.employee?.department}</div>
+                                                <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{r.employee?.name}</div>
+                                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.employee?.employeeId} · {r.employee?.department}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '16px', fontSize: '14px', color: '#334155', fontWeight: '600' }}>
+                                    <td style={{ padding: '16px', fontSize: '14px', color: 'var(--text-primary)', fontWeight: '600' }}>
                                         {new Date(r.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </td>
                                     <td style={{ padding: '16px' }}>
@@ -172,7 +172,7 @@ const AddAttendance = () => {
                                             {r.approvalStatus === 'Rejected' ? 'Rejected' : r.status}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '16px', fontSize: '13px', color: '#64748b' }}>
+                                    <td style={{ padding: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                                         {r.punchIn ? `In: ${r.punchIn}` : 'No In'} · {r.punchOut ? `Out: ${r.punchOut}` : 'No Out'}
                                     </td>
                                     <td style={{ padding: '16px' }}>
@@ -202,7 +202,7 @@ const AddAttendance = () => {
                     <div style={{ position: 'relative', background: '#fff', borderRadius: '28px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                         <div style={{ padding: '24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>{formData.remark.startsWith('Correction') ? 'Correct Attendance' : 'Add Attendance'}</h3>
-                            <button onClick={() => setModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94A3B8' }}><XCircle size={22} /></button>
+                            <button onClick={() => setModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><XCircle size={22} /></button>
                         </div>
                         
                         <form onSubmit={handleSubmit} style={{ padding: '32px' }}>

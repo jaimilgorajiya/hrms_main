@@ -84,8 +84,9 @@ export const initCronJobs = () => {
         try {
             const admins = await User.find({ role: 'Admin', status: 'Active' });
             for (const admin of admins) {
-                await generateAndSendDailyReport(admin._id);
-                console.log(`[CRON] Report sent to Admin: ${admin.name} (${admin.email})`);
+                const result = await generateAndSendDailyReport(admin._id);
+                // recipient is resolved inside generateAndSendDailyReport from company settings
+                console.log(`[CRON] Report processed for Admin: ${admin.name} (${admin.email}) → success: ${result.success}`);
             }
         } catch (error) {
             console.error('[CRON] Error in Daily Attendance Report:', error);
