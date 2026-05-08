@@ -175,6 +175,7 @@ export const getTodayAttendance = async (req, res) => {
             workingMinutes,
             workingFormatted: formatMinutes(workingMinutes),
             lateInPenalty: liveLatePenalty,
+            earlyOutPenalty: record.earlyOutPenalty || { amount: 0, isApplied: false },
             punches: record.punches,
             breaks: record.breaks,
             shiftDurationMinutes,
@@ -235,11 +236,17 @@ export const togglePunch = async (req, res) => {
                     const lateByMinsLocal = nowMins - shiftStartMins;
                     lateByMins = lateByMinsLocal;
                     
-                    const maxAllowed = shift.maxLateInMinutes || 0;
                     const { isWeekOff } = await getEmployeeShiftToday(req.user._id);
-
-                    // Skip late check on week-off IF policy says so
                     const skipOnExtra = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
+
+                    // Calculate effective max allowed based on Shift + Penalty Rules
+                    let maxAllowed = shift.maxLateInMinutes || 0;
+                    const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                    const lateSlabs = penaltyRule?.slabs?.filter(s => s.penaltyType === 'Late In Minutes') || [];
+                    if (lateSlabs.length > 0) {
+                        const minPenaltyMins = Math.min(...lateSlabs.map(s => s.minTime || 0));
+                        maxAllowed = Math.max(maxAllowed, minPenaltyMins === Infinity ? 0 : minPenaltyMins - 1);
+                    }
 
                     if (!skipOnExtra && lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
                         return res.status(400).json({ 
@@ -383,6 +390,14 @@ export const togglePunch = async (req, res) => {
                     }
                 }
 
+                // Apply Penalty Rule min threshold if applicable
+                const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                const earlySlabs = penaltyRule?.slabs?.filter(s => s.penaltyType === 'Early Out Minutes') || [];
+                if (earlySlabs.length > 0) {
+                    const minPenaltyMins = Math.min(...earlySlabs.map(s => s.minTime || 0));
+                    maxAllowed = Math.max(maxAllowed, minPenaltyMins === Infinity ? 0 : minPenaltyMins - 1);
+                }
+
                 const skipOnExtraEarlyReason = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
                 if (!skipOnExtraEarlyReason && earlyByMins > maxAllowed && shift.requireEarlyOutReason && !providedReason) {
                     return res.status(400).json({
@@ -390,7 +405,7 @@ export const togglePunch = async (req, res) => {
                         earlyOut: true,
                         earlyByMins,
                         requireReason: true,
-                        message: `You were late ${shift.maxLateInMinutes - maxAllowed}m this morning. You can only leave ${maxAllowed}m early. Please provide a reason.`
+                        message: `You are punching out ${earlyByMins}m early. Please provide a reason.`
                     });
                 }
 
@@ -638,56 +653,79 @@ export const getAttendanceHistory = async (req, res) => {
 };
 
 // GET /api/attendance/admin/all?date=YYYY-MM-DD  (admin only)
+// GET /api/attendance/admin/all?date=YYYY-MM-DD  (admin only)
 export const getAdminAttendance = async (req, res) => {
     try {
-        const { date, month, approvalStatus } = req.query;
-        let filter = {};
-        if (date) filter.date = date;
-        else if (month) filter.date = { $regex: `^${month}` };
+        const { date, department, branch, status } = req.query;
+        const targetDate = date || getTodayStr();
         
-        if (approvalStatus) filter.approvalStatus = approvalStatus;
+        // 1. Get all active employees first
+        let userQuery = { role: 'Employee', status: { $ne: 'Ex-Employee' } };
+        if (department) userQuery.department = department;
+        if (branch) userQuery['workSetup.location'] = branch;
+        
+        const allEmployees = await User.find(userQuery)
+            .select('name employeeId department branch workSetup.location profilePhoto')
+            .sort({ name: 1 });
 
-        const records = await Attendance.find(filter)
-            .populate({
-                path: 'employee',
-                select: 'name employeeId department designation profilePhoto workSetup',
-                populate: { path: 'workSetup.shift', select: 'weekOffDays' }
-            })
-            .sort({ date: -1 });
+        // 2. Get attendance records for this date
+        const attendanceRecords = await Attendance.find({ date: targetDate });
 
-        const formatted = records.map(r => {
-            const workingMinutes = computeWorkingMinutes(r.punches, r.breaks);
-            const firstIn = r.punches.find(p => p.type === 'IN');
-            const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
-            
-            // Check if Extra Day (Worked on Week Off)
-            let isExtraDay = false;
-            if (r.employee?.workSetup?.shift?.weekOffDays?.length > 0) {
-                const dateObj = new Date(r.date);
-                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                const dayName = days[dateObj.getUTCDay()];
-                isExtraDay = r.employee.workSetup.shift.weekOffDays.includes(dayName);
+        // 3. Merge them
+        const data = allEmployees.map(emp => {
+            const record = attendanceRecords.find(r => r.employee.toString() === emp._id.toString());
+            const firstIn = record?.punches.find(p => p.type === 'IN');
+            const lastOut = [...(record?.punches || [])].reverse().find(p => p.type === 'OUT');
+
+            let attendanceStatus = record?.status || 'Absent';
+            if (attendanceStatus === 'Present' && firstIn && !lastOut && targetDate === getTodayStr()) {
+                attendanceStatus = 'Clocked In';
             }
 
             return {
-                _id: r._id,
-                date: r.date,
-                status: r.status,
-                employee: r.employee,
-                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
-                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
-                workingMinutes,
-                workingFormatted: formatMinutes(workingMinutes),
-                breakCount: r.breaks.length,
-                isPunchedIn: r.punches[r.punches.length - 1]?.type === 'IN',
-                punches: r.punches,
-                breaks: r.breaks,
-                approvalStatus: r.approvalStatus || "Pending",
-                isExtraDay
+                _id: record?._id,
+                employee: {
+                    _id: emp._id,
+                    name: emp.name,
+                    employeeId: emp.employeeId,
+                    department: emp.department,
+                    branch: emp.workSetup?.location || emp.branch,
+                    profilePhoto: emp.profilePhoto,
+                },
+                status: attendanceStatus,
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
+                isLate: record?.lateInPenalty?.isLate || false,
+                isEarly: record?.earlyOutPenalty?.isEarly || false,
+                lateInPenalty: record?.lateInPenalty || { amount: 0, isApplied: false },
+                earlyOutPenalty: record?.earlyOutPenalty || { amount: 0, isApplied: false },
+                approvalStatus: record?.approvalStatus || 'Pending',
+                punches: record?.punches || [],
+                breaks: record?.breaks || []
             };
         });
 
-        res.status(200).json({ success: true, records: formatted, date: date || getTodayStr() });
+        // 4. Filter by status if requested
+        let filteredData = data;
+        if (status && status !== 'All') {
+            if (status === 'Present') {
+                filteredData = data.filter(d => ['Present', 'Clocked In'].includes(d.status));
+            } else {
+                filteredData = data.filter(d => d.status === status);
+            }
+        }
+
+        // 5. Calculate Stats
+        const stats = {
+            total: data.length,
+            present: data.filter(d => ['Present', 'Clocked In'].includes(d.status)).length,
+            absent: data.filter(d => d.status === 'Absent').length,
+            late: data.filter(d => d.isLate).length,
+            onLeave: data.filter(d => d.status === 'On Leave').length,
+            halfDay: data.filter(d => d.status === 'Half Day').length
+        };
+
+        res.status(200).json({ success: true, records: filteredData, stats, date: targetDate });
     } catch (error) {
         console.error("getAdminAttendance error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -774,24 +812,87 @@ export const addManualAttendance = async (req, res) => {
             return res.status(400).json({ success: false, message: "Missing required fields" });
         }
 
+        // Helper to create date object in IST context but stored as UTC
+        const createISTDate = (dateStr, timeStr) => {
+            if (!timeStr) return null;
+            // dateStr: YYYY-MM-DD, timeStr: HH:MM
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const [hour, minute] = timeStr.split(':').map(Number);
+            // Create a Date object that represents the moment in IST
+            // We subtract 5.5 hours to get the UTC equivalent
+            const d = new Date(Date.UTC(year, month - 1, day, hour, minute));
+            d.setMinutes(d.getMinutes() - 330); 
+            return d;
+        };
+
         // Prepare punches
         let punches = [];
         if (inTime) {
-            punches.push({ time: new Date(`${date}T${inTime}:00`), type: "IN", locationAddress: "Admin Manual Entry" });
+            punches.push({ 
+                time: createISTDate(date, inTime), 
+                type: "IN", 
+                locationAddress: "Admin Manual Entry",
+                lateReason: remark
+            });
         }
         if (outTime) {
-            punches.push({ time: new Date(`${date}T${outTime}:00`), type: "OUT", locationAddress: "Admin Manual Entry" });
+            punches.push({ 
+                time: createISTDate(date, outTime), 
+                type: "OUT", 
+                locationAddress: "Admin Manual Entry",
+                earlyReason: remark,
+                workSummary: "Manual entry by admin"
+            });
+        }
+
+        // Calculate Penalties if it's a "Present" status and we have punches
+        let lateInPenalty = { amount: 0, isApplied: false, isLate: false };
+        let earlyOutPenalty = { amount: 0, isApplied: false, isEarly: false };
+
+        if (status === 'Present' && punches.length > 0) {
+            const { shift: empShift, daySchedule } = await getEmployeeShiftToday(employeeId);
+            if (empShift && daySchedule) {
+                // Late In
+                const firstIn = punches.find(p => p.type === 'IN');
+                if (firstIn && daySchedule.shiftStart) {
+                    const shiftStartMins = parseTimeToMinutes(daySchedule.shiftStart);
+                    const inTimeObj = new Date(firstIn.time);
+                    const istIn = new Date(inTimeObj.getTime() + (5.5 * 60 * 60 * 1000));
+                    const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                    const lateByMins = inMins - shiftStartMins;
+                    if (lateByMins > 0) {
+                        const amount = await calculatePenaltyAmount(empShift._id, lateByMins, employeeId);
+                        lateInPenalty = { amount, isApplied: amount > 0, isLate: true };
+                    }
+                }
+
+                // Early Out
+                const lastOut = [...punches].reverse().find(p => p.type === 'OUT');
+                if (lastOut && daySchedule.shiftEnd) {
+                    const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+                    const outTimeObj = new Date(lastOut.time);
+                    const istOut = new Date(outTimeObj.getTime() + (5.5 * 60 * 60 * 1000));
+                    const outMins = istOut.getUTCHours() * 60 + istOut.getUTCMinutes();
+                    const earlyByMins = shiftEndMins - outMins;
+                    if (earlyByMins > 0) {
+                        const amount = await calculatePenaltyAmount(empShift._id, earlyByMins, employeeId, null, null, 'Early Out Minutes');
+                        earlyOutPenalty = { amount, isApplied: amount > 0, isEarly: true };
+                    }
+                }
+            }
         }
 
         const record = await Attendance.findOneAndUpdate(
             { employee: employeeId, date },
-            {
-                $set: {
-                    status,
+            { 
+                $set: { 
+                    status, 
+                    punches, 
+                    lateInPenalty,
+                    earlyOutPenalty,
                     approvalStatus: "Approved",
-                    punches,
-                    remark: remark || "Added by Admin"
-                }
+                    remark: remark || "Manual entry by admin"
+                } 
             },
             { upsert: true, new: true }
         );

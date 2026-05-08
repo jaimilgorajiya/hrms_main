@@ -20,7 +20,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    fetchTodayActivities();
+    fetchTodayActivities(); 
     fetchPendingRequests();
   }, []);
 
@@ -102,30 +102,37 @@ const AdminDashboard = () => {
   const deptBarData = (data?.departmentStats || []).slice(0, 7).map(d => ({ name: d.name, Employees: d.count }));
 
   const statCards = [
-    { title: 'Total Employees', value: stats.totalUsers || 0, icon: <Users size={20} />, color: 'blue', link: '/admin/employees/list' },
-    { title: 'Present Today', value: stats.presentToday || 0, icon: <Check size={20} />, color: 'emerald', link: '/admin/attendance/records?status=Present' },
-    { title: 'Absent Today', value: stats.absentToday || 0, icon: <AlertCircle size={20} />, color: 'red', link: '/admin/attendance/absent' },
-    { title: 'On Leave Today', value: stats.onLeaveToday || 0, icon: <Calendar size={20} />, color: 'purple', link: '/admin/attendance/records?status=On Leave' },
+    { title: 'Total Employees', value: stats.totalUsers || 0, icon: <Users size={24} />, color: 'blue', link: '/admin/employees/list' },
+    { title: 'Present Today', value: stats.presentToday || 0, icon: <UserPlus size={24} />, color: 'emerald', link: '/admin/attendance/records?status=Present' },
+    { title: 'Absent Today', value: stats.absentToday || 0, icon: <UserMinus size={24} />, color: 'red', link: '/admin/attendance/absent' },
+    { title: 'On Leave Today', value: stats.onLeaveToday || 0, icon: <Calendar size={24} />, color: 'purple', link: '/admin/attendance/records?status=On Leave' },
+  ];
+
+  const secondaryStats = [
+    { label: 'Active Onboarding', value: stats.activeOnboarding || 0, icon: <RefreshCw size={14} />, color: '#3B82F6' },
+    { label: 'Active Offboarding', value: stats.activeOffboarding || 0, icon: <XCircle size={14} />, color: '#EF4444' },
+    { label: 'Leave Requests', value: stats.pendingLeaveRequests || 0, icon: <Clock size={14} />, color: '#F59E0B' },
+    { label: 'Attendance Requests', value: stats.pendingAttendanceRequests || 0, icon: <AlertCircle size={14} />, color: '#8B5CF6' },
   ];
 
   return (
-    <div className="hrm-container" style={{ paddingBottom: '40px' }}>
+    <div className="hrm-container" style={{ paddingBottom: '60px' }}>
       <div className="hrm-header">
         <div>
-          <h1 className="hrm-title">Dashboard Overview</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>Real-time workforce analytics and activities</p>
+          <h1 className="hrm-title">Admin Command Center</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>Unified workforce intelligence and operational overview</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
            <button className="btn-hrm btn-hrm-secondary" onClick={() => navigate('/admin/attendance/report')}>
-             <ArrowDownRight size={16} /> EXPORT REPORT
+             <ArrowDownRight size={16} /> EXPORT ANALYTICS
            </button>
            <button className="btn-hrm btn-hrm-primary" onClick={() => navigate('/admin/employees/list')}>
-             <Search size={16} /> FIND EMPLOYEE
+             <UserPlus size={16} /> NEW EMPLOYEE
            </button>
         </div>
       </div>
 
-      {/* Quick Stats Grid */}
+      {/* Primary Stats Grid */}
       <div className="hrm-stats-grid">
         {statCards.map((card, idx) => (
           <div key={idx} className="hrm-stat-card" onClick={() => navigate(card.link)}>
@@ -140,48 +147,71 @@ const AdminDashboard = () => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px' }}>
+      {/* Secondary Stats Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+         {secondaryStats.map((s, i) => (
+           <div key={i} className="hrm-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+              <div style={{ padding: '8px', borderRadius: '8px', background: `${s.color}10`, color: s.color }}>{s.icon}</div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{s.label}</div>
+                <div style={{ fontSize: '16px', fontWeight: '800' }}>{s.value}</div>
+              </div>
+           </div>
+         ))}
+      </div>
+
+      <div className="hrm-dashboard-grid">
         
         {/* Attendance Breakdown */}
-        <div className="hrm-card" style={{ gridColumn: 'span 4' }}>
-           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>Attendance Status</h3>
-              <Calendar size={18} className="text-muted" />
+        <div className="hrm-card hrm-dashboard-main">
+           <div className="hrm-card-header">
+              <div className="hrm-card-header-left">
+                <Calendar size={18} className="hrm-card-icon" />
+                <h3 className="hrm-card-title">Real-time Presence</h3>
+              </div>
            </div>
-           <div style={{ padding: '24px' }}>
-             <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={attendanceDonutData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value">
-                    {attendanceDonutData.map((entry, i) => <Cell key={i} fill={entry.color} stroke="none" />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-             </ResponsiveContainer>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '20px' }}>
-                {attendanceDonutData.map((d, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'var(--bg-main)', borderRadius: '10px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: d.color }} />
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>{d.name}</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: '800' }}>{d.value}</span>
-                  </div>
-                ))}
-             </div>
+           <div className="hrm-card-body">
+              <div className="hrm-chart-container" style={{ position: 'relative' }}>
+                <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie data={attendanceDonutData} cx="50%" cy="50%" innerRadius={65} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">
+                        {attendanceDonutData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                </ResponsiveContainer>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                   <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-dark)' }}>{stats.presentToday || 0}</div>
+                   <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Present</div>
+                </div>
+              </div>
+              <div className="hrm-donut-legend">
+                 {attendanceDonutData.map((d, i) => (
+                   <div key={i} className="hrm-legend-item">
+                     <div className="hrm-legend-dot" style={{ background: d.color }} />
+                     <span className="hrm-legend-label">{d.name}</span>
+                     <span className="hrm-legend-value">{d.value}</span>
+                   </div>
+                 ))}
+              </div>
            </div>
         </div>
 
         {/* Dept Distribution */}
-        <div className="hrm-card" style={{ gridColumn: 'span 8' }}>
-           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>Staffing by Department</h3>
-              <Building2 size={18} className="text-muted" />
+        <div className="hrm-card hrm-dashboard-side">
+           <div className="hrm-card-header">
+              <div className="hrm-card-header-left">
+                <Building2 size={18} className="hrm-card-icon" />
+                <h3 className="hrm-card-title">Workforce Allocation</h3>
+              </div>
            </div>
-           <div style={{ padding: '24px' }}>
-             <ResponsiveContainer width="100%" height={320}>
+           <div className="hrm-card-body">
+             <ResponsiveContainer width="100%" height={340}>
                 <BarChart data={deptBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} />
                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} />
-                   <Tooltip cursor={{ fill: 'var(--bg-main)' }} />
-                   <Bar dataKey="Employees" radius={[6, 6, 0, 0]}>
+                   <Tooltip cursor={{ fill: 'var(--bg-main)', radius: 8 }} />
+                   <Bar dataKey="Employees" radius={[8, 8, 0, 0]} barSize={40}>
                       {deptBarData.map((_, i) => <Cell key={i} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
                    </Bar>
                 </BarChart>
@@ -190,54 +220,85 @@ const AdminDashboard = () => {
         </div>
 
         {/* Pending Requests */}
-        <div className="hrm-card" style={{ gridColumn: 'span 6' }}>
-           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>Pending Actions</h3>
-              <button className="btn-hrm btn-hrm-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => navigate('/admin/requests/all')}>VIEW ALL</button>
+        <div className="hrm-card hrm-dashboard-actions">
+           <div className="hrm-card-header">
+              <div className="hrm-card-header-left">
+                <AlertCircle size={18} className="hrm-card-icon" />
+                <h3 className="hrm-card-title">Priority Approvals</h3>
+              </div>
+              <button className="btn-hrm btn-hrm-secondary btn-sm" onClick={() => navigate('/admin/requests/all')}>MANAGE ALL</button>
            </div>
-           <div style={{ padding: '0' }}>
+           <div className="hrm-list-content">
               {pendingRequests.map(req => (
-                <div key={req._id} style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: req.requestType === 'Leave' ? '#ECFDF5' : '#FEF2F2', color: req.requestType === 'Leave' ? '#059669' : '#DC2626' }}>
+                <div key={req._id} className="hrm-list-item">
+                   <div className={`hrm-list-icon ${req.requestType === 'Leave' ? 'bg-success-light text-success' : 'bg-danger-light text-danger'}`}>
                       {req.requestType === 'Leave' ? <Calendar size={18} /> : <XCircle size={18} />}
                    </div>
-                   <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '800', fontSize: '14px' }}>{req.employee?.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{req.requestType} • {req.date || req.fromDate}</div>
+                   <div className="hrm-list-info">
+                      <div className="hrm-list-name">{req.employee?.name}</div>
+                      <div className="hrm-list-subtext">{req.requestType} • {req.date || req.fromDate}</div>
                    </div>
-                   <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn-hrm btn-hrm-secondary" style={{ padding: '8px', color: 'var(--success)' }} onClick={() => handleRequestAction(req._id, 'Approved', req.requestType)}><Check size={16} /></button>
-                      <button className="btn-hrm btn-hrm-secondary" style={{ padding: '8px', color: 'var(--danger)' }} onClick={() => handleRequestAction(req._id, 'Rejected', req.requestType)}><X size={16} /></button>
+                   <div className="hrm-list-actions">
+                      <button className="hrm-action-btn hrm-approve" onClick={() => handleRequestAction(req._id, 'Approved', req.requestType)}><Check size={16} /></button>
+                      <button className="hrm-action-btn hrm-reject" onClick={() => handleRequestAction(req._id, 'Rejected', req.requestType)}><X size={16} /></button>
                    </div>
                 </div>
               ))}
-              {pendingRequests.length === 0 && <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No pending requests</div>}
+              {pendingRequests.length === 0 && <div className="hrm-empty-state">System clean. No pending tasks.</div>}
            </div>
         </div>
 
-        {/* Today's Activity */}
-        <div className="hrm-card" style={{ gridColumn: 'span 6' }}>
-           <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>Today's Clock-ins</h3>
-              <RefreshCw size={18} className="text-muted" style={{ cursor: 'pointer' }} onClick={fetchTodayActivities} />
+        {/* Today's Punch Ins */}
+        <div className="hrm-card hrm-dashboard-activity">
+           <div className="hrm-card-header">
+              <div className="hrm-card-header-left">
+                <Clock size={18} className="hrm-card-icon" />
+                <h3 className="hrm-card-title">Today's Punch Ins</h3>
+              </div>
+              <div className="hrm-card-header-right">
+                <RefreshCw size={16} className="hrm-refresh-icon" onClick={fetchTodayActivities} style={{ cursor: 'pointer' }} />
+              </div>
            </div>
-           <div style={{ padding: '0' }}>
+           <div className="hrm-list-content">
               {todayActivities.map(rec => (
-                <div key={rec._id} style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--primary-blue)', fontWeight: '800' }}>
-                      {rec.employee?.name?.charAt(0)}
+                <div key={rec.employeeId} className="hrm-list-item">
+                   <div className="hrm-list-avatar">
+                      {rec.profilePhoto ? (
+                        <img src={`${API_URL}/uploads/${rec.profilePhoto}`} alt="" />
+                      ) : (
+                        rec.name?.charAt(0)
+                      )}
                    </div>
-                   <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '800', fontSize: '14px' }}>{rec.employee?.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{rec.punchIn || '--:--'} - {rec.punchOut || '--:--'}</div>
+                   <div className="hrm-list-info">
+                      <div className="hrm-list-name">{rec.name}</div>
+                      <div className="hrm-list-subtext">
+                        {rec.department || 'Unassigned'} • {rec.branch || 'Head Office'}
+                      </div>
                    </div>
-                   <div className={`hrm-badge ${rec.status === 'Present' ? 'hrm-badge-success' : 'hrm-badge-danger'}`} style={{ fontSize: '10px' }}>
-                      {rec.status}
+                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <div className={`hrm-badge ${rec.status === 'Present' || rec.status === 'Clocked In' ? 'hrm-badge-success' : 'hrm-badge-danger'}`} style={{ fontSize: '10px', padding: '4px 8px' }}>
+                        {rec.status === 'Present' || rec.status === 'Clocked In' ? 'PUNCHED IN' : 'NOT PUNCHED'}
+                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-dark)' }}>
+                        {rec.punchIn || '---'}
+                      </div>
                    </div>
                 </div>
               ))}
-              {todayActivities.length === 0 && <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No activity today</div>}
+              {todayActivities.length === 0 && (
+                <div className="hrm-empty-state">
+                  <div style={{ marginBottom: '8px' }}>No activity recorded today</div>
+                  <button className="btn-hrm btn-hrm-secondary btn-sm" onClick={fetchTodayActivities}>REFRESH</button>
+                </div>
+              )}
            </div>
+           {todayActivities.length > 0 && (
+             <div className="hrm-card-footer" style={{ padding: '12px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+                <button className="btn-hrm btn-hrm-secondary btn-sm" style={{ width: '100%' }} onClick={() => navigate('/admin/attendance/records')}>
+                  VIEW FULL ATTENDANCE LOG
+                </button>
+             </div>
+           )}
         </div>
 
       </div>

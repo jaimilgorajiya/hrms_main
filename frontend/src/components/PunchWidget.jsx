@@ -151,6 +151,35 @@ const PunchWidget = () => {
         return;
       }
 
+      // Handle Late In Reason Requirement
+      if (json.requireLateReason) {
+        const { value: reason, isConfirmed: reasonConfirmed } = await Swal.fire({
+          title: 'Late Punch In',
+          html: `<p style="color:#64748B;margin-bottom:12px">${json.message}</p>`,
+          input: 'textarea',
+          inputPlaceholder: 'Enter reason for late arrival...',
+          inputAttributes: { rows: 3 },
+          showCancelButton: true,
+          confirmButtonColor: '#F59E0B',
+          confirmButtonText: 'Submit & Punch In',
+          inputValidator: (v) => !v?.trim() && 'Reason is required',
+        });
+        if (!reasonConfirmed || !reason?.trim()) return;
+
+        const res2 = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
+          method: 'POST',
+          body: JSON.stringify({ lateReason: reason.trim() }),
+        });
+        const json2 = await res2.json();
+        if (json2.success) {
+          await fetchToday();
+          Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
+        } else {
+          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#2563EB' });
+        }
+        return;
+      }
+
       // Early-out blocked — needs reason or is hard-blocked
       if (json.earlyOut) {
         if (json.requireReason) {

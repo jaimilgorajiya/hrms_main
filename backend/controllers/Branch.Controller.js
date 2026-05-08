@@ -18,7 +18,8 @@ const addBranch = async (req, res) => {
             branchType, 
             latitude, 
             longitude, 
-            radius 
+            radius,
+            address 
         } = req.body;
         const adminId = req.user._id;
 
@@ -32,6 +33,7 @@ const addBranch = async (req, res) => {
             latitude,
             longitude,
             radius,
+            address,
             order: branchesCount
         });
 
@@ -54,7 +56,8 @@ const updateBranch = async (req, res) => {
             branchType, 
             latitude, 
             longitude, 
-            radius 
+            radius,
+            address 
         } = req.body;
         const adminId = req.user._id;
 
@@ -66,7 +69,8 @@ const updateBranch = async (req, res) => {
                 branchType, 
                 latitude, 
                 longitude, 
-                radius 
+                radius,
+                address 
             }, 
             { new: true }
         );

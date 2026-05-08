@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, Check, Building2, MapPin, Grip, GripVertical, Save } from 'lucide-react';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
+import MapPicker from '../components/MapPicker';
+import { Loader2 } from 'lucide-react';
 
 const Branch = () => {
     const [branches, setBranches] = useState([]);
@@ -19,7 +21,8 @@ const Branch = () => {
         branchType: '',
         latitude: '',
         longitude: '',
-        radius: 500
+        radius: 300,
+        address: ''
     });
 
     useEffect(() => {
@@ -55,13 +58,20 @@ const Branch = () => {
         const method = isEditing ? 'PUT' : 'POST';
 
         try {
+            // Ensure coordinates are numbers
+            const payload = {
+                ...formData,
+                latitude: parseFloat(formData.latitude),
+                longitude: parseFloat(formData.longitude)
+            };
+
             const response = await authenticatedFetch(endpoint, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
@@ -74,7 +84,7 @@ const Branch = () => {
                     showConfirmButton: false
                 });
                 setIsModalOpen(false);
-                setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 });
+                setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 300, address: '' });
                 setIsEditing(false);
                 fetchBranches();
             } else {
@@ -92,7 +102,8 @@ const Branch = () => {
             branchType: branch.branchType,
             latitude: branch.latitude || '',
             longitude: branch.longitude || '',
-            radius: branch.radius || 500
+            radius: branch.radius || 300,
+            address: branch.address || ''
         });
         setCurrentId(branch._id);
         setIsEditing(true);
@@ -195,7 +206,7 @@ const Branch = () => {
                     ) : (
                         <>
                             <button className="btn-hrm btn-hrm-secondary" onClick={() => setIsReordering(true)}>CHANGE ORDER</button>
-                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 500 }); setIsModalOpen(true); }}>
+                            <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ branchName: '', branchCode: '', branchType: '', latitude: '', longitude: '', radius: 300, address: '' }); setIsModalOpen(true); }}>
                                 <Plus size={18} /> ADD BRANCH
                             </button>
                         </>
@@ -222,50 +233,87 @@ const Branch = () => {
                                 onDragOver={(e) => onDragOver(e, index)}
                                 onDragEnd={onDragEnd}
                                 style={{ 
-                                    padding: '30px', border: '1px solid var(--border)', 
-                                    transition: 'all 0.3s ease', position: 'relative',
+                                    padding: '24px', 
                                     opacity: draggedItem === branch ? 0.4 : 1,
                                     transform: draggedItem === branch ? 'scale(0.98)' : 'none'
                                 }}
                             >
                                 {isReordering && (
-                                    <div style={{ position: 'absolute', top: '16px', right: '16px', color: 'var(--text-muted)', cursor: 'grab' }}>
+                                    <div style={{ position: 'absolute', top: '20px', right: '20px', color: 'var(--text-muted)', cursor: 'grab' }}>
                                         <GripVertical size={20} />
                                     </div>
                                 )}
-                                <div style={{ background: 'var(--primary-light)', padding: '16px', borderRadius: '16px', display: 'inline-flex', marginBottom: '24px' }}>
-                                    <Building2 size={32} color="var(--primary-blue)" />
-                                </div>
-                                <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '8px', margin: 0 }}>{branch.branchName}</h3>
-                                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                                    <span className="hrm-badge hrm-badge-primary" style={{ fontSize: '11px' }}>{branch.branchType}</span>
-                                    {branch.branchCode && <span className="hrm-badge" style={{ fontSize: '11px', background: 'var(--bg-main)', color: 'var(--text-muted)' }}>{branch.branchCode}</span>}
+                                
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
+                                    <div style={{ 
+                                        background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', 
+                                        padding: '14px', 
+                                        borderRadius: '14px', 
+                                        color: 'var(--primary-blue)',
+                                        boxShadow: '0 4px 10px rgba(37, 99, 235, 0.1)'
+                                    }}>
+                                        <Building2 size={24} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '4px' }}>{branch.branchName}</h3>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <span className="hrm-badge hrm-badge-primary" style={{ fontSize: '10px', padding: '2px 8px' }}>{branch.branchType}</span>
+                                            {branch.branchCode && <span className="hrm-badge" style={{ fontSize: '10px', background: 'var(--bg-main)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>{branch.branchCode}</span>}
+                                        </div>
+                                        {branch.address && (
+                                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: '1.4', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                                                <MapPin size={12} style={{ marginTop: '2px', flexShrink: 0 }} />
+                                                {branch.address}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                                 
-                                <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <MapPin size={14} /> Location Data
+                                <div style={{ 
+                                    background: 'linear-gradient(to bottom, #F8FAFC, #F1F5F9)', 
+                                    padding: '16px', 
+                                    borderRadius: '16px', 
+                                    border: '1px solid var(--border)', 
+                                    marginBottom: '24px',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{ 
+                                        position: 'absolute', top: 0, right: 0, 
+                                        width: '40px', height: '40px', 
+                                        background: 'rgba(37, 99, 235, 0.03)', 
+                                        borderRadius: '0 0 0 40px' 
+                                    }} />
+                                    
+                                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <MapPin size={12} /> Geofence Parameters
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                         <div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>LATITUDE</div>
-                                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)' }}>{branch.latitude || '0.000'}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>LATITUDE</div>
+                                            <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>{branch.latitude || '0.000'}</div>
                                         </div>
                                         <div>
-                                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>LONGITUDE</div>
-                                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)' }}>{branch.longitude || '0.000'}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '4px' }}>LONGITUDE</div>
+                                            <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', fontFamily: 'monospace', letterSpacing: '-0.02em' }}>{branch.longitude || '0.000'}</div>
                                         </div>
                                     </div>
-                                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>GEOFENCE RADIUS</div>
-                                        <span className="hrm-badge hrm-badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>{branch.radius || 500}m</span>
+                                    
+                                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>ALLOWED RADIUS</div>
+                                        <div className="hrm-badge hrm-badge-success" style={{ fontWeight: '800' }}>{branch.radius || 500}M</div>
                                     </div>
                                 </div>
 
                                 {!isReordering && (
                                     <div style={{ display: 'flex', gap: '12px' }}>
-                                        <button className="btn-action-edit" onClick={() => handleEdit(branch)} title="Edit" style={{ flex: 1, height: '36px', borderRadius: '10px' }}><Edit2 size={16} /> Edit</button>
-                                        <button className="btn-action-delete" onClick={() => handleDelete(branch._id)} title="Delete" style={{ flex: 1, height: '36px', borderRadius: '10px' }}><Trash2 size={16} /> Remove</button>
+                                        <button className="btn-hrm btn-hrm-secondary" onClick={() => handleEdit(branch)} style={{ flex: 1, height: '42px', textTransform: 'none', letterSpacing: '0' }}>
+                                            <Edit2 size={16} /> Edit Details
+                                        </button>
+                                        <button className="btn-hrm btn-hrm-danger" onClick={() => handleDelete(branch._id)} style={{ flex: 1, height: '42px', textTransform: 'none', letterSpacing: '0' }}>
+                                            <Trash2 size={16} /> Remove
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -355,36 +403,75 @@ const Branch = () => {
                                         <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: 'var(--primary-blue)', display: 'flex' }}>
                                             <MapPin size={16} />
                                         </div>
-                                        GEOFENCING CONFIGURATION
+                                        LOCATION & GEOFENCING
                                     </h3>
+
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <MapPicker 
+                                            latitude={formData.latitude}
+                                            longitude={formData.longitude}
+                                            address={formData.address}
+                                            radius={formData.radius}
+                                            onLocationSelect={(lat, lon, addr) => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    latitude: lat,
+                                                    longitude: lon,
+                                                    address: addr
+                                                }));
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div className="hrm-form-group" style={{ marginBottom: '20px' }}>
+                                        <label className="hrm-label" style={{ fontSize: '11px' }}>AUTO-FILLED ADDRESS</label>
+                                        <input 
+                                            type="text" 
+                                            className="hrm-input" 
+                                            value={formData.address} 
+                                            readOnly 
+                                            placeholder="Address will be auto-filled from map selection"
+                                            style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
+                                        />
+                                    </div>
+
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                         <div className="hrm-form-group" style={{ margin: 0 }}>
                                             <label className="hrm-label" style={{ fontSize: '11px' }}>LATITUDE</label>
                                             <input 
-                                                type="number" step="any" className="hrm-input" name="latitude" 
-                                                value={formData.latitude} onChange={handleInputChange} 
-                                                placeholder="0.000000" style={{ background: 'white', height: '48px' }}
+                                                type="text" className="hrm-input" name="latitude" 
+                                                value={formData.latitude} readOnly 
+                                                placeholder="0.0000000000" style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
                                             />
                                         </div>
                                         <div className="hrm-form-group" style={{ margin: 0 }}>
                                             <label className="hrm-label" style={{ fontSize: '11px' }}>LONGITUDE</label>
                                             <input 
-                                                type="number" step="any" className="hrm-input" name="longitude" 
-                                                value={formData.longitude} onChange={handleInputChange} 
-                                                placeholder="0.000000" style={{ background: 'white', height: '48px' }}
+                                                type="text" className="hrm-input" name="longitude" 
+                                                value={formData.longitude} readOnly 
+                                                placeholder="0.0000000000" style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
                                             />
                                         </div>
                                     </div>
+                                    
                                     <div className="hrm-form-group" style={{ margin: 0 }}>
-                                        <label className="hrm-label" style={{ fontSize: '11px' }}>DETECTION RADIUS (METERS)</label>
-                                        <div style={{ position: 'relative' }}>
-                                            <input 
-                                                type="number" className="hrm-input" name="radius" 
-                                                value={formData.radius} onChange={handleInputChange} 
-                                                placeholder="500" style={{ background: 'white', height: '48px', paddingRight: '44px' }}
-                                            />
-                                            <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>m</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <label className="hrm-label" style={{ fontSize: '11px', margin: 0 }}>GEOFENCE RADIUS</label>
+                                            <span className="hrm-badge hrm-badge-success" style={{ fontWeight: '800', padding: '4px 12px', fontSize: '12px' }}>
+                                                {formData.radius}M
+                                            </span>
                                         </div>
+                                        <input 
+                                            type="range" 
+                                            min="50" 
+                                            max="1000" 
+                                            step="50" 
+                                            className="hrm-range-slider" 
+                                            name="radius" 
+                                            value={formData.radius} 
+                                            onChange={(e) => setFormData({ ...formData, radius: parseInt(e.target.value) })} 
+                                            style={{ width: '100%', cursor: 'pointer' }}
+                                        />
                                         <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px', lineHeight: '1.5', fontStyle: 'italic' }}>
                                             Employees must be within this distance of the coordinates to verify their location during attendance marking.
                                         </p>
@@ -395,7 +482,12 @@ const Branch = () => {
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>
-                                <button type="submit" className="btn-hrm btn-hrm-primary" style={{ padding: '12px 32px' }}>
+                                <button 
+                                    type="submit" 
+                                    className="btn-hrm btn-hrm-primary" 
+                                    style={{ padding: '12px 32px' }}
+                                    disabled={!formData.branchName || !formData.branchType || !formData.latitude || !formData.longitude}
+                                >
                                     <Save size={18} /> {isEditing ? 'UPDATE BRANCH' : 'SAVE BRANCH'}
                                 </button>
                             </div>

@@ -140,9 +140,10 @@ const createUser = async (req, res) => {
             email: targetEmail.trim(),
             dateJoined: bodyContent.dateOfJoining || bodyContent.dateJoined,
             workSetup: {
+                ...(bodyContent.workSetup || {}),
                 location: bodyContent.jobLocation || bodyContent.branch || (bodyContent.workSetup ? bodyContent.workSetup.location : ''),
-                shift: shiftId,
-                salaryGroup: bodyContent.salaryGroup || null
+                shift: shiftId || (bodyContent.workSetup ? bodyContent.workSetup.shift : null),
+                salaryGroup: bodyContent.salaryGroup || (bodyContent.workSetup ? bodyContent.workSetup.salaryGroup : null)
             },
             profilePhoto,
             name,
@@ -150,10 +151,21 @@ const createUser = async (req, res) => {
             documents,
             password: hashedPassword,
             forcePasswordReset: true,
-            adminId: req.user._id
+            adminId: req.user._id,
+            status: bodyContent.status || 'Onboarding'
         });
 
         await newUser.save();
+
+        // Create Onboarding record if status is Onboarding or Active
+        if (newUser.status === 'Onboarding' || newUser.status === 'Active') {
+            const Onboarding = (await import('../models/Onboarding.Model.js')).default;
+            await Onboarding.create({
+                userId: newUser._id,
+                joiningDate: newUser.dateJoined,
+                status: newUser.status === 'Active' ? 'Completed' : 'Pre-Boarding'
+            });
+        }
         
         // Send welcome email with credentials
         const emailResult = await sendWelcomeEmail(targetEmail, name, employeeId, temporaryPassword);
@@ -309,6 +321,12 @@ const getUser = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
+        // Auto-transition status if notice period is completed
+        if (user.status === 'Resigned' && user.exitDate && new Date(user.exitDate) <= new Date()) {
+            user.status = 'Ex-Employee';
+            await user.save();
+        }
+
         // Add top-level shift field for frontend compatibility
         const userObj = user.toObject();
         if (userObj.workSetup && userObj.workSetup.shift) {
@@ -350,62 +368,58 @@ const updateUser = async (req, res) => {
              updateData.profilePhoto = null;
         }
         
-        // Handle Shift update if provided as name
-        if (updateData.shift) {
-            const shiftObj = await Shift.findOne({ shiftName: updateData.shift });
-            if (shiftObj) {
-                updateData['workSetup.shift'] = shiftObj._id;
-            }
-            delete updateData.shift; // Remove root field as it's not in schema
-        }
+        const userToUpdate = await User.findById(req.params.id);
+        if (!userToUpdate) return res.status(404).json({ success: false, message: "User not found" });
 
-        // Handle Salary Group update
-        if (updateData.salaryGroup !== undefined) {
-            updateData['workSetup.salaryGroup'] = updateData.salaryGroup === '' ? null : updateData.salaryGroup;
-            delete updateData.salaryGroup;
-        }
-
-        // Handle Branch/Location update
-        if (updateData.branch) {
-            updateData['workSetup.location'] = updateData.branch;
-            // Note: keeping root 'branch' as it exists in schema too
-        }
-
-        // Update name if firstName or lastName changed
-        if (updateData.firstName || updateData.lastName) {
-            const userForName = await User.findById(req.params.id);
-            const firstName = updateData.firstName || userForName.firstName || '';
-            const lastName = updateData.lastName || userForName.lastName || '';
-            updateData.name = `${firstName} ${lastName}`.trim();
-        }
-
+        // Merge workSetup if it was sent as an object or partial fields
+        const workSetup = { ...(userToUpdate.workSetup || {}) };
+        
         // Handle nested fields that might have been sent as strings from FormData
         delete updateData._id;
         delete updateData.__v;
-        delete updateData.createdAt;
-        delete updateData.updatedAt;
 
-        // Certain fields in req.body might be "[object Object]" if not handled correctly on frontend
+        // Try to parse JSON strings and handle special values
         Object.keys(updateData).forEach(key => {
             if (updateData[key] === '[object Object]' || updateData[key] === 'undefined' || updateData[key] === 'null') {
                 delete updateData[key];
                 return;
             }
-            
-            // Try to parse JSON strings (for arrays/objects sent via FormData)
             if (typeof updateData[key] === 'string' && (updateData[key].startsWith('[') || updateData[key].startsWith('{'))) {
-                try {
-                    updateData[key] = JSON.parse(updateData[key]);
-                } catch (e) {
-                    // Not valid JSON, leave as is
-                }
+                try { updateData[key] = JSON.parse(updateData[key]); } catch (e) {}
             }
         });
 
-        // Convert empty string leaveGroup to null for MongoDB ObjectId compatibility
-        if (updateData.leaveGroup === "") {
-            updateData.leaveGroup = null;
+        if (updateData.workSetup && typeof updateData.workSetup === 'object') {
+            Object.assign(workSetup, updateData.workSetup);
         }
+
+        // Apply special mappings
+        if (updateData.shift) {
+            const shiftObj = await Shift.findOne({ shiftName: updateData.shift });
+            if (shiftObj) workSetup.shift = shiftObj._id;
+        }
+        if (updateData.salaryGroup !== undefined) {
+            workSetup.salaryGroup = updateData.salaryGroup === '' ? null : updateData.salaryGroup;
+        }
+        if (updateData.branch) {
+            workSetup.location = updateData.branch;
+        }
+
+        updateData.workSetup = workSetup;
+
+        // Clean up root fields that were mapped to workSetup
+        delete updateData.shift;
+        delete updateData.salaryGroup;
+
+        // Update name if firstName or lastName changed
+        if (updateData.firstName || updateData.lastName) {
+            const firstName = updateData.firstName || userToUpdate.firstName || '';
+            const lastName = updateData.lastName || userToUpdate.lastName || '';
+            updateData.name = `${firstName} ${lastName}`.trim();
+        }
+
+        // Convert empty string leaveGroup to null
+        if (updateData.leaveGroup === "") updateData.leaveGroup = null;
 
         const user = await User.findByIdAndUpdate(
             req.params.id, 
@@ -413,9 +427,7 @@ const updateUser = async (req, res) => {
             { new: true, runValidators: true }
         ).select("-password").populate('workSetup.shift').populate('leaveGroup').populate('workSetup.salaryGroup');
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
         // Add top-level shift field for frontend compatibility
         const userObj = user.toObject();
@@ -457,6 +469,39 @@ const deleteUser = async (req, res) => {
     } catch (error) {
         console.log("Error in deleteUser controller", error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+const reactivateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Update user status
+        user.status = 'Active';
+        user.exitDate = undefined;
+        user.resignationDate = undefined;
+        user.exitReason = undefined;
+        await user.save();
+
+        // Cleanup associated records (Optional but recommended)
+        const ExitRecord = (await import('../models/ExitRecord.Model.js')).default;
+        const Resignation = (await import('../models/Resignation.Model.js')).default;
+        
+        await ExitRecord.findOneAndDelete({ userId: id });
+        await Resignation.findOneAndDelete({ employeeId: id });
+
+        res.status(200).json({ 
+            success: true, 
+            message: `Employee ${user.name} has been successfully reactivated.`,
+            user 
+        });
+    } catch (error) {
+        console.error("Error in reactivateUser controller:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
     }
 };
 
@@ -653,4 +698,4 @@ const getLeaveBalances = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances };
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances };

@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, Search, RefreshCw, CheckCircle, XCircle, FileText, User, MessageSquare } from 'lucide-react';
+import { 
+    Calendar, Clock, Search, RefreshCw, CheckCircle, XCircle, 
+    FileText, User, MessageSquare, Filter, ChevronRight, 
+    Inbox, AlertCircle, ArrowRight, Check, X
+} from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
+import SearchableSelect from '../components/SearchableSelect';
 
 const statusColors = {
   Approved: { color: '#10B981', bg: '#ECFDF5', icon: <CheckCircle size={14} /> },
@@ -74,7 +79,7 @@ const MiniCalendar = ({ fromDate, toDate }) => {
                 justifyContent: 'center',
                 borderRadius: '8px',
                 color: active ? 'white' : d ? '#475569' : 'transparent',
-                background: active ? '#8B5CF6' : 'transparent',
+                background: active ? 'var(--primary-blue)' : 'transparent',
                 opacity: d ? 1 : 0,
                 border: startDay || endDay ? '2px solid rgba(255,255,255,0.5)' : 'none'
               }}
@@ -160,138 +165,136 @@ const AdminRequests = () => {
           <h1 className="hrm-title">Employee Requests</h1>
           <p className="hrm-subtitle">Review and approve leave or attendance correction requests</p>
         </div>
-        <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests}>
-          <RefreshCw size={16} /> Refresh
+        <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests} disabled={loading}>
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> REFRESH
         </button>
       </div>
 
-      <div className="hrm-card" style={{ marginBottom: '24px' }}>
-        <div style={{ padding: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <div className="hrm-search-wrapper" style={{ flex: 1, minWidth: '300px' }}>
-            <Search size={18} className="hrm-search-icon" />
-            <input
-              type="text" 
-              className="hrm-input hrm-search-input"
-              placeholder="Search by employee name or ID..."
-              value={search} 
-              onChange={e => setSearch(e.target.value)}
+      <div className="hrm-card" style={{ marginBottom: '32px', overflow: 'visible' }}>
+        <div style={{ padding: '24px', display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '300px' }}>
+            <label className="hrm-label">Search Request</label>
+            <div style={{ position: 'relative' }}>
+                <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                    type="text" 
+                    className="hrm-input"
+                    placeholder="Search by name, ID or reason..."
+                    value={search} 
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ paddingLeft: '48px' }}
+                />
+            </div>
+          </div>
+
+          <div style={{ width: '180px' }}>
+            <SearchableSelect 
+                label="Status"
+                options={[
+                    { value: 'All', label: 'All Status' },
+                    { value: 'Pending', label: 'Pending' },
+                    { value: 'Approved', label: 'Approved' },
+                    { value: 'Rejected', label: 'Rejected' },
+                ]}
+                value={filterStatus}
+                onChange={setFilterStatus}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <select 
-              className="hrm-input"
-              style={{ width: '160px' }}
-              value={filterStatus} 
-              onChange={e => setFilterStatus(e.target.value)}
-            >
-              <option value="All">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-
-            <select 
-              className="hrm-input"
-              style={{ width: '200px' }}
-              value={filterType} 
-              onChange={e => setFilterType(e.target.value)}
-            >
-              <option value="All">All Types</option>
-              <option value="Leave">Leave</option>
-              <option value="Attendance Correction">Attendance Correction</option>
-            </select>
+          <div style={{ width: '220px' }}>
+            <SearchableSelect 
+                label="Request Type"
+                options={[
+                    { value: 'All', label: 'All Types' },
+                    { value: 'Leave', label: 'Leave Requests' },
+                    { value: 'Attendance Correction', label: 'Correction Requests' },
+                ]}
+                value={filterType}
+                onChange={setFilterType}
+            />
           </div>
         </div>
       </div>
 
       <div className="hrm-card">
         {loading ? (
-          <div style={{ padding: '80px', textAlign: 'center' }}><RefreshCw className="animate-spin" /></div>
+          <div style={{ padding: '100px', textAlign: 'center' }}>
+            <RefreshCw className="animate-spin" size={32} color="var(--primary-blue)" />
+            <p style={{ marginTop: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>Loading requests...</p>
+          </div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <FileText size={48} style={{ marginBottom: '16px', opacity: 0.3, margin: '0 auto' }} />
-            <p style={{ fontWeight: '600' }}>No requests found</p>
+          <div style={{ padding: '100px', textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <Inbox size={40} style={{ opacity: 0.2 }} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 8px' }}>No Requests Found</h3>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '300px', margin: '0 auto' }}>There are no employee requests matching your current filters.</p>
           </div>
         ) : (
           <div className="hrm-table-container">
             <table className="hrm-table">
               <thead>
                 <tr>
-                  <th>Employee</th>
-                  <th>Request Type</th>
-                  <th>Date</th>
-                  <th>Details</th>
-                  <th>Status</th>
+                  <th style={{ paddingLeft: '24px' }}>Employee</th>
+                  <th>Request Details</th>
+                  <th>Period / Date</th>
                   <th>Applied On</th>
-                  <th style={{ textAlign: 'center' }}>Action</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'center', paddingRight: '24px' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
                   <tr key={r._id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            {r.employee?.profilePhoto ? (
-                                <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : <User size={18} color="var(--text-secondary)" />}
+                    <td style={{ paddingLeft: '24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: 'var(--primary-blue)', border: '1.5px solid var(--border)' }}>
+                            {r.employee?.name?.charAt(0)}
                         </div>
                         <div>
-                          <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employee?.name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.employee?.employeeId}</div>
+                          <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employee?.name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{r.employee?.employeeId}</div>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span className="hrm-badge" style={{ ...(typeColors[r.requestType] || typeColors['Leave']) }}>
-                        {r.requestType}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span className="hrm-badge" style={{ alignSelf: 'flex-start', ...(typeColors[r.requestType] || typeColors['Leave']) }}>
+                            {r.requestType}
+                        </span>
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {r.reason}
+                        </div>
+                      </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-dark)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '13px', color: 'var(--text-dark)' }}>
+                        <Calendar size={14} color="var(--primary-blue)" />
                         {r.requestType === 'Leave' && r.fromDate && r.toDate && r.fromDate !== r.toDate 
                           ? `${r.fromDate} to ${r.toDate}` 
                           : (r.date || r.fromDate)}
                       </div>
                     </td>
                     <td>
-                      <div style={{ maxWidth: '250px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500' }}>{r.reason}</div>
-                        {r.requestType === 'Attendance Correction' && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Correction: {r.manualIn ? new Date(r.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
-                            {' to '} 
-                            {r.manualOut ? new Date(r.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                          </div>
-                        )}
-                        {r.leaveType && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            Type: {r.leaveType.name}
-                          </div>
-                        )}
-                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{new Date(r.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                     </td>
                     <td>
                       <span className={`hrm-badge ${r.status === 'Approved' ? 'hrm-badge-success' : r.status === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        {statusColors[r.status]?.icon || <Clock size={14} />} {r.status}
+                        {statusColors[r.status]?.icon || <Clock size={12} />} {r.status}
                       </span>
                     </td>
-                    <td>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{new Date(r.appliedAt).toLocaleDateString()}</div>
-                    </td>
-                    <td>
+                    <td style={{ paddingRight: '24px' }}>
                       <div style={{ display: 'flex', justifyContent: 'center' }}>
                         {r.status === 'Pending' ? (
                           <button 
                             className="btn-hrm btn-hrm-primary"
-                            style={{ padding: '6px 16px', fontSize: '12px' }}
+                            style={{ padding: '6px 20px', fontSize: '12px' }}
                             onClick={() => { setSelectedRequest(r); setModalOpen(true); }}
                           >
-                            Review
+                            REVIEW
                           </button>
                         ) : (
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>Processed</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '800', letterSpacing: '0.05em' }}>PROCESSED</div>
                         )}
                       </div>
                     </td>
@@ -305,137 +308,163 @@ const AdminRequests = () => {
 
       {/* Review Modal */}
       {modalOpen && selectedRequest && (
-        <div className="hrm-modal-overlay">
-          <div className="hrm-modal-content" style={{ maxWidth: '750px' }}>
-            <div className="hrm-modal-header">
-              <h3 className="hrm-modal-title">Review Request</h3>
-              <button className="icon-btn" onClick={() => setModalOpen(false)}>
-                <XCircle size={20} />
+        <div className="hrm-modal-overlay" onClick={() => setModalOpen(false)}>
+          <div className="hrm-modal-content" style={{ maxWidth: '800px', width: '90%', animation: 'modalFadeIn 0.3s ease-out' }} onClick={e => e.stopPropagation()}>
+            <div className="hrm-modal-header" style={{ background: 'var(--primary-gradient)', color: 'white', padding: '24px 32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <FileText size={24} color="white" />
+                </div>
+                <div>
+                    <h3 style={{ color: 'white', fontSize: '20px', fontWeight: 900, margin: 0 }}>Review Request</h3>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Decision-making for {selectedRequest.requestType}</p>
+                </div>
+              </div>
+              <button className="icon-btn" style={{ color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none' }} onClick={() => setModalOpen(false)}>
+                <X size={20} />
               </button>
             </div>
             
-            <div className="hrm-modal-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
+            <div className="hrm-modal-body" style={{ padding: '32px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
                 
                 {/* Left Column: Information */}
                 <div>
-                  <div style={{ marginBottom: '24px', padding: '20px', background: 'var(--bg-main)', borderRadius: '20px', border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-                      Core Details
+                  <div style={{ marginBottom: '32px', padding: '24px', background: 'var(--bg-main)', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '900' }}>
+                            {selectedRequest.employee?.name?.charAt(0)}
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '18px', fontWeight: '900', color: 'var(--text-dark)' }}>{selectedRequest.employee?.name}</div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>ID: {selectedRequest.employee?.employeeId}</div>
+                        </div>
                     </div>
                     
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Employee</div>
-                      <div style={{ fontWeight: '800', fontSize: '16px', color: 'var(--text-dark)' }}>{selectedRequest.employee?.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>{selectedRequest.employee?.employeeId}</div>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Period</div>
-                      <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--primary-blue)' }}>
-                        {selectedRequest.requestType === 'Leave' && selectedRequest.fromDate && selectedRequest.toDate && selectedRequest.fromDate !== selectedRequest.toDate 
-                          ? `${selectedRequest.fromDate} — ${selectedRequest.toDate}` 
-                          : (selectedRequest.date || selectedRequest.fromDate)}
-                      </div>
-                    </div>
-
-                    {selectedRequest.requestType === 'Leave' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                         <div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Leave Type</div>
-                          <div style={{ marginTop: '4px', padding: '6px 12px', background: '#F5F3FF', color: '#7C3AED', borderRadius: '10px', fontWeight: '800', fontSize: '12px', display: 'inline-block' }}>
-                            {selectedRequest.leaveType?.name || 'N/A'}
-                          </div>
+                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Date / Period</p>
+                            <p style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-dark)', margin: 0 }}>
+                                {selectedRequest.requestType === 'Leave' && selectedRequest.fromDate && selectedRequest.toDate && selectedRequest.fromDate !== selectedRequest.toDate 
+                                ? `${selectedRequest.fromDate} — ${selectedRequest.toDate}` 
+                                : (selectedRequest.date || selectedRequest.fromDate)}
+                            </p>
                         </div>
                         <div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Category</div>
-                          <div style={{ 
-                            marginTop: '4px', padding: '6px 12px', 
-                            background: selectedRequest.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB', 
-                            color: selectedRequest.leaveCategory === 'Paid' ? '#059669' : '#D97706', 
-                            borderRadius: '10px', fontWeight: '800', fontSize: '12px', display: 'inline-block',
-                            border: `0.5px solid ${selectedRequest.leaveCategory === 'Paid' ? '#10B981' : '#F59E0B'}30`
-                          }}>
-                            {selectedRequest.leaveCategory || 'Paid'}
-                          </div>
+                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Request Type</p>
+                            <span className="hrm-badge" style={{ ...(typeColors[selectedRequest.requestType] || typeColors['Leave']), fontSize: '10px' }}>
+                                {selectedRequest.requestType}
+                            </span>
                         </div>
-                      </div>
+                    </div>
+
+                    {selectedRequest.leaveType && (
+                        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Leave Category</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ padding: '6px 12px', background: '#F5F3FF', color: '#7C3AED', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
+                                    {selectedRequest.leaveType.name}
+                                </span>
+                                <span style={{ padding: '6px 12px', background: selectedRequest.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB', color: selectedRequest.leaveCategory === 'Paid' ? '#059669' : '#D97706', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
+                                    {selectedRequest.leaveCategory || 'Paid'}
+                                </span>
+                            </div>
+                        </div>
                     )}
                   </div>
 
                   <div className="hrm-form-group">
-                    <label className="hrm-label">Admin Remark</label>
-                    <textarea 
-                      className="hrm-input"
-                      value={adminRemark} 
-                      onChange={e => setAdminRemark(e.target.value)}
-                      placeholder="Share your thoughts with the employee..."
-                      style={{ minHeight: '120px', resize: 'none' }}
-                    />
+                    <label className="hrm-label">ADMINISTRATOR REMARK</label>
+                    <div style={{ position: 'relative' }}>
+                        <MessageSquare size={16} style={{ position: 'absolute', left: '14px', top: '16px', color: 'var(--text-muted)' }} />
+                        <textarea 
+                            className="hrm-input"
+                            value={adminRemark} 
+                            onChange={e => setAdminRemark(e.target.value)}
+                            placeholder="Enter notes or reason for decision..."
+                            style={{ minHeight: '140px', paddingLeft: '44px', paddingTop: '12px', resize: 'none' }}
+                        />
+                    </div>
                   </div>
                 </div>
 
                 {/* Right Column: Visual Auditing */}
-                <div>
-                   {selectedRequest.requestType === 'Leave' ? (
-                     <div style={{ height: '100%' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '12px' }}>Visual Audit</div>
-                        <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                   <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <AlertCircle size={16} color="var(--primary-blue)" />
+                            <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-dark)' }}>Audit & Context</span>
+                        </div>
                         
-                        <div style={{ marginTop: '20px', padding: '16px', background: 'var(--primary-light)', borderRadius: '16px', border: '1px solid var(--primary-blue)', opacity: 0.8 }}>
-                           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '4px' }}>Reason</div>
-                           <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.5' }}>{selectedRequest.reason}</p>
-                        </div>
-                     </div>
-                   ) : (
-                     <div style={{ padding: '20px', background: 'var(--bg-main)', borderRadius: '20px', border: '1px solid var(--border)', height: '100%' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px' }}>Correction Details</div>
-                        <div style={{ display: 'grid', gap: '16px' }}>
-                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Requested In</div>
-                             <div style={{ fontWeight: '800', fontSize: '18px', color: 'var(--primary-blue)' }}>{selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                          </div>
-                          <div style={{ padding: '16px', background: '#fff', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase' }}>Requested Out</div>
-                             <div style={{ fontWeight: '800', fontSize: '18px', color: 'var(--primary-blue)' }}>{selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
-                          </div>
-                          <div style={{ marginTop: '10px' }}>
-                             <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Reason</div>
-                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-dark)', fontWeight: '600' }}>{selectedRequest.reason}</p>
-                          </div>
-                        </div>
-                     </div>
-                   )}
-                </div>
-              </div>
+                        {selectedRequest.requestType === 'Leave' ? (
+                            <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} />
+                        ) : (
+                            <div style={{ padding: '24px', background: 'var(--bg-main)', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'grid', gap: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                            <LogIn size={20} color="var(--success)" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', margin: 0 }}>REQUESTED IN</p>
+                                            <p style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-dark)', margin: 0 }}>
+                                                {selectedRequest.manualIn ? new Date(selectedRequest.manualIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                            <LogOut size={20} color="var(--danger)" />
+                                        </div>
+                                        <div>
+                                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', margin: 0 }}>REQUESTED OUT</p>
+                                            <p style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-dark)', margin: 0 }}>
+                                                {selectedRequest.manualOut ? new Date(selectedRequest.manualOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-              <div style={{ display: 'flex', gap: '16px', marginTop: '40px' }}>
-                <button 
-                  className="btn-hrm btn-hrm-success"
-                  style={{ flex: 1.2, height: '56px', fontSize: '16px' }}
-                  disabled={actionLoading}
-                  onClick={() => handleAction(selectedRequest._id, 'Approved')}
-                >
-                  Confirm Approval
-                </button>
-                <button 
-                  className="btn-hrm btn-hrm-secondary"
-                  style={{ flex: 1, height: '56px', fontSize: '16px', color: 'var(--danger)' }}
-                  disabled={actionLoading}
-                  onClick={() => handleAction(selectedRequest._id, 'Rejected')}
-                >
-                  Reject
-                </button>
+                        <div style={{ marginTop: '24px', padding: '20px', background: 'rgba(37, 99, 235, 0.05)', borderRadius: '20px', border: '1px solid rgba(37, 99, 235, 0.1)' }}>
+                           <p style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '8px' }}>Reason for Request</p>
+                           <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.6' }}>"{selectedRequest.reason}"</p>
+                        </div>
+                   </div>
+
+                   <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
+                        <button 
+                            className="btn-hrm btn-hrm-success"
+                            style={{ flex: 1.5, height: '56px', fontSize: '16px', boxShadow: '0 8px 20px rgba(16, 185, 129, 0.2)' }}
+                            disabled={actionLoading}
+                            onClick={() => handleAction(selectedRequest._id, 'Approved')}
+                        >
+                            <Check size={20} /> APPROVE
+                        </button>
+                        <button 
+                            className="btn-hrm btn-hrm-secondary"
+                            style={{ flex: 1, height: '56px', fontSize: '16px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                            disabled={actionLoading}
+                            onClick={() => handleAction(selectedRequest._id, 'Rejected')}
+                        >
+                            <X size={20} /> REJECT
+                        </button>
+                   </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top: 3px solid var(--primary-blue); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };
-
-const thStyle = { padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const tdStyle = { padding: '16px', fontSize: '14px', color: 'var(--text-primary)' };
 
 export default AdminRequests;

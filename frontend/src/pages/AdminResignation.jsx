@@ -8,6 +8,7 @@ import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
+import { RotateCcw } from 'lucide-react';
 
 const AdminResignation = () => {
     const [resignations, setResignations] = useState([]);
@@ -129,6 +130,53 @@ const AdminResignation = () => {
             }
         } catch (e) {
             Swal.fire('Error', 'Failed to process request', 'error');
+        }
+    };
+
+    const handleReactivate = async (empId) => {
+        const result = await Swal.fire({
+            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Withdraw Resignation?</span>',
+            html: '<p style="color: #64748B; font-size: 15px; line-height: 1.6; margin-top: 10px;">This will restore the employee to <b>Active</b> status and remove this resignation record.</p>',
+            icon: 'question',
+            iconColor: '#3B648B',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Restore Active',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#3B648B',
+            cancelButtonColor: '#F1F5F9',
+            customClass: {
+                popup: 'premium-swal-popup',
+                confirmButton: 'premium-swal-confirm',
+                cancelButton: 'premium-swal-cancel'
+            }
+        });
+
+        if (!document.getElementById('premium-swal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'premium-swal-styles';
+            style.innerHTML = `
+                .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; }
+                .premium-swal-confirm { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
+                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        if (result.isConfirmed) {
+            try {
+                const res = await authenticatedFetch(`${API_URL}/api/users/${empId}/reactivate`, {
+                    method: 'POST'
+                });
+                const json = await res.json();
+                if (json.success) {
+                    Swal.fire('Restored!', 'Employee is now active again.', 'success');
+                    fetchResignations();
+                } else {
+                    Swal.fire('Error', json.message || 'Failed to restore employee', 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'An error occurred', 'error');
+            }
         }
     };
 
@@ -295,9 +343,33 @@ const AdminResignation = () => {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '12px', fontWeight: 700, justifyContent: 'flex-end' }}>
-                                                    <Check size={16} color="var(--success)" />
-                                                    PROCESSED
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', justifyContent: 'flex-end' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '12px', fontWeight: 700 }}>
+                                                        <Check size={16} color="var(--success)" />
+                                                        PROCESSED
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleReactivate(r.employeeId?._id)}
+                                                        className="btn-hrm btn-hrm-secondary"
+                                                        style={{ 
+                                                            padding: '6px 12px', 
+                                                            fontSize: '11px', 
+                                                            height: '32px',
+                                                            background: 'rgba(59, 100, 139, 0.05)',
+                                                            border: '1px solid rgba(59, 100, 139, 0.1)',
+                                                            color: '#3B648B'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            e.currentTarget.style.background = '#3B648B';
+                                                            e.currentTarget.style.color = 'white';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            e.currentTarget.style.background = 'rgba(59, 100, 139, 0.05)';
+                                                            e.currentTarget.style.color = '#3B648B';
+                                                        }}
+                                                    >
+                                                        <RotateCcw size={12} style={{ marginRight: '6px' }} /> REACTIVATE
+                                                    </button>
                                                 </div>
                                             )}
                                         </td>

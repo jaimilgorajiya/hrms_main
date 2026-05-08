@@ -307,6 +307,19 @@ export const getEmployeeStats = async (req, res) => {
                 lateEarlyType: shift?.lateEarlyType || 'Combined',
                 maxLateInMinutes: shift?.maxLateInMinutes || 0,
                 maxEarlyOutMinutes: shift?.maxEarlyOutMinutes || 0,
+                // Unified Grace Period: max of shift setting and penalty min threshold
+                effectiveMaxLate: (() => {
+                    const shiftGrace = shift?.maxLateInMinutes || 0;
+                    const lateSlabs = penaltyRule?.slabs?.filter(s => s.penaltyType === 'Late In Minutes') || [];
+                    const minPenaltyMins = lateSlabs.length > 0 ? Math.min(...lateSlabs.map(s => s.minTime || 0)) : Infinity;
+                    return Math.max(shiftGrace, minPenaltyMins === Infinity ? 0 : minPenaltyMins - 1);
+                })(),
+                effectiveMaxEarly: (() => {
+                    const shiftGrace = shift?.maxEarlyOutMinutes || 0;
+                    const earlySlabs = penaltyRule?.slabs?.filter(s => s.penaltyType === 'Early Out Minutes') || [];
+                    const minPenaltyMins = earlySlabs.length > 0 ? Math.min(...earlySlabs.map(s => s.minTime || 0)) : Infinity;
+                    return Math.max(shiftGrace, minPenaltyMins === Infinity ? 0 : minPenaltyMins - 1);
+                })(),
                 missingPunchCount: monthAttendance.filter(a => 
                     a.punches.some(p => p.type === 'IN') && 
                     !a.punches.some(p => p.type === 'OUT') && 

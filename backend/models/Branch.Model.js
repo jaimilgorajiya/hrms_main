@@ -34,6 +34,9 @@ const branchSchema = new mongoose.Schema(
         radius: {
             type: Number,
             default: 200 // meters
+        },
+        address: {
+            type: String
         }
     },
     {

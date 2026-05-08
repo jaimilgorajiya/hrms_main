@@ -36,6 +36,15 @@ const attendanceSchema = new mongoose.Schema({
         isApplied: { type: Boolean, default: false },
         isLate: { type: Boolean, default: false }
     },
+    earlyOutPenalty: {
+        amount: { type: Number, default: 0 },
+        isApplied: { type: Boolean, default: false },
+        isEarly: { type: Boolean, default: false }
+    },
+    overtime: {
+        minutes: { type: Number, default: 0 },
+        status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" }
+    },
     approvalStatus: {
         type: String,
         enum: ["Pending", "Approved", "Rejected"],

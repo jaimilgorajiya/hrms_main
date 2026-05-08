@@ -75,6 +75,8 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  const [productiveTime, setProductiveTime] = useState('00:00:00');
+
   useEffect(() => {
     let interval;
     if (punchData?.punchedIn && punchData.startTime) {
@@ -82,26 +84,35 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
         const start = new Date(punchData.startTime).getTime();
         const now = new Date().getTime();
         
+        // Calculate total break MS (completed breaks + current active break)
+        let totalBreakMs = 0;
+        (punchData.breaks || []).forEach(b => {
+          if (b.start && b.end) totalBreakMs += new Date(b.end) - new Date(b.start);
+          else if (b.start) totalBreakMs += now - new Date(b.start);
+        });
+
         if (punchData.isOnBreak) {
-          // Calculate live break time based on the last break start
           const lastBreak = (punchData.breaks || [])[punchData.breaks.length - 1];
           if (lastBreak?.start) {
             const bStart = new Date(lastBreak.start).getTime();
             setBreakElapsed(formatMs(now - bStart));
           }
         } else {
-          // When NOT on break, we show work elapsed
           const diff = Math.max(0, now - start);
           setElapsed(formatMs(diff));
           setRemaining(formatMs(Math.max(0, WORK_HOURS - diff)));
           const p = Math.min(1, diff / WORK_HOURS);
           setPercent(p);
+          
+          // Productive time = Total elapsed since start - Total break time
+          setProductiveTime(formatMs(Math.max(0, diff - totalBreakMs)));
         }
       }, 1000);
     } else {
       setElapsed('00:00:00');
       setRemaining(formatMs(WORK_HOURS));
       setPercent(0);
+      setProductiveTime('00:00:00');
     }
     return () => clearInterval(interval);
   }, [punchData, WORK_HOURS]);
@@ -117,8 +128,10 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
     const nextState = !showDetails;
     setShowDetails(true);
     
+    const targetHeight = punchData.isDoneForToday ? 190 : 110;
+    
     Animated.spring(heightAnim, {
-      toValue: nextState ? 140 : 0,
+      toValue: nextState ? targetHeight : 0,
       tension: 40,
       friction: 10,
       useNativeDriver: false,
@@ -175,14 +188,47 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
         SHADOW.soft,
         { 
           height: heightAnim,
-          opacity: heightAnim.interpolate({ inputRange: [0, 140], outputRange: [0, 1] }),
+          opacity: heightAnim.interpolate({ inputRange: [0, 110, 190], outputRange: [0, 1, 1] }),
           overflow: 'hidden',
-          marginTop: heightAnim.interpolate({ inputRange: [0, 140], outputRange: [0, 20] }),
+          marginTop: heightAnim.interpolate({ inputRange: [0, 110], outputRange: [0, 12] }),
         }
       ]}>
-        <View style={{ padding: 20, gap: 12 }}>
+        <View style={{ paddingVertical: 14, paddingHorizontal: 16, gap: 10 }}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Break Duration</Text>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="log-in-outline" size={16} color={COLORS.success} />
+              <Text style={styles.detailLabel}>Punch In Time</Text>
+            </View>
+            <Text style={styles.detailValue}>
+              {punchData.startTime ? new Date(punchData.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+            </Text>
+          </View>
+
+          {punchData.isDoneForToday && punchData.punches?.length > 0 && (
+            <View style={styles.detailRow}>
+              <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="log-out-outline" size={16} color={COLORS.danger} />
+                <Text style={styles.detailLabel}>Punch Out Time</Text>
+              </View>
+              <Text style={styles.detailValue}>
+                {new Date(punchData.punches[punchData.punches.length - 1].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.detailRow}>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="flash-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.detailLabel}>Productive Hours</Text>
+            </View>
+            <Text style={[styles.detailValue, { color: COLORS.primary, fontWeight: '800' }]}>{productiveTime}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="cafe-outline" size={16} color={COLORS.warning} />
+              <Text style={styles.detailLabel}>Break Duration</Text>
+            </View>
             <Text style={styles.detailValue}>{punchData.breakDuration || '00:00:00'}</Text>
           </View>
         </View>
@@ -400,7 +446,7 @@ export default function Dashboard() {
         if (!skipCheck) {
           const [h, m] = data.stats.shiftStart.split(':').map(Number);
           const lateLimit = new Date();
-          lateLimit.setHours(h, m + (data.stats.maxLateInMinutes || 0), 0, 0);
+          lateLimit.setHours(h, m + (data.stats.effectiveMaxLate || 0), 0, 0);
           
           if (now > lateLimit) {
             setShowLateReasonModal(true);
@@ -420,7 +466,7 @@ export default function Dashboard() {
         if (!skipCheck) {
           const [h, m] = data.stats.shiftEnd.split(':').map(Number);
           
-          let earlyGrace = data.stats.maxEarlyOutMinutes || 0;
+          let earlyGrace = data.stats.effectiveMaxEarly || 0;
           if (data.stats.lateEarlyType === 'Combined') {
             // Calculate late minutes from this morning
             const firstInTime = punchData.startTime ? new Date(punchData.startTime) : null;
@@ -431,9 +477,10 @@ export default function Dashboard() {
               shiftTime.setHours(sh, sm, 0, 0);
               const lateMs = firstInTime - shiftTime;
               const lateMins = Math.max(0, Math.floor(lateMs / 60000));
-              earlyGrace = Math.max(0, (data.stats.maxLateInMinutes || 0) - lateMins);
+              // Combined logic: remaining grace
+              earlyGrace = Math.max(0, (data.stats.effectiveMaxLate || 0) - lateMins);
             } else {
-              earlyGrace = data.stats.maxLateInMinutes || 0;
+              earlyGrace = data.stats.effectiveMaxLate || 0;
             }
           }
 

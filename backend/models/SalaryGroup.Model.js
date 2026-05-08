@@ -38,7 +38,14 @@ const salaryGroupSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
-    }
+    },
+    components: [{
+        componentId: { type: mongoose.Schema.Types.ObjectId, ref: 'EarningDeductionType' },
+        name: String, // Denormalized for convenience
+        type: { type: String, enum: ['Earnings', 'Deductions'] },
+        calculationType: { type: String, enum: ['Flat', 'Percentage of CTC', 'Percentage of Basic'], default: 'Flat' },
+        value: { type: Number, default: 0 }
+    }]
 }, { timestamps: true });
 
 salaryGroupSchema.index({ adminId: 1, groupName: 1 }, { unique: true });

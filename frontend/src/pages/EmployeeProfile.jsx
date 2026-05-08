@@ -85,7 +85,7 @@ const EmployeeProfile = () => {
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('Job Information');
     const tabs = [
-        { id: 'Job Information', label: 'Job Information', icon: <Briefcase size={16} /> },
+        { id: 'Job Information', label: 'Job Info', icon: <Briefcase size={16} /> },
         { id: 'Contact Detail', label: 'Contact Detail', icon: <Phone size={16} /> },
         { id: 'Personal Info', label: 'Personal Info', icon: <User size={16} /> },
         { id: 'Experience', label: 'Experience', icon: <History size={16} /> },
@@ -738,37 +738,42 @@ const EmployeeProfile = () => {
 
     const handleReactive = async () => {
         const result = await Swal.fire({
-            title: '<span style="font-size: 22px; font-weight: 800; color: #1E293B;">Re-activate Employee?</span>',
-            text: "This will set the employee status back to Active and clear separation records.",
+            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Re-activate Employee?</span>',
+            html: '<p style="color: #64748B; font-size: 15px; line-height: 1.6; margin-top: 10px;">This will set the employee status back to <b>Active</b> and clear all separation history/notice period records.</p>',
             icon: 'question',
+            iconColor: '#3B648B',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Re-activate',
-            cancelButtonText: 'Cancel',
-            confirmButtonColor: '#45B79E',
+            confirmButtonText: 'Yes, Restore to Active',
+            cancelButtonText: 'No, Keep as is',
+            confirmButtonColor: '#3B648B',
             cancelButtonColor: '#F1F5F9',
             customClass: {
-                confirmButton: 'swal-confirm-separation',
-                cancelButton: 'swal-cancel-separation',
-                popup: 'swal-custom-popup'
+                popup: 'premium-swal-popup',
+                confirmButton: 'premium-swal-confirm',
+                cancelButton: 'premium-swal-cancel'
             }
         });
+
+        if (!document.getElementById('premium-swal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'premium-swal-styles';
+            style.innerHTML = `
+                .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; }
+                .premium-swal-confirm { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
+                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
+            `;
+            document.head.appendChild(style);
+        }
 
         if (result.isConfirmed) {
             try {
                 setSaving(true);
                 const token = localStorage.getItem('token');
-                const response = await fetch(`${API_URL}/api/users/${id}`, {
-                    method: 'PUT',
+                const response = await authenticatedFetch(`${API_URL}/api/users/${id}/reactivate`, {
+                    method: 'POST',
                     headers: { 
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        status: 'Active',
-                        resignationDate: null,
-                        exitDate: null,
-                        exitReason: ''
-                    })
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 const resData = await response.json();
@@ -805,7 +810,9 @@ const EmployeeProfile = () => {
                     <button className="icon-btn" onClick={() => navigate('/admin/employees/list')} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
                         <ArrowLeft size={20} color="var(--text-secondary)" />
                     </button>
-                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employee Profile</h1>
+                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {['Ex-Employee', 'Terminated', 'Absconding', 'Retired'].includes(formData.status) ? 'Ex-Employee Profile' : 'Employee Profile'}
+                    </h1>
                 </div>
             </div>
 
@@ -857,23 +864,40 @@ const EmployeeProfile = () => {
                         </div>
                         <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 5px' }}>
                             {formData.name}
-                            {formData.status === 'Resigned' && (
-                                <>
-                                    <br />
-                                    <span style={{ 
-                                        fontSize: '9px', 
-                                        fontWeight: '800', 
-                                        background: '#FEF2F2', 
-                                        color: '#EF4444', 
-                                        padding: '2px 10px', 
-                                        borderRadius: '50px',
-                                        textTransform: 'uppercase',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                        display: 'inline-block',
-                                        marginTop: '4px'
-                                    }}>Notice Period</span>
-                                </>
-                            )}
+                        {formData.status === 'Resigned' && (
+                            <>
+                                <br />
+                                <span style={{ 
+                                    fontSize: '9px', 
+                                    fontWeight: '800', 
+                                    background: '#FEF3C7', 
+                                    color: '#D97706', 
+                                    padding: '2px 10px', 
+                                    borderRadius: '50px',
+                                    textTransform: 'uppercase',
+                                    border: '1px solid rgba(217, 119, 6, 0.2)',
+                                    display: 'inline-block',
+                                    marginTop: '4px'
+                                }}>Notice Period</span>
+                            </>
+                        )}
+                        {['Ex-Employee', 'Terminated', 'Absconding', 'Retired'].includes(formData.status) && (
+                            <>
+                                <br />
+                                <span style={{ 
+                                    fontSize: '9px', 
+                                    fontWeight: '800', 
+                                    background: '#F1F5F9', 
+                                    color: '#475569', 
+                                    padding: '2px 10px', 
+                                    borderRadius: '50px',
+                                    textTransform: 'uppercase',
+                                    border: '1px solid rgba(71, 85, 105, 0.2)',
+                                    display: 'inline-block',
+                                    marginTop: '4px'
+                                }}>{formData.status}</span>
+                            </>
+                        )}
                         </h2>
                         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600', margin: '0 0 20px' }}>{formData.designation || 'Web Developer'}</p>
                         
@@ -953,7 +977,6 @@ const EmployeeProfile = () => {
                                     <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>{formData.exitReason || '-'}</span>
                                 </div>
 
-                                {formData.status !== 'Resigned' && (
                                     <button 
                                         onClick={handleReactive}
                                         style={{
@@ -992,7 +1015,6 @@ const EmployeeProfile = () => {
                                         <RotateCcw size={16} strokeWidth={2.5} />
                                         RE-ACTIVATE EMPLOYEE
                                     </button>
-                                )}
                             </div>
                         )}
                     </div>

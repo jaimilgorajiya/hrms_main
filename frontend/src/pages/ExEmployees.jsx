@@ -7,6 +7,7 @@ import {
     ChevronDown, Filter, Users, LogOut, ArrowRight 
 } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
+import Swal from 'sweetalert2';
 
 const ExEmployees = () => {
     const navigate = useNavigate();
@@ -41,6 +42,59 @@ const ExEmployees = () => {
             console.error("Error fetching data:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleReactivate = async (e, emp) => {
+        e.stopPropagation(); // Prevent card click navigation
+        
+        const result = await Swal.fire({
+            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Re-activate Employee?</span>',
+            html: `<p style="color: #64748B; font-size: 15px; line-height: 1.6; margin-top: 10px;">Are you sure you want to re-activate <b>${emp.name}</b>? This will restore them to Active status and clear separation metadata.</p>`,
+            icon: 'question',
+            iconColor: '#3B648B',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Re-activate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#3B648B',
+            cancelButtonColor: '#F1F5F9',
+            customClass: {
+                popup: 'premium-swal-popup',
+                confirmButton: 'premium-swal-confirm',
+                cancelButton: 'premium-swal-cancel'
+            }
+        });
+
+        if (!document.getElementById('premium-swal-styles')) {
+            const style = document.createElement('style');
+            style.id = 'premium-swal-styles';
+            style.innerHTML = `
+                .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; }
+                .premium-swal-confirm { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
+                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        if (result.isConfirmed) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await authenticatedFetch(`${API_URL}/api/users/${emp._id}/reactivate`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    Swal.fire('Success', 'Employee has been re-activated.', 'success');
+                    fetchData(); // Refresh list
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to re-activate employee', 'error');
+                }
+            } catch (error) {
+                console.error("Reactivate error:", error);
+                Swal.fire('Error', 'An error occurred during re-activation', 'error');
+            }
         }
     };
 
@@ -253,8 +307,32 @@ const ExEmployees = () => {
                                             padding: '12px 24px', background: '#F8FAFC', borderTop: '1px solid #F1F5F9',
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                         }}>
-                                            <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Profile View</span>
-                                            <ArrowRight size={14} color="var(--text-muted)" />
+                                            <button 
+                                                onClick={(e) => handleReactivate(e, emp)}
+                                                className="btn-hrm btn-hrm-secondary"
+                                                style={{ 
+                                                    padding: '6px 12px', 
+                                                    fontSize: '11px', 
+                                                    height: 'auto',
+                                                    background: 'rgba(59, 100, 139, 0.05)',
+                                                    border: '1px solid rgba(59, 100, 139, 0.1)',
+                                                    color: '#3B648B'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.background = '#3B648B';
+                                                    e.currentTarget.style.color = 'white';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(59, 100, 139, 0.05)';
+                                                    e.currentTarget.style.color = '#3B648B';
+                                                }}
+                                            >
+                                                <RotateCcw size={12} style={{ marginRight: '6px' }} /> REACTIVATE
+                                            </button>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>Profile</span>
+                                                <ArrowRight size={14} />
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
