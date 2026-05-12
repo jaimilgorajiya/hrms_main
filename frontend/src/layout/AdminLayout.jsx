@@ -2,10 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
+import PageLoader from '../components/PageLoader';
 
 const AdminLayout = ({ children, title: manualTitle }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [moduleLoading, setModuleLoading] = useState(false);
   const location = useLocation();
+
+  // Show premium loader on module change (navigation)
+  useEffect(() => {
+    setModuleLoading(true);
+    const timer = setTimeout(() => {
+      setModuleLoading(false);
+    }, 500); // Smooth 500ms transition for a premium feel
+    
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   // Auto-collapse sidebar on specific pages
   useEffect(() => {
@@ -32,8 +44,8 @@ const AdminLayout = ({ children, title: manualTitle }) => {
     if (path.includes('/admin/shift/manage')) return '';
     if (path.includes('/admin/shift/add')) return '';
     if (path.includes('/admin/shift/edit')) return '';
-    if (path.includes('/admin/dashboard')) return 'Admin Dashboard';
-    if (path === '/admin') return 'Admin Dashboard';
+    if (path.includes('/admin/dashboard')) return '';
+    if (path === '/admin') return '';
     
     return '';
   };
@@ -46,6 +58,7 @@ const AdminLayout = ({ children, title: manualTitle }) => {
 
   return (
     <div className={`admin-layout ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {moduleLoading && <PageLoader />}
       <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       <div className="main-wrapper">
         <Header title={title} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} />

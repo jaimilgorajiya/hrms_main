@@ -203,6 +203,11 @@ export default function LeavesScreen() {
     if (!reason.trim() || !selectedLeaveType || !fromDate || !finalToDate) {
       return Toast.show({ type: 'error', text1: 'Required details missing' });
     }
+    const maxLimit = stats?.maxUsagePerMonth || stats?.totalLeaves || 0;
+    const usedLeaves = stats?.usedLeaves || 0;
+    if (leaveCategory === 'Paid' && maxLimit > 0 && usedLeaves >= maxLimit) {
+      return Toast.show({ type: 'error', text1: 'Limit Reached', text2: `You have already used your ${maxLimit} paid leaves for this month.` });
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -323,7 +328,16 @@ export default function LeavesScreen() {
 
       {/* Floating Action Button */}
       {stats?.hasLeaveGroup && (
-        <TouchableOpacity style={styles.fab} onPress={() => setShowApply(true)} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.fab} onPress={() => {
+            setShowApply(true);
+            const maxLimit = stats?.maxUsagePerMonth || stats?.totalLeaves || 0;
+            const usedLeaves = stats?.usedLeaves || 0;
+            if (maxLimit > 0 && usedLeaves >= maxLimit) {
+                setLeaveCategory('Unpaid');
+            } else {
+                setLeaveCategory('Paid');
+            }
+        }} activeOpacity={0.8}>
            <Ionicons name="add" size={32} color={COLORS.white} />
         </TouchableOpacity>
       )}
@@ -421,15 +435,32 @@ export default function LeavesScreen() {
               <View style={{ marginBottom: 16 }}>
                 <Text style={styles.inputLabel}>Leave Category</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity 
-                    style={[styles.durBtn, leaveCategory === 'Paid' && { backgroundColor: COLORS.success, borderColor: COLORS.success }]} 
-                    onPress={() => setLeaveCategory('Paid')}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Ionicons name="card-outline" size={16} color={leaveCategory === 'Paid' ? COLORS.white : COLORS.textMuted} />
-                        <Text style={[styles.durBtnText, leaveCategory === 'Paid' && { color: COLORS.white }]}>Paid Leave</Text>
-                    </View>
-                  </TouchableOpacity>
+                  {(() => {
+                      const maxLimit = stats?.maxUsagePerMonth || stats?.totalLeaves || 0;
+                      const usedLeaves = stats?.usedLeaves || 0;
+                      const isLimitReached = maxLimit > 0 && usedLeaves >= maxLimit;
+                      return (
+                          <TouchableOpacity 
+                            style={[
+                              styles.durBtn, 
+                              leaveCategory === 'Paid' && { backgroundColor: COLORS.success, borderColor: COLORS.success },
+                              isLimitReached && { opacity: 0.4 }
+                            ]} 
+                            onPress={() => {
+                                if (isLimitReached) {
+                                    Toast.show({ type: 'error', text1: 'Limit Reached', text2: `You have already used your ${maxLimit} paid leaves for this month.` });
+                                } else {
+                                    setLeaveCategory('Paid');
+                                }
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Ionicons name="card-outline" size={16} color={leaveCategory === 'Paid' ? COLORS.white : COLORS.textMuted} />
+                                <Text style={[styles.durBtnText, leaveCategory === 'Paid' && { color: COLORS.white }]}>Paid Leave</Text>
+                            </View>
+                          </TouchableOpacity>
+                      );
+                  })()}
                   {stats?.canApplyUnpaidLeave && (
                     <TouchableOpacity 
                         style={[styles.durBtn, leaveCategory === 'Unpaid' && { backgroundColor: COLORS.warning, borderColor: COLORS.warning }]} 

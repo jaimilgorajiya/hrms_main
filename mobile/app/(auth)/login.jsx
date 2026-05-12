@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import auth from '@react-native-firebase/auth';
+import { auth } from '../../utils/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, SIZES, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme';
 
@@ -77,6 +77,8 @@ export default function LoginScreen() {
 
       // 2. If registered, proceed with Firebase OTP
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+      
+      // Native Implementation
       const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
       setConfirm(confirmation);
 
@@ -99,7 +101,9 @@ export default function LoginScreen() {
     try {
       const result = await confirm.confirm(code);
       if (result) {
-        const idToken = await auth().currentUser.getIdToken();
+        const user = auth().currentUser;
+        if (!user) throw new Error('No user found');
+        const idToken = await user.getIdToken();
         const apiResult = await loginWithOTP(idToken);
         
         if (apiResult.success) {
@@ -181,15 +185,15 @@ export default function LoginScreen() {
                       onPress={() => otpInput.current?.focus()}
                     >
                       {[...Array(6)].map((_, i) => (
-                        <View 
-                          key={i} 
-                          style={[
-                            styles.otpBox, 
-                            code.length === i && styles.otpBoxActive,
-                            code[i] && styles.otpBoxFilled
-                          ]}
-                        >
-                          <Text style={styles.otpBoxText}>{code[i] || ''}</Text>
+                        <View key={i} style={styles.otpDigitContainer}>
+                          <Text style={[styles.otpDigitText, code[i] && styles.otpDigitTextFilled]}>
+                            {code[i] || ''}
+                          </Text>
+                          <View style={[
+                            styles.otpUnderline,
+                            code.length === i && styles.otpUnderlineActive,
+                            code[i] && styles.otpUnderlineFilled
+                          ]} />
                         </View>
                       ))}
                       <TextInput
@@ -206,6 +210,8 @@ export default function LoginScreen() {
                   </View>
                 )}
 
+
+                
                 <TouchableOpacity 
                   style={styles.loginBtn} 
                   onPress={confirm ? handleVerifyOTP : handleSendOTP} 
@@ -296,31 +302,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 5,
-    height: 62,
+    marginTop: 10,
+    height: 60,
+    paddingHorizontal: 10,
   },
-  otpBox: {
-    width: 42,
-    height: 58,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
+  otpDigitContainer: {
+    width: 40,
+    height: 55,
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
-  otpBoxActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
+  otpDigitText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.textPlaceholder,
+    marginBottom: 8,
   },
-  otpBoxFilled: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-  },
-  otpBoxText: {
-    fontSize: 24,
-    fontWeight: '900',
+  otpDigitTextFilled: {
     color: COLORS.textDark,
+  },
+  otpUnderline: {
+    width: '100%',
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.border,
+  },
+  otpUnderlineActive: {
+    backgroundColor: COLORS.primary,
+    height: 4,
+    ...SHADOW.premium,
+  },
+  otpUnderlineFilled: {
+    backgroundColor: COLORS.primaryDark,
   },
   hiddenInput: {
     ...StyleSheet.absoluteFillObject,

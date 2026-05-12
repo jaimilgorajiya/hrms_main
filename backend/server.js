@@ -86,10 +86,12 @@ app.use(cors({
         'http://localhost:5174', 
         'http://localhost:5175',
         'http://localhost:8081',  // Expo web
+        'http://localhost:8082',  // Expo web (alternative)
         'http://192.168.29.90:5173',
         'http://192.168.29.90:5174',
         'http://192.168.29.90:5175',
         'http://192.168.29.90:8081',  // Expo web on LAN
+        'http://192.168.29.90:8082',  // Expo web on LAN (alternative)
     ],
     credentials: true,
 }));

@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Calendar, Clock, Search, RefreshCw, CheckCircle, XCircle, 
     FileText, User, MessageSquare, Filter, ChevronRight, 
-    Inbox, AlertCircle, ArrowRight, Check, X
+    Inbox, AlertCircle, ArrowRight, Check, X, LogIn, LogOut
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import SearchableSelect from '../components/SearchableSelect';
+import Swal from 'sweetalert2';
 
 const statusColors = {
   Approved: { color: '#10B981', bg: '#ECFDF5', icon: <CheckCircle size={14} /> },
@@ -16,8 +17,8 @@ const statusColors = {
 };
 
 const typeColors = {
-  'Leave': { color: '#8B5CF6', bg: '#F5F3FF' },
-  'Attendance Correction': { color: '#2563EB', bg: '#EFF6FF' },
+  'Leave': { color: '#8B5CF6', backgroundColor: '#F5F3FF' },
+  'Attendance Correction': { color: '#2563EB', backgroundColor: '#EFF6FF' },
 };
 
 const MiniCalendar = ({ fromDate, toDate }) => {
@@ -132,6 +133,44 @@ const AdminRequests = () => {
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
   const handleAction = async (requestId, status) => {
+    const request = requests.find(r => r._id === requestId);
+    if (!request) return;
+
+    const result = await Swal.fire({
+      title: status === 'Approved' ? 'Approve Request?' : 'Reject Request?',
+      html: `
+        <div style="text-align: left; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
+          <div style="margin-bottom: 15px;">
+            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Employee</p>
+            <p style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">${request.employee?.name || 'Unknown'}</p>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Reason for Request</p>
+            <p style="font-size: 14px; font-weight: 500; color: #334155; line-height: 1.5; margin: 0; font-style: italic;">"${request.reason || 'No reason provided'}"</p>
+          </div>
+          ${request.requestType === 'Attendance Correction' && request.workSummary ? `
+          <div style="margin-bottom: 15px;">
+            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Work Report / Remarks</p>
+            <p style="font-size: 14px; font-weight: 500; color: #334155; line-height: 1.5; margin: 0;">${request.workSummary}</p>
+          </div>
+          ` : ''}
+          <div>
+            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Admin Remarks (Optional)</p>
+            <p style="font-size: 14px; color: #475569; margin: 0;">${adminRemark || '<span style="opacity: 0.5;">No remarks added</span>'}</p>
+          </div>
+        </div>
+      `,
+      icon: status === 'Approved' ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: status === 'Approved' ? 'Yes, Approve' : 'Yes, Reject',
+      cancelButtonText: 'Cancel',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
+
     setActionLoading(requestId);
     try {
       const res = await authenticatedFetch(`${API_URL}/api/requests/admin/action`, {
@@ -141,11 +180,21 @@ const AdminRequests = () => {
       });
       const json = await res.json();
       if (json.success) {
+        Swal.fire({
+          title: 'Processed!',
+          text: `Request has been ${status.toLowerCase()} successfully.`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
         setModalOpen(false);
         setAdminRemark('');
         fetchRequests();
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      Swal.fire('Error', 'Failed to process request', 'error');
+    }
     finally { setActionLoading(false); }
   };
 
@@ -262,7 +311,7 @@ const AdminRequests = () => {
                         <span className="hrm-badge" style={{ alignSelf: 'flex-start', ...(typeColors[r.requestType] || typeColors['Leave']) }}>
                             {r.requestType}
                         </span>
-                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: '14px' }}>
                             {r.reason}
                         </div>
                       </div>
@@ -431,6 +480,13 @@ const AdminRequests = () => {
                            <p style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '8px' }}>Reason for Request</p>
                            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-dark)', fontWeight: '600', lineHeight: '1.6' }}>"{selectedRequest.reason}"</p>
                         </div>
+
+                        {selectedRequest.workSummary && (
+                           <div style={{ marginTop: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                              <p style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>Work Report / Summary</p>
+                              <p style={{ margin: 0, fontSize: '14px', color: '#1E293B', fontWeight: '500', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{selectedRequest.workSummary}</p>
+                           </div>
+                        )}
                    </div>
 
                    <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>

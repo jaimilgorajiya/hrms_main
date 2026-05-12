@@ -592,6 +592,8 @@ export const getAttendanceHistory = async (req, res) => {
                 type: rq.requestType,
                 status: rq.status,
                 reason: rq.reason,
+                workSummary: rq.workSummary,
+                adminRemark: rq.adminRemark,
                 leaveType: rq.leaveType?.name,
                 appliedAt: rq.appliedAt,
                 manualIn: rq.manualIn,
@@ -628,9 +630,11 @@ export const getAttendanceHistory = async (req, res) => {
                 breakFormatted: formatMinutes(breakMinutes),
                 punches: r.punches,
                 breaks: r.breaks,
+                workSummary: r.workSummary,
                 lateInPenalty: r.lateInPenalty || { amount: 0, isApplied: false },
                 earlyOutPenalty: r.earlyOutPenalty || { amount: 0, isApplied: false },
                 approvalStatus: r.approvalStatus || "Pending",
+                leaveCategory: r.leaveCategory || null,
                 request: rqMap[r.date] || null
             };
         });
@@ -1101,10 +1105,25 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             totalExpectedMins
         };
 
+        // Pre-fetch related leave and attendance correction requests for this month
+        const requests = await Request.find({
+            employee: employeeId,
+            $or: [
+                { date: { $regex: `^${month}` } },
+                { fromDate: { $lte: `${month}-31` }, toDate: { $gte: `${month}-01` } }
+            ]
+        }).populate('leaveType', 'name');
+
         const formattedRecords = records.map(r => {
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
             const workingMins = computeWorkingMinutes(r.punches, r.breaks);
+
+            const dayRequests = requests.filter(req => {
+                if (req.date === r.date) return true;
+                if (req.fromDate && req.toDate && r.date >= req.fromDate && r.date <= req.toDate) return true;
+                return false;
+            });
 
             return {
                 date: r.date,
@@ -1112,7 +1131,13 @@ export const getMonthlyAttendanceStats = async (req, res) => {
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 workingFormatted: formatMinutes(workingMins),
-                approvalStatus: r.approvalStatus || 'Pending'
+                approvalStatus: r.approvalStatus || 'Pending',
+                punches: r.punches,
+                breaks: r.breaks,
+                lateInPenalty: r.lateInPenalty,
+                earlyOutPenalty: r.earlyOutPenalty,
+                workSummary: r.workSummary,
+                requests: dayRequests
             };
         });
 
@@ -1120,6 +1145,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             success: true, 
             stats, 
             records: formattedRecords,
+            requests,
             weekOffDays 
         });
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
@@ -7,7 +7,7 @@ import {
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiFetch, getImageUrl } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
-
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { getDistance } from '../../utils/geofence';
 
 // LayoutAnimation is enabled by default in the New Architecture
@@ -87,8 +87,8 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
         // Calculate total break MS (completed breaks + current active break)
         let totalBreakMs = 0;
         (punchData.breaks || []).forEach(b => {
-          if (b.start && b.end) totalBreakMs += new Date(b.end) - new Date(b.start);
-          else if (b.start) totalBreakMs += now - new Date(b.start);
+          if (b.start && b.end) totalBreakMs += new Date(b.end).getTime() - new Date(b.start).getTime();
+          else if (b.start) totalBreakMs += now - new Date(b.start).getTime();
         });
 
         if (punchData.isOnBreak) {
@@ -108,6 +108,23 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
           setProductiveTime(formatMs(Math.max(0, diff - totalBreakMs)));
         }
       }, 1000);
+    } else if (punchData?.startTime) {
+      // Retain finalized completed state statistics when punched out
+      const start = new Date(punchData.startTime).getTime();
+      const lastPunch = punchData.punches?.[punchData.punches.length - 1];
+      const end = (lastPunch && lastPunch.type === 'OUT') ? new Date(lastPunch.time).getTime() : start;
+      const diff = Math.max(0, end - start);
+      
+      let totalBreakMs = 0;
+      (punchData.breaks || []).forEach(b => {
+        if (b.start && b.end) totalBreakMs += new Date(b.end).getTime() - new Date(b.start).getTime();
+      });
+
+      setElapsed(formatMs(diff));
+      setRemaining(formatMs(Math.max(0, WORK_HOURS - diff)));
+      const p = Math.min(1, diff / WORK_HOURS);
+      setPercent(p);
+      setProductiveTime(formatMs(Math.max(0, diff - totalBreakMs)));
     } else {
       setElapsed('00:00:00');
       setRemaining(formatMs(WORK_HOURS));
@@ -400,9 +417,36 @@ export default function Dashboard() {
       }
 
       if (histJson && histJson.success) {
-        const todayStr = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
-        const missingCount = (histJson.records || []).filter(r => r.punchIn && !r.punchOut && r.date !== todayStr).length;
-        setMissingPunches(missingCount);
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        const days = eachDayOfInterval({ start, end });
+        
+        const recordsMap = {};
+        histJson.records.forEach(r => recordsMap[r.date] = r);
+        
+        const requestsMap = histJson.requests || {};
+        const woDays = histJson.weekOffDays || [];
+        const jDate = histJson.joiningDate;
+        
+        let mCount = 0;
+        days.forEach(day => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          if (dateStr >= todayStr) return; 
+          if (jDate && dateStr < jDate) return; 
+          
+          const dayName = format(day, 'EEEE');
+          if (woDays.includes(dayName)) return; 
+          
+          const r = recordsMap[dateStr];
+          const req = requestsMap[dateStr];
+          if (req && (req.status === 'Pending' || req.status === 'Approved')) return; 
+          
+          if (r && r.punchIn && !r.punchOut) {
+            mCount++;
+          }
+        });
+        setMissingPunches(mCount);
       }
     } catch (e) {
       console.error('Dashboard loadData error:', e);
@@ -413,6 +457,12 @@ export default function Dashboard() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const handlePunch = async (options = {}) => {
     // If called from a direct onPress, the first arg is an event object. Ignore it.
@@ -722,7 +772,7 @@ export default function Dashboard() {
             </Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notifBtn} onPress={() => { setShowNotifModal(true); markAllRead(); }}>
+            <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notifications')}>
               <Ionicons name="notifications-outline" size={24} color={COLORS.textDark} />
               {unreadCount > 0 && <View style={styles.notifDot} />}
             </TouchableOpacity>
@@ -744,7 +794,7 @@ export default function Dashboard() {
           <View style={styles.statsGrid}>
             <StatCard icon="calendar-outline" label="Attendance" value={`${stats.presentDays}d`} sub="Days Present" color={COLORS.success} bg={COLORS.successLight} onPress={() => router.push('/(tabs)/attendance')} delay={50} />
             <StatCard icon="alert-circle-outline" label="Punch Fix" value={missingPunches} sub="Missing Out" color={COLORS.warning} bg={COLORS.warningLight} onPress={() => router.push('/punch-missing')} delay={100} />
-            <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={150} onPress={() => setShowPenaltyModal(true)} />
+            <StatCard icon="receipt-outline" label="Total Penalty" value={`₹${stats.monthPenalty || 0}`} sub="This Month" color={COLORS.danger} bg={COLORS.dangerLight} delay={150} onPress={() => router.push('/penalties')} />
             <StatCard icon="warning-outline" label="Today's Penalty" value={`₹${punchData.lateInPenalty || 0}`} sub="Late In" color={COLORS.warning} bg={COLORS.warningLight} delay={200} />
             <StatCard icon="moon-outline" label="Today's Shift" value={stats.shiftName || '—'} sub={stats.shiftStart || 'Time'} color={COLORS.purple} bg={COLORS.purpleLight} delay={250} onPress={() => setShowShiftModal(true)} />
             {stats.hasLeaveGroup && (
@@ -1087,158 +1137,139 @@ export default function Dashboard() {
         <View style={styles.modalBackdrop}>
           <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setShowShiftModal(false)} />
           <View style={styles.modalSheet}>
+            {/* Top Drag Indicator */}
+            <View style={{ width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+
+            {/* Premium Header */}
             <View style={styles.sheetHeader}>
-              <View style={[styles.sheetIcon, { backgroundColor: COLORS.warningLight }]}>
-                <Ionicons name="time" size={24} color={COLORS.warning} />
+              <View style={[styles.sheetIcon, { backgroundColor: COLORS.warning + '12', borderRadius: 20 }]}>
+                <Ionicons name="time" size={22} color={COLORS.warning} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.sheetTitle}>{stats?.shiftName || 'Shift Details'}</Text>
-                <Text style={styles.sheetSub}>Full schedule and rules</Text>
+                <Text style={[styles.sheetTitle, { fontSize: 22, letterSpacing: -0.3 }]}>{stats?.shiftName || 'Shift Schedule'}</Text>
+                <Text style={styles.sheetSub}>Allocated timings and weekly rules</Text>
               </View>
-              <TouchableOpacity onPress={() => setShowShiftModal(false)}>
-                <Ionicons name="close-circle" size={28} color={COLORS.border} />
+              <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowShiftModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.textMuted} />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.sheetGrid}>
-              <View style={styles.sheetItem}>
-                <Ionicons name="enter-outline" size={20} color={COLORS.primary} />
-                <View>
-                  <Text style={styles.sheetLabel}>Shift Start</Text>
-                  <Text style={styles.sheetValue}>{stats?.shiftStart || '—'}</Text>
+            {/* Full-Width Shift Timings Stack */}
+            <View style={{ gap: 12, marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: COLORS.bgMain, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderLight + '80' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center', ...SHADOW.soft }}>
+                    <Ionicons name="enter-outline" size={20} color={COLORS.primary} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 11, color: COLORS.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Shift Start</Text>
+                    <Text style={{ fontSize: 16, color: COLORS.textDark, fontWeight: '900', marginTop: 2 }}>{stats?.shiftStart || '—'}</Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: COLORS.primary + '10', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.primary }}>INBOUND</Text>
                 </View>
               </View>
-              <View style={styles.sheetItem}>
-                <Ionicons name="exit-outline" size={20} color={COLORS.danger} />
-                <View>
-                  <Text style={styles.sheetLabel}>Shift End</Text>
-                  <Text style={styles.sheetValue}>{stats?.shiftEnd || '—'}</Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: COLORS.bgMain, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderLight + '80' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center', ...SHADOW.soft }}>
+                    <Ionicons name="exit-outline" size={20} color={COLORS.danger} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 11, color: COLORS.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Shift End</Text>
+                    <Text style={{ fontSize: 16, color: COLORS.textDark, fontWeight: '900', marginTop: 2 }}>{stats?.shiftEnd || '—'}</Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: COLORS.danger + '10', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.danger }}>OUTBOUND</Text>
                 </View>
               </View>
               
               {stats?.lunchStart && stats?.lunchEnd && (
-                <View style={styles.sheetItem}>
-                  <Ionicons name="restaurant-outline" size={20} color={COLORS.warning} />
-                  <View>
-                    <Text style={styles.sheetLabel}>Lunch Break</Text>
-                    <Text style={styles.sheetValue}>{stats.lunchStart} - {stats.lunchEnd}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: COLORS.bgMain, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderLight + '80' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center', ...SHADOW.soft }}>
+                      <Ionicons name="restaurant-outline" size={20} color={COLORS.warning} />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 11, color: COLORS.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Lunch Break</Text>
+                      <Text style={{ fontSize: 15, color: COLORS.textDark, fontWeight: '800', marginTop: 2 }}>{stats.lunchStart} - {stats.lunchEnd}</Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: COLORS.warning + '10', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.warning }}>LUNCH</Text>
                   </View>
                 </View>
               )}
               
               {stats?.teaStart && stats?.teaEnd && (
-                <View style={styles.sheetItem}>
-                  <Ionicons name="cafe-outline" size={20} color={COLORS.purple} />
-                  <View>
-                    <Text style={styles.sheetLabel}>Tea Break</Text>
-                    <Text style={styles.sheetValue}>{stats.teaStart} - {stats.teaEnd}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: COLORS.bgMain, borderRadius: 20, borderWidth: 1, borderColor: COLORS.borderLight + '80' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center', ...SHADOW.soft }}>
+                      <Ionicons name="cafe-outline" size={20} color={COLORS.purple} />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 11, color: COLORS.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Tea Break</Text>
+                      <Text style={{ fontSize: 15, color: COLORS.textDark, fontWeight: '800', marginTop: 2 }}>{stats.teaStart} - {stats.teaEnd}</Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: COLORS.purple + '10', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: COLORS.purple }}>REST</Text>
                   </View>
                 </View>
               )}
             </View>
 
-            <View style={styles.sheetFooter}>
+            {/* Premium Policy Block */}
+            <View style={{ backgroundColor: COLORS.bgMain, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: COLORS.borderLight + '80' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={styles.footerLabel}>Weekly Off Policy</Text>
-                <View style={[styles.dayTag, { backgroundColor: COLORS.bgMain }]}>
-                  <Text style={[styles.dayTagText, { color: COLORS.textMuted, fontSize: 10 }]}>{stats?.weekOffType}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase', letterSpacing: 0.6 }}>Weekly Off Policy</Text>
+                <View style={{ backgroundColor: COLORS.white, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderLight }}>
+                  <Text style={{ color: COLORS.textMain, fontSize: 10, fontWeight: '700' }}>{stats?.weekOffType || 'Standard'}</Text>
                 </View>
               </View>
               
               <View style={styles.tagGrid}>
                 {stats?.weekOffType === 'Selected Weekdays' ? (
                   (stats?.weekOffDays || []).length > 0 ? stats.weekOffDays.map((d, i) => (
-                    <View key={i} style={styles.dayTag}>
-                      <Text style={styles.dayTagText}>{d}</Text>
+                    <View key={i} style={{ backgroundColor: COLORS.white, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: COLORS.borderLight, ...SHADOW.soft }}>
+                      <Text style={{ fontSize: 13, color: COLORS.primaryDark, fontWeight: '800' }}>{d}</Text>
                     </View>
                   )) : (
-                    <Text style={styles.sheetValue}>No Fixed Weekly Off</Text>
+                    <Text style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: '600' }}>No Fixed Rest Days Configured</Text>
                   )
                 ) : (
                   <View style={{ gap: 8, width: '100%' }}>
                     {stats?.weekOffsPerWeek > 0 && (
-                      <View style={styles.quotaRow}>
-                        <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
-                        <Text style={styles.quotaText}>Allowance: <Text style={{fontWeight:'800'}}>{stats.weekOffsPerWeek}</Text> per week</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="calendar-clear" size={14} color={COLORS.primary} />
+                        <Text style={{ fontSize: 13, color: COLORS.textDark, fontWeight: '600' }}>
+                          Allowance: <Text style={{ fontWeight: '800', color: COLORS.primary }}>{stats.weekOffsPerWeek}</Text> days / week
+                        </Text>
                       </View>
                     )}
                     {stats?.weekOffsPerMonth > 0 && (
-                      <View style={styles.quotaRow}>
-                        <Ionicons name="apps-outline" size={16} color={COLORS.purple} />
-                        <Text style={styles.quotaText}>Cap: <Text style={{fontWeight:'800'}}>{stats.weekOffsPerMonth}</Text> per month</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <Ionicons name="apps" size={14} color={COLORS.purple} />
+                        <Text style={{ fontSize: 13, color: COLORS.textDark, fontWeight: '600' }}>
+                          Monthly Cap: <Text style={{ fontWeight: '800', color: COLORS.purple }}>{stats.weekOffsPerMonth}</Text> days / month
+                        </Text>
                       </View>
                     )}
                     {!stats?.weekOffsPerWeek && !stats?.weekOffsPerMonth && (
-                      <Text style={styles.sheetValue}>Flexible rest days apply</Text>
+                      <Text style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: '600' }}>Flexible dynamic rest schedules apply</Text>
                     )}
                   </View>
                 )}
               </View>
             </View>
-
-            <TouchableOpacity style={styles.sheetButton} onPress={() => setShowShiftModal(false)}>
-              <Text style={styles.sheetButtonText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
       {/* Penalty Details Modal */}
-      <Modal visible={showPenaltyModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setShowPenaltyModal(false)} />
-          <View style={styles.modalSheet}>
-            <View style={styles.sheetHeader}>
-              <View style={[styles.sheetIcon, { backgroundColor: COLORS.dangerLight }]}>
-                <Ionicons name="receipt" size={24} color={COLORS.danger} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sheetTitle}>Monthly Penalties</Text>
-                <Text style={styles.sheetSub}>Detailed list of deductions</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowPenaltyModal(false)}>
-                <Ionicons name="close-circle" size={28} color={COLORS.border} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-              {(!stats.penaltyHistory || stats.penaltyHistory.length === 0) ? (
-                <View style={styles.emptyActivity}>
-                  <View style={[styles.alertCircle, { backgroundColor: COLORS.successLight }]}>
-                    <Ionicons name="shield-checkmark" size={32} color={COLORS.success} />
-                  </View>
-                  <Text style={[styles.modalTitle, { fontSize: 16 }]}>No Penalties Recorded</Text>
-                  <Text style={styles.emptyText}>Great job! You haven't incurred any penalties this month.</Text>
-                </View>
-              ) : (
-                stats.penaltyHistory.map((p, i) => (
-                  <View key={i} style={styles.penaltyItem}>
-                    <View style={styles.penaltyLeft}>
-                      <View style={[styles.penaltyDot, { backgroundColor: p.type === 'Late In' ? COLORS.danger : COLORS.warning }]} />
-                      <View>
-                        <Text style={styles.penaltyDate}>{new Date(p.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                        <Text style={styles.penaltyType}>{p.type}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.penaltyAmount}>- ₹{p.amount}</Text>
-                  </View>
-                ))
-              )}
-            </ScrollView>
 
-            <View style={styles.sheetFooter}>
-              <View style={[styles.totalPenaltyBox, { backgroundColor: COLORS.dangerLight, padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }]}>
-                <Text style={{ fontWeight: '800', color: COLORS.danger }}>Total Deduction</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: COLORS.danger }}>₹{stats.monthPenalty || 0}</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={[styles.sheetButton, { backgroundColor: COLORS.danger }]} onPress={() => setShowPenaltyModal(false)}>
-              <Text style={styles.sheetButtonText}>Understood</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
       
       {/* Global Loading Overlay */}
       {loading && (
@@ -1246,55 +1277,6 @@ export default function Dashboard() {
           <ActivityIndicator size={50} color={COLORS.primary} />
         </View>
       )}
-
-      {/* Notifications Modal */}
-      <Modal visible={showNotifModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <TouchableOpacity style={{ flex: 1, width: '100%' }} activeOpacity={1} onPress={() => setShowNotifModal(false)} />
-          <View style={styles.modalSheet}>
-            <View style={styles.sheetHeader}>
-              <View style={[styles.sheetIcon, { backgroundColor: COLORS.primaryLight }]}>
-                <Ionicons name="notifications" size={24} color={COLORS.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sheetTitle}>Notifications</Text>
-                <Text style={styles.sheetSub}>Stay updated with your activities</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowNotifModal(false)}>
-                <Ionicons name="close-circle" size={28} color={COLORS.border} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
-              {notifications.length === 0 ? (
-                <View style={styles.emptyActivity}>
-                  <Ionicons name="notifications-off-outline" size={48} color={COLORS.border} />
-                  <Text style={styles.emptyText}>No notifications yet.</Text>
-                </View>
-              ) : (
-                notifications.map((n, i) => (
-                  <View key={i} style={[styles.penaltyItem, { borderBottomColor: COLORS.borderLight, opacity: n.isRead ? 0.7 : 1 }]}>
-                    <View style={styles.penaltyLeft}>
-                      <View style={[styles.penaltyDot, { backgroundColor: n.type === 'Attendance' ? COLORS.primary : (n.type === 'Leave' ? COLORS.purple : COLORS.warning) }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.penaltyDate, { fontSize: 13 }]}>{n.title}</Text>
-                        <Text style={[styles.penaltyType, { fontSize: 11 }]}>{n.message}</Text>
-                        <Text style={{ fontSize: 9, color: COLORS.textMuted, marginTop: 4 }}>
-                           {new Date(n.createdAt).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-
-            <TouchableOpacity style={[styles.sheetButton, { marginTop: 20 }]} onPress={() => setShowNotifModal(false)}>
-              <Text style={styles.sheetButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
     </SafeAreaView>
   );
@@ -1319,7 +1301,7 @@ const styles = StyleSheet.create({
   avatar: { width: '100%', height: '100%', borderRadius: 24 },
   avatarPlaceholder: { flex: 1, backgroundColor: COLORS.bgMain, justifyContent: 'center', alignItems: 'center', borderRadius: 24 },
   avatarText: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
-  body: { padding: 20, paddingBottom: 100 },
+  body: { padding: 20, paddingBottom: 20 },
   heroSection: { alignItems: 'center', marginVertical: 20 },
   ringWrapper: { width: 200, height: 200, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: 100 },
   timerOverlay: { position: 'absolute', alignItems: 'center' },

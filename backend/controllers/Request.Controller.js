@@ -2,11 +2,13 @@ import Request from "../models/Request.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import User from "../models/User.Model.js";
 import Notification from "../models/Notification.Model.js";
+import LeaveType from "../models/LeaveType.Model.js";
+import LeaveGroup from "../models/LeaveGroup.Model.js";
 
 // POST /api/requests/submit
 export const submitRequest = async (req, res) => {
     try {
-        const { requestType, leaveType, date, reason, manualIn, manualOut, leaveDuration, fromDate, toDate, leaveCategory } = req.body;
+        const { requestType, leaveType, date, reason, manualIn, manualOut, workSummary, leaveDuration, fromDate, toDate, leaveCategory } = req.body;
         const employeeId = req.user._id;
 
         // Get adminId for this employee
@@ -15,11 +17,12 @@ export const submitRequest = async (req, res) => {
 
         const adminId = employee.adminId || employeeId; // Fallback to self if no admin assigned (e.g. root admin)
 
-        // Prevent Duplicate/Overlapping Leave Requests
+        // ── POLICY ENFORCEMENT ──
         if (requestType === 'Leave') {
             const startStr = fromDate || date;
             const endStr = toDate || date;
 
+            // 0. Prevent Duplicate/Overlapping Leave Requests
             const existingOverlap = await Request.findOne({
                 employee: employeeId,
                 requestType: 'Leave',
@@ -35,6 +38,62 @@ export const submitRequest = async (req, res) => {
                     message: `Conflict: You already have a ${existingOverlap.status.toLowerCase()} leave request for these dates (${existingOverlap.fromDate} to ${existingOverlap.toDate}).` 
                 });
             }
+
+            const lt = await LeaveType.findById(leaveType);
+            if (!lt) return res.status(404).json({ success: false, message: "Invalid leave type" });
+
+            // 1. Gender Restriction
+            if (lt.applicableFor === 'Male Only' && employee.gender !== 'Male') return res.status(400).json({ success: false, message: "This leave type is only for Male employees." });
+            if (lt.applicableFor === 'Female Only' && employee.gender !== 'Female') return res.status(400).json({ success: false, message: "This leave type is only for Female employees." });
+
+            // 2. Back-dated Restriction
+            const todayStr = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split('T')[0];
+            if (lt.applyOnPastDays === 'No' && startStr < todayStr) {
+                return res.status(400).json({ success: false, message: "Back-dated leave is restricted for this leave type." });
+            }
+
+            // 3. Monthly Paid Leave Limit Check
+            if (leaveCategory === 'Paid') {
+                const leaveGroup = await LeaveGroup.findById(employee.leaveGroup);
+                const maxInMonth = (employee.maxPLMonth && employee.maxPLMonth > 0) 
+                    ? employee.maxPLMonth 
+                    : (leaveGroup?.maxUseInMonth || 0);
+
+                if (maxInMonth > 0) {
+                    // Calculate current month's used paid leave days
+                    const monthStart = startStr.substring(0, 7) + "-01";
+                    const monthEnd = startStr.substring(0, 7) + "-31";
+                    
+                    const approvedRequests = await Request.find({
+                        employee: employeeId,
+                        requestType: 'Leave',
+                        status: { $ne: 'Rejected' },
+                        leaveCategory: 'Paid',
+                        fromDate: { $gte: monthStart, $lte: monthEnd }
+                    });
+
+                    let usedInMonth = 0;
+                    approvedRequests.forEach(req => {
+                        const start = new Date(req.fromDate);
+                        const end = new Date(req.toDate);
+                        const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                        usedInMonth += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
+                    });
+
+                    // Calculate days for the current request being submitted
+                    const reqStart = new Date(startStr);
+                    const reqEnd = new Date(endStr);
+                    const reqDiffDays = Math.ceil(Math.abs(reqEnd - reqStart) / (1000 * 60 * 60 * 24)) + 1;
+                    const requestedDays = leaveDuration === "Full Day" ? reqDiffDays : 0.5;
+
+                    if ((usedInMonth + requestedDays) > maxInMonth) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            message: `Monthly Paid Leave Limit Reached: You have already used ${usedInMonth} out of ${maxInMonth} allowed paid leave days for this month.` 
+                        });
+                    }
+                }
+            }
         }
 
         const newRequest = new Request({
@@ -49,7 +108,8 @@ export const submitRequest = async (req, res) => {
             date: date || fromDate, // Fallback for old records
             reason,
             manualIn,
-            manualOut
+            manualOut,
+            workSummary
         });
 
         await newRequest.save();
@@ -193,6 +253,7 @@ export const updateRequestStatus = async (req, res) => {
                             $set: {
                                 status: "On Leave",
                                 approvalStatus: "Approved",
+                                leaveCategory: request.leaveCategory, // Pass Paid/Unpaid to attendance
                                 punches: [] // Clear punches for leave day
                             }
                         },

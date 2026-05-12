@@ -126,44 +126,7 @@ const EditLeaveGroup = () => {
 
                    
 
-                        {/* Paid Leave Checkbox */}
-                        <div className="hrm-form-group" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '30px' }}>
-                            <input
-                                type="checkbox"
-                                id="isPaidLeave"
-                                name="isPaidLeave"
-                                checked={formData.isPaidLeave}
-                                onChange={handleChange}
-                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3B648B' }}
-                            />
-                            <label htmlFor="isPaidLeave" style={{ marginBottom: 0, cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: 'var(--text-secondary)' }}>Paid Leave</label>
-                        </div>
                     </div>
-
-                    {/* Paid Leave Expanded Fields */}
-                    {formData.isPaidLeave && (
-                        <>
-                            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '32px 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9' }}>
-                                Paid Leave Configuration
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-                                <div className="hrm-form-group">
-                                    <SearchableSelect label="Leave Allocation Type" options={[
-                                        { label: 'Yearly', value: 'Yearly' }, { label: 'Monthly', value: 'Monthly' },
-                                        { label: 'Quarterly', value: 'Quarterly' }, { label: 'Half Yearly', value: 'Half Yearly' },
-                                    ]} value={formData.leaveAllocationType} onChange={(val) => handleSelect('leaveAllocationType', val)} />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">No. of Paid Leaves (Total)</label>
-                                    <input type="number" name="noOfPaidLeaves" className="hrm-input" value={formData.noOfPaidLeaves} onChange={handleChange} placeholder="e.g. 12" min="0" />
-                                </div>
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Max Usage In Single Month</label>
-                                    <input type="number" name="maxUseInMonth" className="hrm-input" value={formData.maxUseInMonth} onChange={handleChange} placeholder="e.g. 2" min="0" />
-                                </div>
-                            </div>
-                        </>
-                    )}
 
                     {/* Actions */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #F1F5F9' }}>

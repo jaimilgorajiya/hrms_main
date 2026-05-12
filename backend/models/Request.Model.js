@@ -38,6 +38,7 @@ const requestSchema = new mongoose.Schema({
     // For Attendance Correction
     manualIn: { type: Date },
     manualOut: { type: Date },
+    workSummary: { type: String },
     // Status
     status: {
         type: String,

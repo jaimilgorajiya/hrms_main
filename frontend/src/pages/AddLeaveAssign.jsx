@@ -106,14 +106,22 @@ const AddLeaveAssign = () => {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    leaveGroup: selectedLeaveGroup,
-                    noOfPaidLeaves: selectedLeaveGroup === '' ? '0' : rowPaidLeave,
-                    maxPLMonth: selectedLeaveGroup === '' ? '0' : rowMaxPL,
+                    leaveGroup: selectedLeaveGroup || null,
+                    noOfPaidLeaves: selectedLeaveGroup === '' ? 0 : Number(rowPaidLeave),
+                    maxPLMonth: selectedLeaveGroup === '' ? 0 : Number(rowMaxPL),
                     canApplyUnpaidLeave: selectedLeaveGroup === '' ? false : canApplyUnpaidLeave
                 })
             });
             const data = await res.json();
             if (data.success) {
+                // Update local employees state to immediately reflect the change without requiring hard reload
+                setEmployees(prev => prev.map(emp => emp._id === selectedEmployee ? {
+                    ...emp,
+                    leaveGroup: selectedLeaveGroup || null,
+                    noOfPaidLeaves: selectedLeaveGroup === '' ? 0 : Number(rowPaidLeave),
+                    maxPLMonth: selectedLeaveGroup === '' ? 0 : Number(rowMaxPL),
+                    canApplyUnpaidLeave: selectedLeaveGroup === '' ? false : canApplyUnpaidLeave
+                } : emp));
                 Swal.fire('Success!', selectedLeaveGroup === '' ? 'Unassigned successfully' : 'Leave assigned successfully', 'success').then(() => navigate('/admin/leave/bulk-assign'));
             } else {
                 Swal.fire('Error', data.message || 'Assignment failed', 'error');
@@ -131,9 +139,19 @@ const AddLeaveAssign = () => {
         if (currentGroup?.noOfPaidLeaves) {
             const val = Math.floor(Number(currentGroup.noOfPaidLeaves)).toString();
             setRowPaidLeave(val);
-            setRowMaxPL(val);
+            
+            const emp = employees.find(e => e._id === selectedEmployee);
+            const empLgId = emp?.leaveGroup ? (typeof emp.leaveGroup === 'object' ? emp.leaveGroup._id : emp.leaveGroup) : null;
+            
+            // If the employee already has this group assigned and has a saved override, preserve it.
+            // Otherwise, pre-select the group's default monthly usage limit (or fallback to total leaves).
+            if (empLgId === currentGroup._id && emp?.maxPLMonth) {
+                setRowMaxPL(emp.maxPLMonth.toString());
+            } else {
+                setRowMaxPL(currentGroup.maxUseInMonth ? currentGroup.maxUseInMonth.toString() : val);
+            }
         }
-    }, [currentGroup]);
+    }, [currentGroup, selectedEmployee, employees]);
 
     if (loading) return (
         <div className="hrm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>

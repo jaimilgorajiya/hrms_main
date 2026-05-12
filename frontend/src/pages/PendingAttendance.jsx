@@ -48,24 +48,71 @@ const PendingAttendance = () => {
   const handleAction = async (ids, status) => {
     if (!ids.length) return;
     
-    const confirmText = ids.length === 1 ? `Are you sure you want to ${status.toLowerCase()} this record?` : `Are you sure you want to ${status.toLowerCase()} ${ids.length} records?`;
+    let confirmHtml = '';
+    if (ids.length === 1) {
+      const record = records.find(r => r._id === ids[0]);
+      const lateReason = record?.punches?.find(p => p.lateReason)?.lateReason;
+      const earlyReason = record?.punches?.find(p => p.earlyReason)?.earlyReason;
+
+      confirmHtml = `
+        <div style="text-align: left; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between;">
+            <div>
+              <p style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 2px 0;">Employee</p>
+              <p style="font-size: 14px; font-weight: 700; color: #1e293b; margin: 0;">${record.employee?.name}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 2px 0;">Date</p>
+              <p style="font-size: 14px; font-weight: 700; color: #1e293b; margin: 0;">${new Date(record.date).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <div style="background: #ecfdf5; padding: 8px; borderRadius: 8px; border: 1px solid #dcfce7;">
+              <p style="font-size: 9px; font-weight: 800; color: #059669; text-transform: uppercase; margin: 0;">In Time</p>
+              <p style="font-size: 13px; font-weight: 700; color: #065f46; margin: 0;">${record.punchIn || '--:--'}</p>
+            </div>
+            <div style="background: #fef2f2; padding: 8px; borderRadius: 8px; border: 1px solid #fee2e2;">
+              <p style="font-size: 9px; font-weight: 800; color: #dc2626; text-transform: uppercase; margin: 0;">Out Time</p>
+              <p style="font-size: 13px; font-weight: 700; color: #991b1b; margin: 0;">${record.punchOut || '--:--'}</p>
+            </div>
+          </div>
+          ${lateReason ? `
+            <div style="margin-bottom: 10px; padding: 10px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px;">
+              <p style="font-size: 10px; font-weight: 800; color: #c2410c; text-transform: uppercase; margin: 0 0 4px 0;">Late Reason</p>
+              <p style="font-size: 13px; color: #7c2d12; margin: 0; font-style: italic;">"${lateReason}"</p>
+            </div>
+          ` : ''}
+          ${earlyReason ? `
+            <div style="margin-bottom: 10px; padding: 10px; background: #fff1f2; border-left: 4px solid #e11d48; border-radius: 4px;">
+              <p style="font-size: 10px; font-weight: 800; color: #be123c; text-transform: uppercase; margin: 0 0 4px 0;">Early Out Reason</p>
+              <p style="font-size: 13px; color: #881337; margin: 0; font-style: italic;">"${earlyReason}"</p>
+            </div>
+          ` : ''}
+          <p style="font-size: 13px; color: #475569; margin-top: 10px; text-align: center; font-weight: 600;">
+            Are you sure you want to <b>${status.toLowerCase()}</b> this record?
+          </p>
+        </div>
+      `;
+    } else {
+      confirmHtml = `<p style="font-size: 15px; font-weight: 600; color: #475569;">Are you sure you want to <b>${status.toLowerCase()}</b> ${ids.length} selected records?</p>`;
+    }
     
     const result = await Swal.fire({
-      title: 'Confirm Action',
-      text: confirmText,
+      title: status === 'Approved' ? 'Approve Attendance?' : 'Reject Attendance?',
+      html: confirmHtml,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
-      cancelButtoncolor: 'var(--text-secondary)',
-      confirmButtonText: `Yes, ${status}`
+      cancelButtonColor: '#64748b',
+      confirmButtonText: `Yes, ${status}`,
+      cancelButtonText: 'Cancel',
+      reverseButtons: true
     });
 
     if (!result.isConfirmed) return;
 
     setActionLoading(true);
     try {
-      // The current API might not support bulk approval. Let's check.
-      // If not, we'll run them in parallel.
       const promises = ids.map(id => 
         authenticatedFetch(`${API_URL}/api/attendance/admin/approve`, {
           method: 'POST',
@@ -75,12 +122,16 @@ const PendingAttendance = () => {
       );
       
       const responses = await Promise.all(promises);
-      const allSuccess = responses.every(async r => (await r.json()).success);
+      let successCount = 0;
+      for (const res of responses) {
+        const d = await res.json();
+        if (d.success) successCount++;
+      }
 
-      if (allSuccess) {
+      if (successCount > 0) {
         Swal.fire({
           title: 'Success!',
-          text: `${ids.length} record(s) have been ${status.toLowerCase()}.`,
+          text: `${successCount} record(s) have been ${status.toLowerCase()}.`,
           icon: 'success',
           timer: 1500,
           showConfirmButton: false

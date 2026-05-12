@@ -94,8 +94,13 @@ const MonthlyAttendance = () => {
             const dayName = DAY_NAMES[new Date(y, m - 1, d).getDay()];
             const isWeekOff = (data?.weekOffDays || []).includes(dayName);
             const rec = data?.records?.find(r => r.date === dateStr) || null;
+            const dayRequests = data?.requests?.filter(req => {
+                if (req.date === dateStr) return true;
+                if (req.fromDate && req.toDate && dateStr >= req.fromDate && dateStr <= req.toDate) return true;
+                return false;
+            }) || [];
             const isExtraDay = isWeekOff && rec && rec.punchIn;
-            cells.push({ date: dateStr, day: d, dayName, isWeekOff, isExtraDay, rec });
+            cells.push({ date: dateStr, day: d, dayName, isWeekOff, isExtraDay, rec, dayRequests });
         }
         return cells;
     };
@@ -330,6 +335,103 @@ const MonthlyAttendance = () => {
                                                             </div>
                                                         </div>
                                                     )}
+
+                                                    {(() => {
+                                                        const summaries = [];
+                                                        const lateReasons = [];
+                                                        const earlyReasons = [];
+                                                        const geofenceReasons = [];
+
+                                                        if (rec) {
+                                                            if (rec.workSummary) summaries.push(rec.workSummary);
+                                                            (rec.punches || []).forEach(p => {
+                                                                if (p.workSummary && !summaries.includes(p.workSummary)) summaries.push(p.workSummary);
+                                                                if (p.lateReason && !lateReasons.includes(p.lateReason)) lateReasons.push(p.lateReason);
+                                                                if (p.earlyReason && !earlyReasons.includes(p.earlyReason)) earlyReasons.push(p.earlyReason);
+                                                                if (p.geofenceReason && !geofenceReasons.includes(p.geofenceReason)) geofenceReasons.push(p.geofenceReason);
+                                                            });
+                                                        }
+
+                                                        (selectedDay.dayRequests || []).forEach(req => {
+                                                            if (req.workSummary && !summaries.includes(req.workSummary)) summaries.push(req.workSummary);
+                                                        });
+
+                                                        return (
+                                                            <>
+                                                                {/* Work Summary / History */}
+                                                                {summaries.length > 0 && (
+                                                                    <div style={{ marginTop: '8px', padding: '16px', borderRadius: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <Briefcase size={12} /> Work Report / History
+                                                                        </div>
+                                                                        {summaries.map((s, idx) => (
+                                                                            <div key={idx} style={{ fontSize: '13px', color: '#1E293B', fontWeight: 500, lineHeight: 1.5, marginTop: idx > 0 ? '8px' : 0, whiteSpace: 'pre-wrap' }}>
+                                                                                {s}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Late Arrival Reason */}
+                                                                {(lateReasons.length > 0 || rec?.lateInPenalty?.isLate) && (
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#C2410C', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <AlertCircle size={12} /> Late Arrival
+                                                                        </div>
+                                                                        <div style={{ fontSize: '13px', color: '#9A3412', fontWeight: 600 }}>
+                                                                            {lateReasons.join(' · ') || 'Marked as late entry by system rule.'}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Early Out Reason */}
+                                                                {(earlyReasons.length > 0 || rec?.earlyOutPenalty?.amount > 0) && (
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2' }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#DC2626', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <AlertCircle size={12} /> Early Departure
+                                                                        </div>
+                                                                        <div style={{ fontSize: '13px', color: '#991B1B', fontWeight: 600 }}>
+                                                                            {earlyReasons.join(' · ') || 'Marked as early departure penalty.'}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Out of Range (Geofence) */}
+                                                                {geofenceReasons.length > 0 && (
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FEF3C7', border: '1px solid #FDE68A' }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#B45309', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                            <AlertCircle size={12} /> Out of Range Punch
+                                                                        </div>
+                                                                        <div style={{ fontSize: '13px', color: '#92400E', fontWeight: 600 }}>
+                                                                            {geofenceReasons.join(' · ')}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Attached Requests (Attendance Correction / Leave / Missing Punch) */}
+                                                                {(selectedDay.dayRequests || []).map((reqItem, rIdx) => (
+                                                                    <div key={reqItem._id || rIdx} style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#EFF6FF', border: '1px solid #DBEAFE' }}>
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1D4ED8', textTransform: 'uppercase' }}>
+                                                                                Request: {reqItem.requestType}
+                                                                            </span>
+                                                                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '8px', background: reqItem.status === 'Approved' ? '#DCFCE7' : reqItem.status === 'Rejected' ? '#FEE2E2' : '#FEF3C7', color: reqItem.status === 'Approved' ? '#15803D' : reqItem.status === 'Rejected' ? '#B91C1C' : '#B45309' }}>
+                                                                                {reqItem.status}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ fontSize: '13px', color: '#1E3A8A', fontWeight: 600 }}>
+                                                                            Reason: "{reqItem.reason}"
+                                                                        </div>
+                                                                        {reqItem.adminRemark && (
+                                                                            <div style={{ fontSize: '11px', color: '#3B82F6', fontWeight: 500, marginTop: '4px', fontStyle: 'italic' }}>
+                                                                                Admin: {reqItem.adminRemark}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </>
                                         );

@@ -20,6 +20,9 @@ const LeaveType = () => {
         name: '',
         shortName: '',
         applicableFor: 'All',
+        attachmentRequired: 'No',
+        applyOnHoliday: 'No',
+        applyOnPastDays: 'No',
         isBirthdayAnniversary: false,
         description: '',
     });
@@ -97,6 +100,9 @@ const LeaveType = () => {
             name: '',
             shortName: '',
             applicableFor: 'All',
+            attachmentRequired: 'No',
+            applyOnHoliday: 'No',
+            applyOnPastDays: 'No',
             isBirthdayAnniversary: false,
             description: '',
         });
@@ -109,6 +115,9 @@ const LeaveType = () => {
             name: item.name,
             shortName: item.shortName || '',
             applicableFor: item.applicableFor || 'All',
+            attachmentRequired: item.attachmentRequired || 'No',
+            applyOnHoliday: item.applyOnHoliday || 'No',
+            applyOnPastDays: item.applyOnPastDays || 'No',
             isBirthdayAnniversary: item.isBirthdayAnniversary || false,
             description: item.description || '',
         });
@@ -290,7 +299,7 @@ const LeaveType = () => {
                                 <th>Name</th>
                                 <th>Short Name</th>
                                 <th>Applicable For</th>
-                                <th>Description</th>
+                                <th>Past Days</th>
                                 <th style={{ width: '100px', textAlign: 'center' }}>Status</th>
                             </tr>
                         </thead>
@@ -320,8 +329,10 @@ const LeaveType = () => {
                                             {item.applicableFor}
                                         </span>
                                     </td>
-                                    <td style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {item.description || <span style={{ opacity: 0.4 }}>No description</span>}
+                                    <td>
+                                        <span className={`hrm-badge ${item.applyOnPastDays === 'Yes' ? 'hrm-badge-success' : 'hrm-badge-danger'}`} style={{ fontSize: '10px' }}>
+                                            {item.applyOnPastDays === 'Yes' ? 'Allowed' : 'Restricted'}
+                                        </span>
                                     </td>
                                     <td style={{ textAlign: 'center' }}>
                                         <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }} onClick={() => toggleStatus(item._id, item.status)}>
@@ -374,18 +385,44 @@ const LeaveType = () => {
                                     </div>
                                 </div>
 
-                                <div className="hrm-form-group">
-                                    <label className="hrm-label">Applicable For</label>
-                                    <select name="applicableFor" value={formData.applicableFor} onChange={handleInputChange} className="hrm-select">
-                                        <option value="All">All Employees</option>
-                                        <option value="Male Only">Male Only</option>
-                                        <option value="Female Only">Female Only</option>
-                                    </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div className="hrm-form-group">
+                                        <label className="hrm-label">Applicable For</label>
+                                        <select name="applicableFor" value={formData.applicableFor} onChange={handleInputChange} className="hrm-select">
+                                            <option value="All">All Employees</option>
+                                            <option value="Male Only">Male Only</option>
+                                            <option value="Female Only">Female Only</option>
+                                        </select>
+                                    </div>
+                                    <div className="hrm-form-group">
+                                        <label className="hrm-label">Apply On Past Days?</label>
+                                        <select name="applyOnPastDays" value={formData.applyOnPastDays} onChange={handleInputChange} className="hrm-select">
+                                            <option value="No">No (Restrict)</option>
+                                            <option value="Yes">Yes (Allow)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div className="hrm-form-group">
+                                        <label className="hrm-label">Attachment Required?</label>
+                                        <select name="attachmentRequired" value={formData.attachmentRequired} onChange={handleInputChange} className="hrm-select">
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
+                                    <div className="hrm-form-group">
+                                        <label className="hrm-label">Apply On Holiday?</label>
+                                        <select name="applyOnHoliday" value={formData.applyOnHoliday} onChange={handleInputChange} className="hrm-select">
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Description</label>
-                                    <textarea name="description" value={formData.description} onChange={handleInputChange} className="hrm-textarea" placeholder="Explain the purpose or rules for this leave type..." style={{ minHeight: '120px' }}></textarea>
+                                    <textarea name="description" value={formData.description} onChange={handleInputChange} className="hrm-textarea" placeholder="Explain the purpose or rules for this leave type..." style={{ minHeight: '80px' }}></textarea>
                                 </div>
                             </div>
                             <div className="hrm-modal-footer">

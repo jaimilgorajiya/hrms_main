@@ -5,6 +5,7 @@ import BreakType from "../models/BreakType.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import Request from "../models/Request.Model.js";
 import EmployeeCTC from "../models/EmployeeCTC.Model.js";
+import LeaveGroup from "../models/LeaveGroup.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
@@ -123,25 +124,61 @@ export const getEmployeeStats = async (req, res) => {
         }
 
         // Build leave balance info from leaveGroup or direct user field
-        const leaveGroup = emp.leaveGroup || null;
+        const populatedLG = emp.leaveGroup || null;
+        const leaveGroupDb = populatedLG ? await LeaveGroup.findById(populatedLG._id || populatedLG) : null;
+        const leaveGroup = leaveGroupDb || populatedLG;
         const totalLeaves = emp.noOfPaidLeaves || leaveGroup?.noOfPaidLeaves || 0;
         const hasLeaveGroup = !!emp.leaveGroup;
         
-        // Count approved leaves (Paid and Unpaid)
-        const usedPaidLeaves = await Request.countDocuments({
+        const currentYearMonth = istNow.toISOString().substring(0, 7);
+        const calMonthStart = currentYearMonth + "-01";
+        const calMonthEnd = currentYearMonth + "-31";
+
+        // Sum approved leave days (Paid and Unpaid) for current calendar month
+        const paidRequests = await Request.find({
             employee: userId,
             requestType: 'Leave',
             status: 'Approved',
             leaveCategory: 'Paid',
-            date: { $gte: cycleStart.toISOString().split('T')[0] }
+            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+        });
+        let usedPaidLeaves = 0;
+        paidRequests.forEach(req => {
+            const start = new Date(req.fromDate);
+            const end = new Date(req.toDate);
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+            usedPaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
         });
 
-        const usedUnpaidLeaves = await Request.countDocuments({
+        // Sum pending paid leave requests to count towards monthly usage limits
+        const pendingPaidReqs = await Request.find({
+            employee: userId,
+            requestType: 'Leave',
+            status: 'Pending',
+            leaveCategory: 'Paid',
+            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+        });
+        let pendingPaidLeaves = 0;
+        pendingPaidReqs.forEach(req => {
+            const start = new Date(req.fromDate);
+            const end = new Date(req.toDate);
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+            pendingPaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
+        });
+
+        const unpaidRequests = await Request.find({
             employee: userId,
             requestType: 'Leave',
             status: 'Approved',
             leaveCategory: 'Unpaid',
-            date: { $gte: cycleStart.toISOString().split('T')[0] }
+            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+        });
+        let usedUnpaidLeaves = 0;
+        unpaidRequests.forEach(req => {
+            const start = new Date(req.fromDate);
+            const end = new Date(req.toDate);
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+            usedUnpaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
         });
 
         // Document count
@@ -270,8 +307,8 @@ export const getEmployeeStats = async (req, res) => {
                 hasLeaveGroup,
                 totalLeaves,
                 leavePolicy: leaveGroup?.leaveBalanceVisibility === 'Multiple of 1' ? 'Multiple of 1' : 'Multiple of 0.5',
-                maxUsagePerMonth: leaveGroup?.maxUseInMonth || totalLeaves,
-                usedLeaves: usedPaidLeaves,
+                maxUsagePerMonth: (emp.maxPLMonth && emp.maxPLMonth > 0) ? emp.maxPLMonth : (leaveGroup?.maxUseInMonth !== null && leaveGroup?.maxUseInMonth !== undefined ? leaveGroup.maxUseInMonth : totalLeaves),
+                usedLeaves: usedPaidLeaves + pendingPaidLeaves,
                 usedUnpaidLeaves,
                 documentCount,
                 daysSinceJoining,

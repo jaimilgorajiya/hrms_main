@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isPast } from 'date-fns';
 import Toast from 'react-native-toast-message';
 import { apiFetch } from '../utils/api';
 import { ENDPOINTS } from '../constants/api';
@@ -43,11 +43,36 @@ export default function PunchMissingScreen() {
       const json = await res.json();
       if (json.success) {
         const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const missing = json.records.filter(r => r.punchIn && !r.punchOut && r.date !== todayStr);
-        const pendingRequests = Object.keys(json.requests || {})
-          .filter(date => json.requests[date].status === 'Pending')
-          .map(date => date);
-        setMissingDays(missing.filter(m => !pendingRequests.includes(m.date)));
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        const days = eachDayOfInterval({ start, end });
+        
+        const recordsMap = {};
+        json.records.forEach(r => recordsMap[r.date] = r);
+        
+        const requestsMap = json.requests || {};
+        const woDays = json.weekOffDays || [];
+        const jDate = json.joiningDate;
+        
+        const missing = [];
+        days.forEach(day => {
+          const dateStr = format(day, 'yyyy-MM-dd');
+          if (dateStr >= todayStr) return; 
+          if (jDate && dateStr < jDate) return; 
+          
+          const dayName = format(day, 'EEEE');
+          if (woDays.includes(dayName)) return; 
+          
+          const r = recordsMap[dateStr];
+          const req = requestsMap[dateStr];
+          
+          if (req && (req.status === 'Pending' || req.status === 'Approved')) return; 
+          
+          if (r && r.punchIn && !r.punchOut) {
+            missing.push(r);
+          }
+        });
+        setMissingDays(missing);
       }
     } catch (e) {
       console.error(e);
@@ -139,7 +164,7 @@ export default function PunchMissingScreen() {
                     setSelectedDay(day);
                     const match = day.punchIn?.match(/(\d{1,2}):(\d{2})/);
                     if (match) day.punchInRaw = `${match[1].padStart(2, '0')}:${match[2]}`;
-                    setStep(1);
+                    setStep(2);
                   }}
                 >
                   <View style={{ flexDirection: 'row' }}>
@@ -159,7 +184,7 @@ export default function PunchMissingScreen() {
                          </View>
                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>Out: MISSING</Text>
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>Out: {day.punchOut || 'MISSING'}</Text>
                          </View>
                       </View>
                     </View>
@@ -182,6 +207,15 @@ export default function PunchMissingScreen() {
              <TouchableOpacity style={styles.submitBtn} onPress={nextStep}>
                <Text style={styles.submitBtnText}>Raise Request for Punch Out</Text>
              </TouchableOpacity>
+
+             <TouchableOpacity 
+               style={[styles.submitBtn, { backgroundColor: COLORS.purpleLight, marginTop: 12, borderWidth: 1, borderColor: COLORS.purple + '20', flexDirection: 'row', gap: 8 }]} 
+               onPress={() => router.push({ pathname: '/(tabs)/attendance', params: { date: selectedDay.date, autoOpen: 'true' } })}
+             >
+               <Ionicons name="leaf-outline" size={18} color={COLORS.purple} />
+               <Text style={[styles.submitBtnText, { color: COLORS.purple }]}>Apply for Leave Instead</Text>
+             </TouchableOpacity>
+
              <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#F1F5F9', marginTop: 12 }]} onPress={() => setStep(0)}>
                <Text style={[styles.submitBtnText, { color: '#64748B' }]}>Change Day</Text>
              </TouchableOpacity>
@@ -217,7 +251,6 @@ export default function PunchMissingScreen() {
         {step === 3 && (
           <View style={[styles.form, SHADOW.soft]}>
             <View style={styles.stepHeader}>
-                <View style={styles.stepNum}><Text style={styles.stepNumText}>2/2</Text></View>
                 <Text style={styles.formTitle}>Correction Details</Text>
             </View>
             
@@ -266,9 +299,9 @@ export default function PunchMissingScreen() {
               onPress={handleApply}
               disabled={submitting}
             >
-              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit Full Request</Text>}
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit Correction Request</Text>}
             </TouchableOpacity>
-            <TouchableOpacity style={{ marginTop: 16, alignSelf: 'center' }} onPress={prevStep}>
+            <TouchableOpacity style={{ marginTop: 16, alignSelf: 'center' }} onPress={() => setStep(0)}>
                <Text style={{ color: '#94A3B8', fontWeight: '700' }}>Back</Text>
             </TouchableOpacity>
           </View>

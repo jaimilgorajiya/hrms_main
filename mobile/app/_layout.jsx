@@ -1,3 +1,7 @@
+import { Platform } from 'react-native';
+if (Platform.OS !== 'web') {
+  require('@react-native-firebase/app');
+}
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

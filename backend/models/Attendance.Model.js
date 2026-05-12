@@ -28,8 +28,13 @@ const attendanceSchema = new mongoose.Schema({
     }],
     status: {
         type: String,
-        enum: ["Present", "Absent", "Half Day", "On Leave"],
+        enum: ["Present", "Absent", "Half Day", "On Leave", "Holiday", "Week Off"],
         default: "Present"
+    },
+    leaveCategory: {
+        type: String,
+        enum: ["Paid", "Unpaid"],
+        default: null
     },
     lateInPenalty: {
         amount: { type: Number, default: 0 },
@@ -37,6 +42,8 @@ const attendanceSchema = new mongoose.Schema({
         isLate: { type: Boolean, default: false }
     },
     earlyOutPenalty: {
+
+        
         amount: { type: Number, default: 0 },
         isApplied: { type: Boolean, default: false },
         isEarly: { type: Boolean, default: false }
@@ -57,3 +64,25 @@ attendanceSchema.index({ date: 1 }); // Optimize admin queries filtering by date
 
 const Attendance = mongoose.model("Attendance", attendanceSchema);
 export default Attendance;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
