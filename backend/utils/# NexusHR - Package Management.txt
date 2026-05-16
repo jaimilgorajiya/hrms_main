@@ -1,0 +1,45 @@
+# NexusHR - Package Management
+
+
+# NexusHR
+Super Admin
+[dashboard
+Dashboard](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[inventory_2
+Packages](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[group_add
+Add-ons](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[receipt_long
+Billing](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[settings
+Settings](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[help
+Help](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[logout
+Logout](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[Overview](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[History](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+[Logs](https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY0NmYxYjU5NDU5YzRiN2FiZDM2ZTdlNWM1NjIwMjU1EgsSBxC-7qaVpR8YAZIBIwoKcHJvamVjdF9pZBIVQhM3NTgyMTEyODI1NjU1MzU2MjIx&filename=&opi=96797242)
+
+## Package Management
+
+### Subscription Plans
+
+#### Starter
+Duration: 3 Months
+
+#### Growth
+Duration: 6 Months
+
+#### Enterprise
+Duration: 1 Year
+
+### Employee Add-on Packs
+
+#### Lite Pack
+
+#### Standard Pack
+
+#### Scale Pack
+Revenue Forecast
+₹24,50,000 +12%

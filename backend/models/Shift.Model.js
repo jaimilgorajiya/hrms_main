@@ -27,7 +27,7 @@ const scheduleSchema = new mongoose.Schema({
 const shiftSchema = new mongoose.Schema({
     // Basic Shift Details
     shiftName: { type: String, required: true, trim: true },
-    shiftCode: { type: String, trim: true },
+    shiftCode: { type: String, required: true, trim: true },
     multiplePunchAllowed: { type: Boolean, default: false },
     requireOutOfRangeReason: { type: Boolean, default: false },
     hoursType: { type: String, enum: ['Full Shift Hours', 'Productive Hours', 'Flexible Hours'], default: 'Full Shift Hours' },
@@ -113,7 +113,8 @@ const shiftSchema = new mongoose.Schema({
     },
 
     isActive: { type: Boolean, default: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -122,7 +123,7 @@ const shiftSchema = new mongoose.Schema({
 
 // Indexes for better query performance
 shiftSchema.index({ shiftName: 1 }, { unique: true });
-shiftSchema.index({ shiftCode: 1 }, { unique: true, sparse: true });
+shiftSchema.index({ shiftCode: 1 }, { unique: true });
 shiftSchema.index({ isActive: 1 });
 shiftSchema.index({ createdAt: -1 });
 

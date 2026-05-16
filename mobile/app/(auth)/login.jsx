@@ -12,9 +12,11 @@ import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import { auth } from '../../utils/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { COLORS, SIZES, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme';
+import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function LoginScreen() {
+  const { colors, theme, isDarkMode } = useTheme();
   const { loginWithOTP, checkPhoneStatus } = useAuth();
   const router = useRouter();
   
@@ -125,18 +127,18 @@ export default function LoginScreen() {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bgMain }]}>
       {/* Dynamic Background */}
-      <LinearGradient colors={['#F8FAFC', '#F1F5F9', '#E2E8F0']} style={StyleSheet.absoluteFill} />
-      <Animated.View style={[styles.blob, styles.blob1, { transform: [{ translateY: b1Translate }] }]} />
-      <Animated.View style={[styles.blob, styles.blob2, { transform: [{ translateX: b2Translate }] }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgMain }]} />
+      <Animated.View style={[styles.blob, styles.blob1, { backgroundColor: colors.primary, transform: [{ translateY: b1Translate }] }]} />
+      <Animated.View style={[styles.blob, styles.blob2, { backgroundColor: colors.purple, transform: [{ translateX: b2Translate }] }]} />
       
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             
             <Animated.View style={[styles.headerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-              <View style={[styles.logoBox, { elevation: 0, shadowOpacity: 0 }]}>
+              <View style={[styles.logoBox, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
                 <View style={styles.logoGrad}>
                   <Animated.Image 
                     source={require('../../assets/icon.png')} 
@@ -145,16 +147,16 @@ export default function LoginScreen() {
                   />
                 </View>
               </View>
-              <Text style={styles.appSub}>Employee Management Workspace</Text>
+              <Text style={[styles.appSub, { color: colors.textMuted }]}>Employee Management Workspace</Text>
             </Animated.View>
 
-            <Animated.View style={[styles.card, SHADOW.medium, { opacity: fadeAnim }]}>
+            <Animated.View style={[styles.card, SHADOW.medium, { opacity: fadeAnim, backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
               <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>Secure Access</Text>
-                <View style={styles.accentBar} />
+                <Text style={[styles.cardTitle, { color: colors.textDark }]}>Secure Access</Text>
+                <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
               </View>
               
-              <Text style={styles.cardSub}>
+              <Text style={[styles.cardSub, { color: colors.textLight }]}>
                 {confirm ? 'Verify the authentication code' : 'Join using your secure mobile gateway'}
               </Text>
 
@@ -162,23 +164,23 @@ export default function LoginScreen() {
               <View>
                 {!confirm ? (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Mobile Number</Text>
-                    <View style={styles.inputWrap}>
-                      <Ionicons name="phone-portrait" size={18} color={COLORS.primary} />
+                    <Text style={[styles.label, { color: colors.textDark }]}>Mobile Number</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }]}>
+                      <Ionicons name="phone-portrait" size={18} color={colors.primary} />
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: colors.textDark }]}
                         placeholder="Registered Contact Number"
                         value={phone}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
                         maxLength={10}
-                        placeholderTextColor={COLORS.textPlaceholder}
+                        placeholderTextColor={colors.textMuted}
                       />
                     </View>
                   </View>
                 ) : (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Enter 6-Digit PIN</Text>
+                    <Text style={[styles.label, { color: colors.textDark }]}>Enter 6-Digit PIN</Text>
                     <TouchableOpacity 
                       style={styles.otpContainer} 
                       activeOpacity={1}
@@ -186,13 +188,14 @@ export default function LoginScreen() {
                     >
                       {[...Array(6)].map((_, i) => (
                         <View key={i} style={styles.otpDigitContainer}>
-                          <Text style={[styles.otpDigitText, code[i] && styles.otpDigitTextFilled]}>
+                          <Text style={[styles.otpDigitText, { color: colors.textMuted }, code[i] && [styles.otpDigitTextFilled, { color: colors.textDark }]]}>
                             {code[i] || ''}
                           </Text>
                           <View style={[
                             styles.otpUnderline,
-                            code.length === i && styles.otpUnderlineActive,
-                            code[i] && styles.otpUnderlineFilled
+                            { backgroundColor: colors.borderLight },
+                            code.length === i && [styles.otpUnderlineActive, { backgroundColor: colors.primary }],
+                            code[i] && [styles.otpUnderlineFilled, { backgroundColor: colors.primaryDark }]
                           ]} />
                         </View>
                       ))}
@@ -218,11 +221,11 @@ export default function LoginScreen() {
                   disabled={loading} 
                   activeOpacity={0.8}
                 >
-                  <LinearGradient colors={GRADIENTS.primary} style={styles.btnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
-                    {loading ? <ActivityIndicator color={COLORS.white} /> : (
+                  <LinearGradient colors={isDarkMode ? ['#4338CA', '#312E81'] : ['#6366F1', '#4338CA']} style={styles.btnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                    {loading ? <ActivityIndicator color="#fff" /> : (
                       <>
-                        <Text style={styles.btnText}>{confirm ? 'Confirm & Finalize' : 'Authorize with OTP'}</Text>
-                        <Ionicons name="rocket" size={18} color={COLORS.white} />
+                        <Text style={[styles.btnText, { color: '#fff' }]}>{confirm ? 'Confirm & Finalize' : 'Authorize with OTP'}</Text>
+                        <Ionicons name="rocket" size={18} color="#fff" />
                       </>
                     )}
                   </LinearGradient>
@@ -230,15 +233,15 @@ export default function LoginScreen() {
 
                 {confirm && (
                   <TouchableOpacity style={styles.resendLink} onPress={() => setConfirm(null)}>
-                    <Text style={styles.resendText}>Back to Mobile Entry</Text>
+                    <Text style={[styles.resendText, { color: colors.textMuted }]}>Back to Mobile Entry</Text>
                   </TouchableOpacity>
                 )}
               </View></Animated.View>
 
             <View style={styles.footerBranding}>
-              <Text style={styles.footerText}>SECURE ACCESS</Text>
-              <View style={styles.dot} />
-              <Text style={styles.footerText}>IFLORA HRMS 2026</Text>
+              <Text style={[styles.footerText, { color: colors.textLight }]}>SECURE ACCESS</Text>
+              <View style={[styles.dot, { backgroundColor: colors.textMuted }]} />
+              <Text style={[styles.footerText, { color: colors.textLight }]}>IFLORA HRMS 2026</Text>
             </View>
 
           </ScrollView>
@@ -249,7 +252,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgMain },
+  container: { flex: 1 },
   blob: {
     position: 'absolute',
     borderRadius: 999,
@@ -259,45 +262,42 @@ const styles = StyleSheet.create({
   blob1: {
     width: 300,
     height: 300,
-    backgroundColor: COLORS.primary,
     top: -100,
     left: -120,
   },
   blob2: {
     width: 250,
     height: 250,
-    backgroundColor: COLORS.purple,
     bottom: -50,
     right: -80,
   },
   scroll: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   headerSection: { alignItems: 'center', marginBottom: 35 },
-  logoBox: { width: 88, height: 88, borderRadius: 30, overflow: 'hidden', backgroundColor: COLORS.white, padding: 2, marginBottom: 14 },
+  logoBox: { width: 88, height: 88, borderRadius: 30, overflow: 'hidden', padding: 2, marginBottom: 14, borderWidth: 1 },
   logoGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  appSub: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5 },
-  card: { backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 36, padding: 28, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.6)' },
+  appSub: { fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
+  card: { borderRadius: 36, padding: 28, borderWidth: 1 },
   cardHeader: { marginBottom: 10, alignItems: 'center' },
-  cardTitle: { fontSize: 28, fontWeight: '900', color: COLORS.textDark, letterSpacing: -1 },
-  accentBar: { width: 50, height: 4, backgroundColor: COLORS.primary, borderRadius: 2, marginTop: 4 },
-  cardSub: { fontSize: 13, color: COLORS.textLight, marginBottom: 32, textAlign: 'center', fontWeight: '500' },
+  cardTitle: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
+  accentBar: { width: 50, height: 4, borderRadius: 2, marginTop: 4 },
+  cardSub: { fontSize: 13, marginBottom: 32, textAlign: 'center', fontWeight: '500' },
   inputGroup: { marginBottom: 20 },
-  label: { fontSize: 10, fontWeight: '900', color: COLORS.textDark, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1.2 },
+  label: { fontSize: 10, fontWeight: '900', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1.2 },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F1F5F9', borderRadius: 16,
+    borderRadius: 16,
     paddingHorizontal: 16, height: 62, gap: 12,
-    borderWidth: 1, borderColor: '#F1F5F9'
+    borderWidth: 1,
   },
-  input: { flex: 1, fontSize: 15, color: COLORS.textDark, fontWeight: '700' },
-  loginBtn: { marginTop: 10, borderRadius: 20, overflow: 'hidden', ...SHADOW.medium },
+  input: { flex: 1, fontSize: 15, fontWeight: '700' },
+  loginBtn: { marginTop: 10, borderRadius: 20, overflow: 'hidden' },
   btnGrad: { height: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  btnText: { color: COLORS.white, fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
-
+  btnText: { fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
   resendLink: { marginTop: 16, alignItems: 'center' },
-  resendText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '600' },
+  resendText: { fontSize: 13, fontWeight: '600' },
   footerBranding: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 40, opacity: 0.5 },
-  footerText: { fontSize: 10, fontWeight: '800', color: COLORS.textLight, textTransform: 'uppercase' },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.textMuted },
+  footerText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  dot: { width: 4, height: 4, borderRadius: 2 },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -315,25 +315,20 @@ const styles = StyleSheet.create({
   otpDigitText: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.textPlaceholder,
     marginBottom: 8,
   },
   otpDigitTextFilled: {
-    color: COLORS.textDark,
   },
   otpUnderline: {
     width: '100%',
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: COLORS.border,
   },
   otpUnderlineActive: {
-    backgroundColor: COLORS.primary,
     height: 4,
     ...SHADOW.premium,
   },
   otpUnderlineFilled: {
-    backgroundColor: COLORS.primaryDark,
   },
   hiddenInput: {
     ...StyleSheet.absoluteFillObject,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, FlatList } from 'react-native';
+import { Svg, Circle, Line } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SHADOW } from '../constants/theme';
 
@@ -85,6 +86,28 @@ const ClockPicker = ({ visible, value, onSelect, onCancel, label }) => {
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onCancel} />
         
         <View style={styles.card}>
+          {/* Context-Related Background Element: Intricate Timing Dials */}
+          <View style={{ position: 'absolute', top: 40, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: -1, pointerEvents: 'none' }}>
+            <Svg width={250} height={250} opacity={0.04}>
+              {/* Outer Chronometer Rim */}
+              <Circle cx={125} cy={125} r={120} stroke={COLORS.primary} strokeWidth={2} fill="none" />
+              {/* Secondary Bezel Ring */}
+              <Circle cx={125} cy={125} r={105} stroke={COLORS.white} strokeWidth={1} strokeDasharray="4 8" fill="none" />
+              {/* Inner Gear Calibration Guide */}
+              <Circle cx={125} cy={125} r={80} stroke={COLORS.primary} strokeWidth={1} strokeDasharray="2 12" fill="none" />
+              {/* Core Pivot Hub */}
+              <Circle cx={125} cy={125} r={6} fill={COLORS.primary} />
+              {/* Stylized Chrono Hands */}
+              <Line x1={125} y1={125} x2={125} y2={45} stroke={COLORS.primary} strokeWidth={3} strokeLinecap="round" />
+              <Line x1={125} y1={125} x2={185} y2={125} stroke={COLORS.white} strokeWidth={2} strokeLinecap="round" />
+              {/* Cardinal Time Indices */}
+              <Circle cx={125} cy={12} r={3} fill={COLORS.primary} />
+              <Circle cx={238} cy={125} r={3} fill={COLORS.primary} />
+              <Circle cx={125} cy={238} r={3} fill={COLORS.primary} />
+              <Circle cx={12} cy={125} r={3} fill={COLORS.primary} />
+            </Svg>
+          </View>
+
           <View style={styles.grabber} />
           <Text style={styles.label}>Select {label}</Text>
           
@@ -123,9 +146,9 @@ const ClockPicker = ({ visible, value, onSelect, onCancel, label }) => {
 };
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  card: { backgroundColor: '#fff', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 40, ...SHADOW.lg },
-  grabber: { width: 40, height: 4, backgroundColor: '#E2E8F0', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  card: { backgroundColor: COLORS.bgCardElevated, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, paddingBottom: 40, borderWidth: 1, borderColor: COLORS.borderLight, ...SHADOW.lg },
+  grabber: { width: 40, height: 4, backgroundColor: COLORS.borderLight, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   label: { fontSize: 13, fontWeight: '800', color: COLORS.textMuted, marginBottom: 24, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 1 },
   displayHeader: { backgroundColor: COLORS.bgMain, alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 24, marginBottom: 20 },
   timeText: { fontSize: 36, fontWeight: '900', color: COLORS.primary },
@@ -140,11 +163,11 @@ const styles = StyleSheet.create({
   quickBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: COLORS.bgMain },
   quickBtnActive: { backgroundColor: COLORS.primary },
   quickBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.textMuted },
-  quickBtnTextActive: { color: '#fff' },
+  quickBtnTextActive: { color: COLORS.white },
   footer: { flexDirection: 'row', gap: 12, marginTop: 32 },
   btnPrimary: { flex: 2, backgroundColor: COLORS.primary, padding: 18, borderRadius: 20, alignItems: 'center' },
   btnSecondary: { flex: 1, backgroundColor: COLORS.bgMain, padding: 18, borderRadius: 20, alignItems: 'center' },
-  btnTextPrimary: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  btnTextPrimary: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
   btnTextSecondary: { color: COLORS.textMuted, fontWeight: '800', fontSize: 16 }
 });
 

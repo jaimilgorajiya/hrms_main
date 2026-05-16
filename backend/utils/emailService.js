@@ -128,6 +128,84 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
     }
 };
 
+// Send admin welcome email after payment
+export const sendAdminWelcomeEmail = async (userEmail, userName, plainPassword) => {
+    try {
+        const mailOptions = {
+            from: `"HRMS Onboarding" <${process.env.SMTP_FROM}>`,
+            to: userEmail,
+            subject: 'Welcome to HRMS - Your Login Credentials',
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f1f5f9; padding: 20px; }
+                        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+                        .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 30px; text-align: center; }
+                        .header h1 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: 0.5px; }
+                        .content { padding: 30px; }
+                        .welcome-text { font-size: 16px; margin-bottom: 25px; }
+                        .credentials { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6; }
+                        .credential-item { margin: 12px 0; display: flex; align-items: center; }
+                        .credential-label { font-weight: 600; color: #64748b; width: 90px; display: inline-block; }
+                        .credential-value { font-family: 'Courier New', monospace; font-size: 16px; background: #e2e8f0; padding: 6px 12px; border-radius: 4px; color: #0f172a; font-weight: 700; letter-spacing: 0.5px; }
+                        .button-container { text-align: center; margin: 35px 0 20px; }
+                        .button { display: inline-block; background: #3b82f6; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
+                        .security-notice { background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 6px; font-size: 14px; color: #92400e; margin-top: 25px; }
+                        .footer { background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>Welcome to HRMS!</h1>
+                        </div>
+                        <div class="content">
+                            <div class="welcome-text">
+                                <p>Hello <strong>${userName}</strong>,</p>
+                                <p>Thank you for choosing HRMS. Your payment was successful and your administrative workspace is now fully active.</p>
+                                <p>Here are your secure login credentials:</p>
+                            </div>
+                            
+                            <div class="credentials">
+                                <div class="credential-item">
+                                    <span class="credential-label">Email:</span>
+                                    <span class="credential-value">${userEmail}</span>
+                                </div>
+                                <div class="credential-item">
+                                    <span class="credential-label">Password:</span>
+                                    <span class="credential-value">${plainPassword}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="security-notice">
+                                <strong>🔒 Security Notice:</strong> Please change your password immediately after logging in for the first time.
+                            </div>
+                            
+                            <div class="button-container">
+                                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/login" class="button">Access Dashboard</a>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p>This is an automated email. Please do not reply to this message.</p>
+                            <p>&copy; ${new Date().getFullYear()} HRMS. All rights reserved.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Admin welcome email sent:', info.messageId);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('Error sending admin welcome email:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 // Send offboarding document
 export const sendOffboardingDocument = async (userEmail, userName, documentType, documentUrl) => {
     try {

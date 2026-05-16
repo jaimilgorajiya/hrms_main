@@ -320,6 +320,7 @@ export const togglePunch = async (req, res) => {
             if (!record) {
                 record = new Attendance({
                     employee: req.user._id,
+                    adminId: emp.adminId || emp._id,
                     date,
                     punches: [newPunch],
                     status: punchStatus,
@@ -664,7 +665,7 @@ export const getAdminAttendance = async (req, res) => {
         const targetDate = date || getTodayStr();
         
         // 1. Get all active employees first
-        let userQuery = { role: 'Employee', status: { $ne: 'Ex-Employee' } };
+        let userQuery = { role: 'Employee', status: { $ne: 'Ex-Employee' }, adminId: req.user._id };
         if (department) userQuery.department = department;
         if (branch) userQuery['workSetup.location'] = branch;
         
@@ -673,7 +674,7 @@ export const getAdminAttendance = async (req, res) => {
             .sort({ name: 1 });
 
         // 2. Get attendance records for this date
-        const attendanceRecords = await Attendance.find({ date: targetDate });
+        const attendanceRecords = await Attendance.find({ date: targetDate, adminId: req.user._id });
 
         // 3. Merge them
         const data = allEmployees.map(emp => {
@@ -685,6 +686,9 @@ export const getAdminAttendance = async (req, res) => {
             if (attendanceStatus === 'Present' && firstIn && !lastOut && targetDate === getTodayStr()) {
                 attendanceStatus = 'Clocked In';
             }
+
+            const workingMinutes = record ? computeWorkingMinutes(record.punches, record.breaks) : 0;
+            const workingFormatted = formatMinutes(workingMinutes);
 
             return {
                 _id: record?._id,
@@ -699,6 +703,8 @@ export const getAdminAttendance = async (req, res) => {
                 status: attendanceStatus,
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
+                workingMinutes,
+                workingFormatted,
                 isLate: record?.lateInPenalty?.isLate || false,
                 isEarly: record?.earlyOutPenalty?.isEarly || false,
                 lateInPenalty: record?.lateInPenalty || { amount: 0, isApplied: false },
@@ -895,7 +901,8 @@ export const addManualAttendance = async (req, res) => {
                     lateInPenalty,
                     earlyOutPenalty,
                     approvalStatus: "Approved",
-                    remark: remark || "Manual entry by admin"
+                    remark: remark || "Manual entry by admin",
+                    adminId: req.user._id
                 } 
             },
             { upsert: true, new: true }
@@ -923,6 +930,7 @@ export const getMissingAttendance = async (req, res) => {
         let query = {};
         if (date) query.date = date;
         else if (month) query.date = { $regex: `^${month}` };
+        query.adminId = req.user._id;
 
         const records = await Attendance.find(query)
             .populate('employee', 'name employeeId department designation profilePhoto')
@@ -980,13 +988,14 @@ export const getAbsentEmployees = async (req, res) => {
         const { date = getTodayStr() } = req.query;
 
         // 1. Get all attendance records for this date
-        const presentRecords = await Attendance.find({ date }).select('employee status');
+        const presentRecords = await Attendance.find({ date, adminId: req.user._id }).select('employee status');
         const presentEmployeeIds = presentRecords.map(r => r.employee.toString());
 
         // 2. Get all active employees
         const employees = await User.find({ 
             role: 'Employee', 
-            status: 'Active' 
+            status: 'Active',
+            adminId: req.user._id
         })
         .select('name employeeId department designation profilePhoto workSetup phone branch')
         .populate('workSetup.shift', 'weekOffDays');
@@ -1153,4 +1162,3 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
-

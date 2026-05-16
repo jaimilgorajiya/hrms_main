@@ -216,13 +216,14 @@ const AddShift = () => {
                         </div>
 
                         <div className="form-group-shift">
-                            <label>Shift Code</label>
+                            <label>Shift Code <span className="required">*</span></label>
                             <input
                                 type="text"
                                 name="shiftCode"
                                 value={formData.shiftCode}
                                 onChange={handleInputChange}
                                 placeholder="e.g. S1, S2"
+                                required
                             />
                         </div>
 

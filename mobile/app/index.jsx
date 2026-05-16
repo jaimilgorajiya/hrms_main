@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
-import { COLORS } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Index() {
+  const { colors } = useTheme();
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -19,11 +20,11 @@ export default function Index() {
   }, [user, loading]);
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.white }}>
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgMain }}>
       <View style={{ width: 100, height: 100, marginBottom: 24, borderRadius: 24, overflow: 'hidden' }}>
          <Image source={require('../assets/icon.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
       </View>
-      <ActivityIndicator size="large" color={COLORS.primary} />
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }

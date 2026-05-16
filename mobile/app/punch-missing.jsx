@@ -10,13 +10,15 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isPast } from 'dat
 import Toast from 'react-native-toast-message';
 import { apiFetch } from '../utils/api';
 import { ENDPOINTS } from '../constants/api';
-import { COLORS, SHADOW } from '../constants/theme';
+import { SIZES, RADIUS, SHADOW } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 import ClockPicker from '../components/ClockPicker';
 
 const TimePickerModal = (props) => <ClockPicker {...props} />;
 
 export default function PunchMissingScreen() {
+  const { colors, isDarkMode } = useTheme();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [missingDays, setMissingDays] = useState([]);
@@ -127,39 +129,39 @@ export default function PunchMissingScreen() {
   };
 
   if (loading) return (
-    <View style={[styles.container, { justifyContent: 'center' }]}>
-      <ActivityIndicator size="large" color={COLORS.primary} />
+    <View style={[styles.container, { justifyContent: 'center', backgroundColor: colors.bgMain }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textDark} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgMain }]}>
+      <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.borderLight }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: colors.bgMain }]}>
+          <Ionicons name="arrow-back" size={24} color={colors.textDark} />
         </TouchableOpacity>
-        <Text style={styles.title}>Correction Workflow</Text>
+        <Text style={[styles.title, { color: colors.textDark }]}>Correction Workflow</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {step === 0 && (
           <>
-            <View style={styles.infoBox}>
-              <Ionicons name="information-circle" size={20} color={COLORS.primary} />
-              <Text style={styles.infoText}>Select a day with a missing punch-out to start the correction workflow.</Text>
+            <View style={[styles.infoBox, { backgroundColor: colors.primaryLight, borderLeftColor: colors.primary }]}>
+              <Ionicons name="information-circle" size={20} color={colors.primary} />
+              <Text style={[styles.infoText, { color: colors.primary }]}>Select a day with a missing punch-out to start the correction workflow.</Text>
             </View>
 
             {missingDays.length === 0 ? (
               <View style={styles.empty}>
-                <Ionicons name="checkmark-circle" size={64} color="#10B981" style={{ opacity: 0.3, marginBottom: 16 }} />
-                <Text style={styles.emptyTitle}>All Good!</Text>
-                <Text style={styles.emptySub}>No missing punch-outs found in your recent history.</Text>
+                <Ionicons name="checkmark-circle" size={64} color={colors.success} style={{ opacity: 0.3, marginBottom: 16 }} />
+                <Text style={[styles.emptyTitle, { color: colors.textDark }]}>All Good!</Text>
+                <Text style={[styles.emptySub, { color: colors.textLight }]}>No missing punch-outs found in your recent history.</Text>
               </View>
             ) : (
               missingDays.map(day => (
                 <TouchableOpacity 
                   key={day.date} 
-                  style={[styles.dayCard, SHADOW.soft, { padding: 0, overflow: 'hidden' }]}
+                  style={[styles.dayCard, SHADOW.soft, { padding: 0, overflow: 'hidden', backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}
                   onPress={() => {
                     setSelectedDay(day);
                     const match = day.punchIn?.match(/(\d{1,2}):(\d{2})/);
@@ -168,28 +170,28 @@ export default function PunchMissingScreen() {
                   }}
                 >
                   <View style={{ flexDirection: 'row' }}>
-                    <View style={{ backgroundColor: '#FFF7ED', padding: 16, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#FFEDD5' }}>
-                      <Text style={{ fontSize: 18, fontWeight: '900', color: '#EA580C' }}>{format(new Date(day.date + 'T00:00:00'), 'dd')}</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: '#F97316', textTransform: 'uppercase' }}>{format(new Date(day.date + 'T00:00:00'), 'MMM')}</Text>
+                    <View style={{ backgroundColor: colors.warningLight, padding: 16, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: colors.borderLight, width: 65 }}>
+                      <Text style={{ fontSize: 18, fontWeight: '900', color: colors.warning }}>{format(new Date(day.date + 'T00:00:00'), 'dd')}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: colors.warning, textTransform: 'uppercase' }}>{format(new Date(day.date + 'T00:00:00'), 'MMM')}</Text>
                     </View>
                     <View style={{ flex: 1, padding: 16 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                         <Text style={{ fontSize: 15, fontWeight: '800', color: '#1E293B' }}>{format(new Date(day.date + 'T00:00:00'), 'EEEE')}</Text>
-                         <View style={[styles.warningTag, { backgroundColor: '#EA580C', borderColor: '#EA580C' }]}><Text style={[styles.warningText, { color: '#fff' }]}>Fix Needed</Text></View>
+                         <Text style={{ fontSize: 15, fontWeight: '800', color: colors.textDark }}>{format(new Date(day.date + 'T00:00:00'), 'EEEE')}</Text>
+                         <View style={[styles.warningTag, { backgroundColor: colors.warning, borderColor: colors.warning }]}><Text style={[styles.warningText, { color: colors.white }]}>Fix Needed</Text></View>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 16 }}>
                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B' }}>In: {day.punchIn}</Text>
+                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }} />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textLight }}>In: {day.punchIn}</Text>
                          </View>
                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
-                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#EF4444' }}>Out: {day.punchOut || 'MISSING'}</Text>
+                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger }} />
+                            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.danger }}>Out: {day.punchOut || 'MISSING'}</Text>
                          </View>
                       </View>
                     </View>
-                    <View style={{ backgroundColor: COLORS.primary, width: 50, alignItems: 'center', justifyContent: 'center' }}>
-                       <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    <View style={{ backgroundColor: colors.primary, width: 50, alignItems: 'center', justifyContent: 'center' }}>
+                       <Ionicons name="arrow-forward" size={20} color={colors.white} />
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -199,110 +201,112 @@ export default function PunchMissingScreen() {
         )}
 
         {step === 1 && selectedDay && (
-          <View style={[styles.form, SHADOW.soft]}>
-             <Ionicons name="calendar-outline" size={48} color={COLORS.primary} style={{ alignSelf: 'center', marginBottom: 12 }} />
-             <Text style={styles.formTitle}>Day Selected: {format(new Date(selectedDay.date + 'T00:00:00'), 'dd MMM')}</Text>
-             <Text style={styles.modalSub}>Would you like to raise a replacement request for your missing punch-out?</Text>
+          <View style={[styles.form, SHADOW.soft, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
+             <Ionicons name="calendar-outline" size={48} color={colors.primary} style={{ alignSelf: 'center', marginBottom: 12 }} />
+             <Text style={[styles.formTitle, { color: colors.textDark }]}>Day Selected: {format(new Date(selectedDay.date + 'T00:00:00'), 'dd MMM')}</Text>
+             <Text style={[styles.modalSub, { color: colors.textLight }]}>Would you like to raise a replacement request for your missing punch-out?</Text>
              
-             <TouchableOpacity style={styles.submitBtn} onPress={nextStep}>
-               <Text style={styles.submitBtnText}>Raise Request for Punch Out</Text>
+             <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={nextStep}>
+               <Text style={[styles.submitBtnText, { color: colors.white }]}>Raise Request for Punch Out</Text>
              </TouchableOpacity>
 
              <TouchableOpacity 
-               style={[styles.submitBtn, { backgroundColor: COLORS.purpleLight, marginTop: 12, borderWidth: 1, borderColor: COLORS.purple + '20', flexDirection: 'row', gap: 8 }]} 
+               style={[styles.submitBtn, { backgroundColor: colors.purpleLight, marginTop: 12, borderWidth: 1, borderColor: colors.purple + '20', flexDirection: 'row', gap: 8 }]} 
                onPress={() => router.push({ pathname: '/(tabs)/attendance', params: { date: selectedDay.date, autoOpen: 'true' } })}
              >
-               <Ionicons name="leaf-outline" size={18} color={COLORS.purple} />
-               <Text style={[styles.submitBtnText, { color: COLORS.purple }]}>Apply for Leave Instead</Text>
+               <Ionicons name="leaf-outline" size={18} color={colors.purple} />
+               <Text style={[styles.submitBtnText, { color: colors.purple }]}>Apply for Leave Instead</Text>
              </TouchableOpacity>
 
-             <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#F1F5F9', marginTop: 12 }]} onPress={() => setStep(0)}>
-               <Text style={[styles.submitBtnText, { color: '#64748B' }]}>Change Day</Text>
+             <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.bgMain, marginTop: 12, borderWidth: 1, borderColor: colors.borderLight }]} onPress={() => setStep(0)}>
+               <Text style={[styles.submitBtnText, { color: colors.textLight }]}>Change Day</Text>
              </TouchableOpacity>
           </View>
         )}
 
         {step === 2 && (
-          <View style={[styles.form, SHADOW.soft]}>
+          <View style={[styles.form, SHADOW.soft, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
             <View style={styles.stepHeader}>
-                <View style={styles.stepNum}><Text style={styles.stepNumText}>1/2</Text></View>
-                <Text style={styles.formTitle}>Work Report</Text>
+                <View style={[styles.stepNum, { backgroundColor: colors.primaryLight }]}><Text style={[styles.stepNumText, { color: colors.primary }]}>1/2</Text></View>
+                <Text style={[styles.formTitle, { color: colors.textDark }]}>Work Report</Text>
              </View>
-             <Text style={styles.modalSub}>Describe your work achievements for this day. <Text style={{ color: COLORS.danger }}>*</Text></Text>
+             <Text style={[styles.modalSub, { color: colors.textLight }]}>Describe your work achievements for this day. <Text style={{ color: colors.danger }}>*</Text></Text>
              <TextInput 
-              style={[styles.input, { minHeight: 150 }]} 
+              style={[styles.input, { minHeight: 150, backgroundColor: colors.bgMain, borderColor: colors.borderLight, color: colors.textDark }]} 
               multiline 
               placeholder="List tasks completed, meetings attended, etc..."
+              placeholderTextColor={colors.textMuted}
               value={workReport}
               onChangeText={setWorkReport}
             />
-            <TouchableOpacity style={styles.submitBtn} onPress={() => {
+            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={() => {
                 if (!workReport.trim()) return Toast.show({ type: 'error', text1: 'Required', text2: 'Please add your work report' });
                 nextStep();
             }}>
-               <Text style={styles.submitBtnText}>Next Step</Text>
+               <Text style={[styles.submitBtnText, { color: colors.white }]}>Next Step</Text>
             </TouchableOpacity>
             <TouchableOpacity style={{ marginTop: 16, alignSelf: 'center' }} onPress={prevStep}>
-               <Text style={{ color: '#94A3B8', fontWeight: '700' }}>Back</Text>
+               <Text style={{ color: colors.textMuted, fontWeight: '700' }}>Back</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {step === 3 && (
-          <View style={[styles.form, SHADOW.soft]}>
+          <View style={[styles.form, SHADOW.soft, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
             <View style={styles.stepHeader}>
-                <Text style={styles.formTitle}>Correction Details</Text>
+                <Text style={[styles.formTitle, { color: colors.textDark }]}>Correction Details</Text>
             </View>
             
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.label}>Original Punch In</Text>
-              <View style={[styles.timeDisplay, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0', gap: 10 }]}>
-                <Ionicons name="lock-closed" size={18} color="#64748B" />
-                <Text style={[styles.timeValue, { color: '#64748B' }]}>{selectedDay.punchIn || '—'}</Text>
+              <Text style={[styles.label, { color: colors.textLight }]}>Original Punch In</Text>
+              <View style={[styles.timeDisplay, { backgroundColor: colors.bgMain, borderColor: colors.borderLight, gap: 10 }]}>
+                <Ionicons name="lock-closed" size={18} color={colors.textMuted} />
+                <Text style={[styles.timeValue, { color: colors.textMuted }]}>{selectedDay.punchIn || '—'}</Text>
               </View>
             </View>
 
             <View style={{ marginBottom: 16 }}>
-              <Text style={styles.label}>Set Missing Punch Out Time</Text>
+              <Text style={[styles.label, { color: colors.textLight }]}>Set Missing Punch Out Time</Text>
               <TouchableOpacity 
-                style={[styles.timeDisplay, { width: '100%', flexDirection: 'row', justifyContent: 'flex-start' }, 
-                  (new Date(`${selectedDay.date}T${manualOut}:00`) <= new Date(`${selectedDay.date}T${selectedDay.punchInRaw || '00:00'}:00`)) && { borderColor: COLORS.danger, borderWidth: 1 }]} 
+                style={[styles.timeDisplay, { width: '100%', flexDirection: 'row', justifyContent: 'flex-start', backgroundColor: colors.bgMain, borderColor: colors.borderLight }, 
+                  (new Date(`${selectedDay.date}T${manualOut}:00`) <= new Date(`${selectedDay.date}T${selectedDay.punchInRaw || '00:00'}:00`)) && { borderColor: colors.danger, borderWidth: 1 }]} 
                 onPress={() => setShowOutPicker(true)}
               >
-                <View style={{ backgroundColor: COLORS.primary + '10', padding: 8, borderRadius: 10, marginRight: 12 }}>
-                  <Ionicons name="time" size={20} color={COLORS.primary} />
+                <View style={{ backgroundColor: colors.primary + '10', padding: 8, borderRadius: 10, marginRight: 12 }}>
+                  <Ionicons name="time" size={20} color={colors.primary} />
                 </View>
                 <View>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>Missing Punch Out</Text>
-                  <Text style={[styles.timeValue, { marginTop: 2 }]}>{manualOut}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' }}>Missing Punch Out</Text>
+                  <Text style={[styles.timeValue, { marginTop: 2, color: colors.textDark }]}>{manualOut}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.border} style={{ marginLeft: 'auto' }} />
+                <Ionicons name="chevron-forward" size={18} color={colors.border} style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
               {(new Date(`${selectedDay.date}T${manualOut}:00`) <= new Date(`${selectedDay.date}T${selectedDay.punchInRaw || '00:00'}:00`)) && (
-                <Text style={{ color: COLORS.danger, fontSize: 11, fontWeight: '700', marginTop: 6, marginLeft: 4 }}>
-                  <Ionicons name="warning" size={12} color={COLORS.danger} /> Punch-out must be after {selectedDay.punchIn}
+                <Text style={{ color: colors.danger, fontSize: 11, fontWeight: '700', marginTop: 6, marginLeft: 4 }}>
+                  <Ionicons name="warning" size={12} color={colors.danger} /> Punch-out must be after {selectedDay.punchIn}
                 </Text>
               )}
             </View>
 
-            <Text style={styles.label}>Reason for Missing Punch Out <Text style={{ color: COLORS.danger }}>*</Text></Text>
+            <Text style={[styles.label, { color: colors.textLight }]}>Reason for Missing Punch Out <Text style={{ color: colors.danger }}>*</Text></Text>
             <TextInput 
-              style={styles.input} 
+              style={[styles.input, { backgroundColor: colors.bgMain, borderColor: colors.borderLight, color: colors.textDark }]} 
               multiline 
-              placeholder="e.g. System error, Forgot to punch, etc."
+              placeholder="e.g. System error, Forgot to punch, etc..."
+              placeholderTextColor={colors.textMuted}
               value={reason}
               onChangeText={setReason}
             />
 
             <TouchableOpacity 
-              style={styles.submitBtn} 
+              style={[styles.submitBtn, { backgroundColor: colors.primary }]} 
               onPress={handleApply}
               disabled={submitting}
             >
-              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit Correction Request</Text>}
+              {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.submitBtnText, { color: colors.white }]}>Submit Correction Request</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={{ marginTop: 16, alignSelf: 'center' }} onPress={() => setStep(0)}>
-               <Text style={{ color: '#94A3B8', fontWeight: '700' }}>Back</Text>
+               <Text style={{ color: colors.textMuted, fontWeight: '700' }}>Back</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -320,47 +324,47 @@ export default function PunchMissingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { padding: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-  backBtn: { padding: 8, marginRight: 10, borderRadius: 12, backgroundColor: '#F1F5F9' },
-  title: { fontSize: 20, fontWeight: '800', color: COLORS.textDark },
+  container: { flex: 1 },
+  header: { padding: 20, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1 },
+  backBtn: { padding: 8, marginRight: 10, borderRadius: 12 },
+  title: { fontSize: 20, fontWeight: '800' },
   scroll: { padding: 20 },
-  infoBox: { flexDirection: 'row', gap: 12, backgroundColor: '#EFF6FF', padding: 16, borderRadius: 16, marginBottom: 24, borderLeftWidth: 4, borderLeftColor: COLORS.primary },
-  infoText: { flex: 1, fontSize: 13, color: '#1E40AF', fontWeight: '500', lineHeight: 20 },
+  infoBox: { flexDirection: 'row', gap: 12, padding: 16, borderRadius: 16, marginBottom: 24, borderLeftWidth: 4 },
+  infoText: { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 20 },
   empty: { padding: 60, alignItems: 'center', marginTop: 40 },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#1E293B', marginBottom: 8 },
-  emptySub: { fontSize: 14, color: '#64748B', textAlign: 'center' },
-  dayCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16 },
+  emptyTitle: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
+  emptySub: { fontSize: 14, textAlign: 'center' },
+  dayCard: { borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1 },
   dayTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  dayDate: { fontSize: 16, fontWeight: '800', color: '#1E293B' },
-  dayName: { fontSize: 12, color: '#64748B', marginTop: 2, fontWeight: '600' },
-  warningTag: { backgroundColor: '#FFF7ED', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderOriginWidth: 1, borderColor: '#FDBA74' },
-  warningText: { fontSize: 10, fontWeight: '800', color: '#EA580C', textTransform: 'uppercase' },
-  dayPunches: { flexDirection: 'row', gap: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  dayDate: { fontSize: 16, fontWeight: '800' },
+  dayName: { fontSize: 12, marginTop: 2, fontWeight: '600' },
+  warningTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  warningText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  dayPunches: { flexDirection: 'row', gap: 20, paddingTop: 16, borderTopWidth: 1 },
   punchItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  punchText: { fontSize: 13, color: '#475569', fontWeight: '600' },
-  form: { backgroundColor: '#fff', borderRadius: 24, padding: 24, marginTop: 20 },
-  formTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A', marginBottom: 8, textAlign: 'center' },
-  modalSub: { fontSize: 14, color: '#64748B', textAlign: 'center', marginBottom: 24, fontWeight: '500', lineHeight: 20 },
+  punchText: { fontSize: 13, fontWeight: '600' },
+  form: { borderRadius: 24, padding: 24, marginTop: 20, borderWidth: 1 },
+  formTitle: { fontSize: 18, fontWeight: '900', marginBottom: 8, textAlign: 'center' },
+  modalSub: { fontSize: 14, textAlign: 'center', marginBottom: 24, fontWeight: '500', lineHeight: 20 },
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  stepNum: { backgroundColor: COLORS.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  stepNumText: { color: COLORS.primary, fontSize: 10, fontWeight: '800' },
-  label: { fontSize: 13, fontWeight: '800', color: '#475569', marginBottom: 10, marginTop: 16 },
-  timeDisplay: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, borderOriginWidth: 1, borderColor: '#E2E8F0', flexDirection: 'row', alignItems: 'center' },
-  timeValue: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  input: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, borderOriginWidth: 1, borderColor: '#E2E8F0', fontSize: 14, minHeight: 100, textAlignVertical: 'top', color: '#0F172A' },
-  submitBtn: { backgroundColor: COLORS.primary, padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 12 },
-  submitBtnText: { color: COLORS.white, fontWeight: '800', fontSize: 16 },
-  tpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  tpContent: { backgroundColor: '#fff', borderRadius: 32, padding: 24, width: '100%', maxWidth: 300 },
-  tpLabel: { fontSize: 18, fontWeight: '900', color: '#0F172A', textAlign: 'center', marginBottom: 20 },
+  stepNum: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  stepNumText: { fontSize: 10, fontWeight: '800' },
+  label: { fontSize: 13, fontWeight: '800', marginBottom: 10, marginTop: 16 },
+  timeDisplay: { padding: 16, borderRadius: 16, borderWidth: 1, flexDirection: 'row', alignItems: 'center' },
+  timeValue: { fontSize: 15, fontWeight: '700' },
+  input: { padding: 16, borderRadius: 16, borderWidth: 1, fontSize: 14, minHeight: 100, textAlignVertical: 'top' },
+  submitBtn: { padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 12 },
+  submitBtnText: { fontWeight: '800', fontSize: 16 },
+  tpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  tpContent: { borderRadius: 32, padding: 24, width: '100%', maxWidth: 300, borderWidth: 1 },
+  tpLabel: { fontSize: 18, fontWeight: '900', textAlign: 'center', marginBottom: 20 },
   tpPickers: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  tpSubLabel: { fontSize: 12, fontWeight: '700', color: '#94A3B8', textAlign: 'center', marginBottom: 8 },
+  tpSubLabel: { fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   tpItem: { padding: 12, alignItems: 'center', borderRadius: 10 },
-  tpItemActive: { backgroundColor: '#EFF6FF' },
-  tpText: { fontSize: 16, fontWeight: '600', color: '#475569' },
-  tpTextActive: { color: COLORS.primary, fontWeight: '800' },
-  tpDivider: { width: 1, height: 150, backgroundColor: '#F1F5F9', marginHorizontal: 20 },
+  tpItemActive: { },
+  tpText: { fontSize: 16, fontWeight: '600' },
+  tpTextActive: { fontWeight: '800' },
+  tpDivider: { width: 1, height: 150, marginHorizontal: 20 },
   tpFooter: { flexDirection: 'row', gap: 12, marginTop: 24 },
   tpBtn: { flex: 1, padding: 12, borderRadius: 14, alignItems: 'center' },
 });

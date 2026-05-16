@@ -72,7 +72,14 @@ export const getAdminResignations = async (req, res) => {
         if (status && status !== 'All') filter.status = status;
 
         const adminId = req.user._id;
-        // Filter by adminId if not superadmin (logic depends on your app's multi-tenancy)
+        
+        // 1. Get all employees belonging to this admin
+        const myEmployees = await User.find({ adminId }).select('_id');
+        const employeeIds = myEmployees.map(emp => emp._id);
+
+        // 2. Filter resignations for these employees only
+        filter.employeeId = { $in: employeeIds };
+
         const resignations = await Resignation.find(filter)
             .populate('employeeId', 'name employeeId department designation profilePhoto')
             .sort({ createdAt: -1 });

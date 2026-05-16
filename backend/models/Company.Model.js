@@ -68,6 +68,12 @@ const companySchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   },
+  ownerName: { type: String },
+  packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
+  packageStartDate: { type: Date },
+  packageExpiryDate: { type: Date },
+  paymentStatus: { type: String, enum: ['pending', 'completed'], default: 'pending' },
+  isActive: { type: Boolean, default: false },
   employeeIdFormat: {
     prefix: { type: String, default: 'EMP' },
     includeYear: { type: Boolean, default: true },

@@ -1,10 +1,13 @@
 import express from "express";
-import { login, otpLogin, logout, register, verifyUser, changePassword, checkPhone, forgotPassword, resetPassword } from "../controllers/Auth.Controller.js";
+import { login, signup, verifyPayment, otpLogin, logout, register, verifyUser, changePassword, checkPhone, forgotPassword, resetPassword } from "../controllers/Auth.Controller.js";
 import { verifyToken } from "../middleware/Auth.Middleware.js";
 
 const router = express.Router();
 
 router.post("/register", register);
+router.post("/clients/register", signup);
+router.post("/signup", signup); // Keep old for compatibility
+router.post("/verify-payment", verifyPayment);
 router.post("/login", login);
 router.post("/otp-login", otpLogin);
 router.post("/check-phone", checkPhone);

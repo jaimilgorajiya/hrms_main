@@ -546,6 +546,39 @@ const EmployeeProfile = () => {
         }
     };
 
+    const handleRemovePhoto = async () => {
+        const result = await Swal.fire({
+            title: 'Remove Photo?',
+            text: "Are you sure you want to remove the profile photo?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Yes, remove it!'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/api/users/${id}/profile-photo`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setEmployee(data.user);
+                    setFormData(data.user);
+                    setPreviewUrl(null);
+                    setProfilePhoto(null);
+                    Swal.fire('Removed', 'Profile photo removed successfully', 'success');
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to remove photo', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Failed to remove photo', 'error');
+            }
+        }
+    };
+
     const handleUpdate = async () => {
         try {
             setSaving(true);
@@ -853,6 +886,19 @@ const EmployeeProfile = () => {
                                     </div>
                                 )}
                             </div>
+                            {(previewUrl || formData.profilePhoto) && (
+                                <button 
+                                    onClick={handleRemovePhoto}
+                                    style={{ 
+                                        position: 'absolute', bottom: '5px', left: '5px', background: '#fee2e2', border: '3px solid #fff', 
+                                        borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', 
+                                        justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                                        color: '#ef4444'
+                                    }}
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
                             <label style={{ 
                                 position: 'absolute', bottom: '5px', right: '5px', background: '#3B648B', border: '3px solid #fff', 
                                 borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', 

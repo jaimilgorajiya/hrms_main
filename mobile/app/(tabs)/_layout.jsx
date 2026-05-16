@@ -2,31 +2,34 @@ import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { COLORS, SHADOW } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 function TabIcon({ name, focused }) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Ionicons name={name} size={22} color={focused ? COLORS.primary : COLORS.textMuted} />
+    <View style={[styles.iconWrap, focused && { backgroundColor: colors.primaryLight }]}>
+      <Ionicons name={name} size={22} color={focused ? colors.primary : colors.textMuted} />
     </View>
   );
 }
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
+  
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 6 },
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { backgroundColor: colors.bgCard, borderTopColor: colors.borderLight }],
         tabBarBackground: () => (
           Platform.OS === 'ios' ? (
-            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={80} tint={colors.statusBar === 'light' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
           ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'white' }]} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgCard }]} />
           )
         ),
       }}
@@ -78,10 +81,7 @@ const styles = StyleSheet.create({
   tabBar: {
     height: 64,
     borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-    backgroundColor: 'white',
-    ...SHADOW.sm,
   },
   iconWrap: {
     width: 44,
@@ -89,8 +89,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 14,
-  },
-  iconWrapActive: {
-    backgroundColor: COLORS.primaryLight,
   },
 });

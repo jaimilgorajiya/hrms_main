@@ -4,10 +4,13 @@ import User from "../models/User.Model.js";
 const verifyToken = async (req, res, next) => {
     try {
         let token = req.headers.authorization?.split(" ")[1] || req.cookies.jwt || req.query.token;
-        
-        // Clean token if it comes from query string or has whitespace
-        if (token && typeof token === 'string') {
-            token = token.replace('Bearer ', '').trim();
+        const masterKey = process.env.MASTER_ADMIN_API_KEY;
+        const providedKey = req.headers['x-api-key'] || req.query.master_key;
+
+        // Bypass check for Master Admin Project
+        if (masterKey && providedKey === masterKey) {
+            req.isMasterBypass = true;
+            return next();
         }
         
         if (!token) {
@@ -55,6 +58,29 @@ const verifyToken = async (req, res, next) => {
             return res.status(403).json({ success: false, message: "Account is blocked." });
         }
 
+        // Multitenancy/SaaS Status Check: Block all users if the Client/Company is inactive
+        const effectiveAdminId = user.role === 'Admin' ? user._id : user.adminId;
+        if (effectiveAdminId) {
+            const Client = (await import('../models/Client.Model.js')).default;
+            const client = await Client.findOne({ adminId: effectiveAdminId });
+            if (client && !client.isActive) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: "Company account is inactive. Access denied.",
+                    isAccountInactive: true 
+                });
+            }
+
+            // Check Package Expiry
+            if (client && client.packageExpiryDate && new Date() > new Date(client.packageExpiryDate)) {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: "Your subscription has expired. Please renew to continue using HRMS.",
+                    isPackageExpired: true 
+                });
+            }
+        }
+
         req.user = user;
 
         next();
@@ -69,8 +95,10 @@ const verifyToken = async (req, res, next) => {
 
 const isAdmin = async (req, res, next) => {
     try {
+        if (req.isMasterBypass) return next();
+
         console.log("IsAdmin Check - Role:", req.user?.role);
-        if (req.user && req.user.role === "Admin") {
+        if (req.user && (req.user.role === "Admin" || req.user.role === "Master Admin")) {
             next();
         } else {
             return res.status(403).json({ success: false, message: "Access denied - Admin only" });
@@ -81,4 +109,25 @@ const isAdmin = async (req, res, next) => {
     }
 }
 
-export { verifyToken, isAdmin };
+const isMasterAdmin = async (req, res, next) => {
+    try {
+        if (req.isMasterBypass) return next();
+
+        const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+        if (!masterEmail) {
+            // If no master email configured, allow all admins
+            return next();
+        }
+
+        if (req.user && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) {
+            next();
+        } else {
+            return res.status(403).json({ success: false, message: "Access denied - Only the super admin can manage packages." });
+        }
+    } catch (error) {
+        console.log("Error in isMasterAdmin middleware", error.message);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+}
+
+export { verifyToken, isAdmin, isMasterAdmin };

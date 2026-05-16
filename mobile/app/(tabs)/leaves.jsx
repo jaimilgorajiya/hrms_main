@@ -9,60 +9,62 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetch } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
-import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import Toast from 'react-native-toast-message';
 
 const RequestCard = ({ request }) => {
+  const { colors } = useTheme();
   const isPending = request.status === 'Pending';
   const isApproved = request.status === 'Approved';
   const isRejected = request.status === 'Rejected';
 
-  let color = COLORS.textMuted;
-  let bg = COLORS.bgMain;
-  if (isApproved) { color = COLORS.success; bg = COLORS.successLight; }
-  if (isRejected) { color = COLORS.danger; bg = COLORS.dangerLight; }
-  if (isPending) { color = COLORS.warning; bg = COLORS.warningLight; }
+  let color = colors.textMuted;
+  let bg = colors.bgMain;
+  if (isApproved) { color = colors.success; bg = colors.successLight; }
+  if (isRejected) { color = colors.danger; bg = colors.dangerLight; }
+  if (isPending) { color = colors.warning; bg = colors.warningLight; }
 
   return (
-    <View style={[styles.leaveCard, SHADOW.sm]}>
+    <View style={[styles.leaveCard, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
       <View style={styles.leaveHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.leaveType}>{request.leaveType?.name || 'Leave Request'}</Text>
-          <Text style={styles.leaveReason} numberOfLines={2}>{request.reason}</Text>
+          <Text style={[styles.leaveType, { color: colors.textDark }]}>{request.leaveType?.name || 'Leave Request'}</Text>
+          <Text style={[styles.leaveReason, { color: colors.textLight }]} numberOfLines={2}>{request.reason}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: bg }]}>
           <Text style={[styles.statusText, { color }]}>{request.status}</Text>
         </View>
       </View>
-      <View style={styles.leaveDivider} />
+      <View style={[styles.leaveDivider, { backgroundColor: colors.borderLight }]} />
       <View style={styles.leaveFooter}>
         <View style={styles.footerItem}>
-          <Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} />
-          <Text style={styles.footerText}>
+          <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+          <Text style={[styles.footerText, { color: colors.textMuted }]}>
              {request.fromDate === request.toDate ? request.fromDate : `${request.fromDate} to ${request.toDate}`}
           </Text>
         </View>
         {request.leaveDuration && (
           <View style={styles.footerItem}>
-             <Ionicons name="time-outline" size={14} color={COLORS.textMuted} />
-             <Text style={styles.footerText}>{request.leaveDuration}</Text>
+             <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+             <Text style={[styles.footerText, { color: colors.textMuted }]}>{request.leaveDuration}</Text>
           </View>
         )}
         <View style={styles.footerItem}>
            <Ionicons 
             name={request.leaveCategory === 'Paid' ? "card-outline" : "alert-circle-outline"} 
             size={14} 
-            color={request.leaveCategory === 'Paid' ? COLORS.success : COLORS.warning} 
+            color={request.leaveCategory === 'Paid' ? colors.success : colors.warning} 
            />
-           <Text style={[styles.footerText, { color: request.leaveCategory === 'Paid' ? COLORS.success : COLORS.warning }]}>
+           <Text style={[styles.footerText, { color: request.leaveCategory === 'Paid' ? colors.success : colors.warning }]}>
              {request.leaveCategory || 'Paid'}
            </Text>
         </View>
       </View>
       {request.adminRemark && (
-        <View style={styles.remarkBox}>
-          <Text style={styles.remarkLabel}>Admin Remark:</Text>
-          <Text style={styles.remarkText}>{request.adminRemark}</Text>
+        <View style={[styles.remarkBox, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }]}>
+          <Text style={[styles.remarkLabel, { color: colors.textMuted }]}>Admin Remark:</Text>
+          <Text style={[styles.remarkText, { color: colors.textDark }]}>{request.adminRemark}</Text>
         </View>
       )}
     </View>
@@ -70,6 +72,7 @@ const RequestCard = ({ request }) => {
 };
 
 export default function LeavesScreen() {
+  const { colors, isDarkMode } = useTheme();
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +100,7 @@ export default function LeavesScreen() {
       setFromDate(date);
       setToDate(date);
       setMarkedDates({
-        [date]: { startingDay: true, endingDay: true, color: COLORS.primary, textColor: 'white' }
+        [date]: { startingDay: true, endingDay: true, color: colors.primary, textColor: 'white' }
       });
       return;
     }
@@ -106,13 +109,13 @@ export default function LeavesScreen() {
       setFromDate(date);
       setToDate(null);
       setMarkedDates({
-        [date]: { startingDay: true, color: COLORS.primary, textColor: 'white' }
+        [date]: { startingDay: true, color: colors.primary, textColor: 'white' }
       });
     } else if (fromDate && !toDate) {
       if (isBefore(new Date(date), new Date(fromDate))) {
         setFromDate(date);
         setMarkedDates({
-          [date]: { startingDay: true, color: COLORS.primary, textColor: 'white' }
+          [date]: { startingDay: true, color: colors.primary, textColor: 'white' }
         });
       } else {
         setToDate(date);
@@ -123,7 +126,7 @@ export default function LeavesScreen() {
         while (current <= end) {
           const dStr = format(current, 'yyyy-MM-dd');
           range[dStr] = {
-            color: COLORS.primary,
+            color: colors.primary,
             textColor: 'white',
             ...(dStr === fromDate ? { startingDay: true } : {}),
             ...(dStr === date ? { endingDay: true } : {}),
@@ -137,7 +140,7 @@ export default function LeavesScreen() {
       setFromDate(date);
       setToDate(null);
       setMarkedDates({
-        [date]: { startingDay: true, color: COLORS.primary, textColor: 'white' }
+        [date]: { startingDay: true, color: colors.primary, textColor: 'white' }
       });
     }
   };
@@ -166,8 +169,8 @@ export default function LeavesScreen() {
             if (req.status === 'Rejected') return;
             const start = new Date(req.fromDate);
             const end = new Date(req.toDate);
-            const color = req.status === 'Approved' ? COLORS.successLight : COLORS.warningLight;
-            const textColor = req.status === 'Approved' ? COLORS.success : COLORS.warning;
+            const color = req.status === 'Approved' ? colors.successLight : colors.warningLight;
+            const textColor = req.status === 'Approved' ? colors.success : colors.warning;
 
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                 const dStr = format(d, 'yyyy-MM-dd');
@@ -247,17 +250,17 @@ export default function LeavesScreen() {
   const maxInMonth = stats?.maxUsagePerMonth || total;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bgMain }]} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />}
       >
         <View style={styles.header}>
             <View>
-               <Text style={styles.title}>Leave Management</Text>
-               <Text style={styles.subTitle}>Check entitlement and apply for leave</Text>
+               <Text style={[styles.title, { color: colors.textDark }]}>Leave Management</Text>
+               <Text style={[styles.subTitle, { color: colors.textLight }]}>Check entitlement and apply for leave</Text>
             </View>
         </View>
 
@@ -267,33 +270,33 @@ export default function LeavesScreen() {
             <>
               <View style={{ gap: 10, marginBottom: 20 }}>
                 <View style={styles.summaryRow}>
-                   <View style={[styles.summaryCard, { backgroundColor: '#EEF2FF' }]}>
-                      <Text style={[styles.summaryVal, { color: '#4338CA' }]}>{total}</Text>
-                      <Text style={styles.summaryLabel}>Entitlement</Text>
+                   <View style={[styles.summaryCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary + '20', borderWidth: 1 }]}>
+                      <Text style={[styles.summaryVal, { color: colors.primaryLight === 'rgba(195, 192, 255, 0.12)' || isDarkMode ? colors.primary : '#4338CA' }]}>{total}</Text>
+                      <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Entitlement</Text>
                    </View>
-                   <View style={[styles.summaryCard, { backgroundColor: '#ECFDF5' }]}>
-                      <Text style={[styles.summaryVal, { color: '#047857' }]}>{balance}</Text>
-                      <Text style={styles.summaryLabel}>Available</Text>
+                   <View style={[styles.summaryCard, { backgroundColor: colors.successLight, borderColor: colors.success + '20', borderWidth: 1 }]}>
+                      <Text style={[styles.summaryVal, { color: colors.success }]}>{balance}</Text>
+                      <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Available</Text>
                    </View>
                 </View>
                 <View style={styles.summaryRow}>
-                   <View style={[styles.summaryCard, { backgroundColor: '#FEF2F2' }]}>
-                      <Text style={[styles.summaryVal, { color: '#B91C1C' }]}>{used}</Text>
-                      <Text style={styles.summaryLabel}>Paid Used</Text>
+                   <View style={[styles.summaryCard, { backgroundColor: colors.dangerLight, borderColor: colors.danger + '20', borderWidth: 1 }]}>
+                      <Text style={[styles.summaryVal, { color: colors.danger }]}>{used}</Text>
+                      <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Paid Used</Text>
                    </View>
-                   <View style={[styles.summaryCard, { backgroundColor: '#FFF7ED' }]}>
-                      <Text style={[styles.summaryVal, { color: '#C2410C' }]}>{stats?.usedUnpaidLeaves || 0}</Text>
-                      <Text style={styles.summaryLabel}>Unpaid Taken</Text>
+                   <View style={[styles.summaryCard, { backgroundColor: colors.warningLight, borderColor: colors.warning + '20', borderWidth: 1 }]}>
+                      <Text style={[styles.summaryVal, { color: colors.warning }]}>{stats?.usedUnpaidLeaves || 0}</Text>
+                      <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Unpaid Taken</Text>
                    </View>
                 </View>
               </View>
 
               {/* Policy Information */}
-              <View style={styles.policyCard}>
-                 <Ionicons name="information-circle-outline" size={20} color={COLORS.primary} />
+              <View style={[styles.policyCard, { backgroundColor: colors.primaryLight, borderColor: colors.primary + '20' }]}>
+                 <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
                  <View style={{ flex: 1 }}>
-                    <Text style={styles.policyTitle}>Leave Policy</Text>
-                    <Text style={styles.policyText}>
+                    <Text style={[styles.policyTitle, { color: colors.primary }]}>Leave Policy</Text>
+                    <Text style={[styles.policyText, { color: colors.textDark }]}>
                        {isWholeOnly 
                         ? "Only full days can be applied as per your policy." 
                         : "You can apply for Full Day or Half Day leaves."}
@@ -303,22 +306,22 @@ export default function LeavesScreen() {
               </View>
             </>
           ) : (
-            <View style={styles.policyCard}>
-               <Ionicons name="alert-circle-outline" size={20} color={COLORS.warning} />
+            <View style={[styles.policyCard, { backgroundColor: colors.warningLight, borderColor: colors.warning + '20' }]}>
+               <Ionicons name="alert-circle-outline" size={20} color={colors.warning} />
                <View style={{ flex: 1 }}>
-                  <Text style={[styles.policyTitle, { color: COLORS.warning }]}>No Leave Group Assigned</Text>
-                  <Text style={styles.policyText}>You are not currently enrolled in any leave policy. Please contact HR for assistance.</Text>
+                  <Text style={[styles.policyTitle, { color: colors.warning }]}>No Leave Group Assigned</Text>
+                  <Text style={[styles.policyText, { color: colors.textDark }]}>You are not currently enrolled in any leave policy. Please contact HR for assistance.</Text>
                </View>
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Request History</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>Request History</Text>
           {loading && !refreshing ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
           ) : requests.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="document-text-outline" size={80} color={COLORS.border} />
-              <Text style={styles.emptyText}>No leave requests found.</Text>
+              <Ionicons name="document-text-outline" size={80} color={colors.border} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>No leave requests found.</Text>
             </View>
           ) : (
             requests.map((r) => <RequestCard key={r._id} request={r} />)
@@ -328,7 +331,7 @@ export default function LeavesScreen() {
 
       {/* Floating Action Button */}
       {stats?.hasLeaveGroup && (
-        <TouchableOpacity style={styles.fab} onPress={() => {
+        <TouchableOpacity style={[styles.fab, { backgroundColor: colors.primary, borderColor: colors.white + (isDarkMode ? '20' : '40') }]} onPress={() => {
             setShowApply(true);
             const maxLimit = stats?.maxUsagePerMonth || stats?.totalLeaves || 0;
             const usedLeaves = stats?.usedLeaves || 0;
@@ -338,23 +341,24 @@ export default function LeavesScreen() {
                 setLeaveCategory('Paid');
             }
         }} activeOpacity={0.8}>
-           <Ionicons name="add" size={32} color={COLORS.white} />
+           <Ionicons name="add" size={28} color={colors.white} />
         </TouchableOpacity>
       )}
 
       {/* New Request Modal */}
       <Modal visible={showApply} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Apply for Leave</Text>
-              <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={COLORS.textDark} /></TouchableOpacity>
+          <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.borderLight }]}>
+              <Text style={[styles.modalTitle, { color: colors.textDark }]}>Apply for Leave</Text>
+              <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               
               <View style={{ marginBottom: 20 }}>
-                <Text style={styles.inputLabel}>Select Period</Text>
+                <Text style={[styles.inputLabel, { color: colors.textDark }]}>Select Period</Text>
                 <Calendar
+                  key={colors.bgCardElevated}
                   minDate={new Date().toISOString().split('T')[0]}
                   onDayPress={(dayObj) => {
                     const date = dayObj.dateString;
@@ -367,32 +371,34 @@ export default function LeavesScreen() {
                   markedDates={{ ...baseMarkedDates, ...markedDates }}
                   markingType={'period'}
                   theme={{
-                    selectedDayBackgroundColor: COLORS.primary,
-                    selectedDayTextColor: '#ffffff',
-                    todayTextColor: COLORS.primary,
-                    arrowColor: COLORS.primary,
-                    monthTextColor: COLORS.textDark,
+                    calendarBackground: colors.bgCardElevated,
+                    selectedDayBackgroundColor: colors.primary,
+                    selectedDayTextColor: colors.white,
+                    todayTextColor: colors.primary,
+                    dayTextColor: colors.textDark,
+                    arrowColor: colors.primary,
+                    monthTextColor: colors.textDark,
                     textMonthFontWeight: '800',
-                    textDisabledColor: COLORS.borderLight, // Style for disabled past dates
+                    textDisabledColor: colors.textMuted + '40',
                   }}
-                  style={{ borderRadius: 16, borderWeight: 1, borderColor: COLORS.borderLight }}
+                  style={{ backgroundColor: colors.bgCardElevated, borderRadius: 16, borderWidth: 1, borderColor: colors.borderLight }}
                 />
               </View>
 
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>From Date</Text>
-                  <View style={styles.inputNonEdit}><Text style={styles.dateText}>{fromDate || 'Not selected'}</Text></View>
+                  <Text style={[styles.inputLabel, { color: colors.textDark }]}>From Date</Text>
+                  <View style={[styles.inputNonEdit, { backgroundColor: colors.bgMain, borderBottomColor: colors.borderLight }]}><Text style={[styles.dateText, { color: colors.textDark }]}>{fromDate || 'Not selected'}</Text></View>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>To Date</Text>
-                  <View style={styles.inputNonEdit}><Text style={styles.dateText}>{toDate || fromDate || 'Not selected'}</Text></View>
+                  <Text style={[styles.inputLabel, { color: colors.textDark }]}>To Date</Text>
+                  <View style={[styles.inputNonEdit, { backgroundColor: colors.bgMain, borderBottomColor: colors.borderLight }]}><Text style={[styles.dateText, { color: colors.textDark }]}>{toDate || fromDate || 'Not selected'}</Text></View>
                 </View>
               </View>
 
               {leaveTypes.length > 0 && (
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.inputLabel}>Leave Type</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textDark }]}>Leave Type</Text>
                   <View style={styles.leaveTypesScroll}>
                     {leaveTypes.filter(lt => {
                         if (userProfile?.gender) {
@@ -403,10 +409,10 @@ export default function LeavesScreen() {
                     }).map(lt => (
                       <TouchableOpacity 
                         key={lt._id} 
-                        style={[styles.ltBadge, selectedLeaveType === lt._id && styles.ltBadgeActive]}
+                        style={[styles.ltBadge, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, selectedLeaveType === lt._id && [styles.ltBadgeActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
                         onPress={() => setSelectedLeaveType(lt._id)}
                       >
-                        <Text style={[styles.ltText, selectedLeaveType === lt._id && styles.ltTextActive]}>{lt.name}</Text>
+                        <Text style={[styles.ltText, { color: colors.textMuted }, selectedLeaveType === lt._id && [styles.ltTextActive, { color: colors.white }]]}>{lt.name}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -414,18 +420,18 @@ export default function LeavesScreen() {
               )}
 
               <View style={{ marginBottom: 16 }}>
-                <Text style={styles.inputLabel}>Duration</Text>
+                <Text style={[styles.inputLabel, { color: colors.textDark }]}>Duration</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Full Day' && styles.durBtnActive]} onPress={() => setLeaveDuration('Full Day')}>
-                    <Text style={[styles.durBtnText, leaveDuration === 'Full Day' && styles.durBtnTextActive]}>Full Day</Text>
+                  <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'Full Day' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => setLeaveDuration('Full Day')}>
+                    <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'Full Day' && [styles.durBtnTextActive, { color: colors.white }]]}>Full Day</Text>
                   </TouchableOpacity>
                   {!isWholeOnly && (
                     <>
-                      <TouchableOpacity style={[styles.durBtn, leaveDuration === 'First Half' && styles.durBtnActive]} onPress={() => { setLeaveDuration('First Half'); if (fromDate && toDate) { setToDate(null); setMarkedDates({ [fromDate]: { startingDay: true, endingDay: true, color: COLORS.primary, textColor: 'white' } }); } }}>
-                        <Text style={[styles.durBtnText, leaveDuration === 'First Half' && styles.durBtnTextActive]}>1st Half</Text>
+                      <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'First Half' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => { setLeaveDuration('First Half'); if (fromDate && toDate) { setToDate(null); setMarkedDates({ [fromDate]: { startingDay: true, endingDay: true, color: colors.primary, textColor: 'white' } }); } }}>
+                        <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'First Half' && [styles.durBtnTextActive, { color: colors.white }]]}>1st Half</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Second Half' && styles.durBtnActive]} onPress={() => { setLeaveDuration('Second Half'); if (fromDate && toDate) { setToDate(null); setMarkedDates({ [fromDate]: { startingDay: true, endingDay: true, color: COLORS.primary, textColor: 'white' } }); } }}>
-                        <Text style={[styles.durBtnText, leaveDuration === 'Second Half' && styles.durBtnTextActive]}>2nd Half</Text>
+                      <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'Second Half' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => { setLeaveDuration('Second Half'); if (fromDate && toDate) { setToDate(null); setMarkedDates({ [fromDate]: { startingDay: true, endingDay: true, color: colors.primary, textColor: 'white' } }); } }}>
+                        <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'Second Half' && [styles.durBtnTextActive, { color: colors.white }]]}>2nd Half</Text>
                       </TouchableOpacity>
                     </>
                   )}
@@ -433,7 +439,7 @@ export default function LeavesScreen() {
               </View>
 
               <View style={{ marginBottom: 16 }}>
-                <Text style={styles.inputLabel}>Leave Category</Text>
+                <Text style={[styles.inputLabel, { color: colors.textDark }]}>Leave Category</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   {(() => {
                       const maxLimit = stats?.maxUsagePerMonth || stats?.totalLeaves || 0;
@@ -443,7 +449,8 @@ export default function LeavesScreen() {
                           <TouchableOpacity 
                             style={[
                               styles.durBtn, 
-                              leaveCategory === 'Paid' && { backgroundColor: COLORS.success, borderColor: COLORS.success },
+                              { backgroundColor: colors.bgMain, borderColor: colors.borderLight },
+                              leaveCategory === 'Paid' && { backgroundColor: colors.success, borderColor: colors.success },
                               isLimitReached && { opacity: 0.4 }
                             ]} 
                             onPress={() => {
@@ -455,34 +462,34 @@ export default function LeavesScreen() {
                             }}
                           >
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                <Ionicons name="card-outline" size={16} color={leaveCategory === 'Paid' ? COLORS.white : COLORS.textMuted} />
-                                <Text style={[styles.durBtnText, leaveCategory === 'Paid' && { color: COLORS.white }]}>Paid Leave</Text>
+                                <Ionicons name="card-outline" size={16} color={leaveCategory === 'Paid' ? colors.white : colors.textMuted} />
+                                <Text style={[styles.durBtnText, leaveCategory === 'Paid' && { color: colors.white }]}>Paid Leave</Text>
                             </View>
                           </TouchableOpacity>
                       );
                   })()}
                   {stats?.canApplyUnpaidLeave && (
                     <TouchableOpacity 
-                        style={[styles.durBtn, leaveCategory === 'Unpaid' && { backgroundColor: COLORS.warning, borderColor: COLORS.warning }]} 
+                        style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveCategory === 'Unpaid' && { backgroundColor: colors.warning, borderColor: colors.warning }]} 
                         onPress={() => setLeaveCategory('Unpaid')}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Ionicons name="alert-circle-outline" size={16} color={leaveCategory === 'Unpaid' ? COLORS.white : COLORS.textMuted} />
-                            <Text style={[styles.durBtnText, leaveCategory === 'Unpaid' && { color: COLORS.white }]}>Unpaid Leave</Text>
+                            <Ionicons name="alert-circle-outline" size={16} color={leaveCategory === 'Unpaid' ? colors.white : colors.textMuted} />
+                            <Text style={[styles.durBtnText, leaveCategory === 'Unpaid' && { color: colors.white }]}>Unpaid Leave</Text>
                         </View>
                     </TouchableOpacity>
                   )}
                 </View>
-                <Text style={{ fontSize: 10, color: COLORS.textMuted, marginTop: 4, fontWeight: '700' }}>
+                <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 4, fontWeight: '700' }}>
                    {leaveCategory === 'Paid' ? "* This will deduct from your paid leave balance." : "* This will NOT deduct from your paid leave balance."}
                 </Text>
               </View>
 
-              <Text style={styles.inputLabel}>Reason</Text>
-              <TextInput style={styles.input} multiline numberOfLines={3} value={reason} onChangeText={setReason} placeholder="Explain why you need this leave..." />
+              <Text style={[styles.inputLabel, { color: colors.textDark }]}>Reason</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.bgMain, color: colors.textDark, borderColor: colors.borderLight }]} multiline numberOfLines={3} value={reason} onChangeText={setReason} placeholder="Explain why you need this leave..." placeholderTextColor={colors.textMuted} />
               
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-                {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>Submit Application</Text>}
+              <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={handleSubmit} disabled={submitting}>
+                {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.submitBtnText, { color: colors.white }]}>Submit Application</Text>}
               </TouchableOpacity>
               <View style={{ height: 40 }} />
             </ScrollView>
@@ -494,78 +501,74 @@ export default function LeavesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bgMain },
+  safe: { flex: 1 },
   header: { padding: 24, paddingBottom: 10 },
-  title: { fontSize: SIZES.xxl, fontWeight: '800', color: COLORS.textDark },
-  subTitle: { fontSize: SIZES.sm, color: COLORS.textLight, marginTop: 4 },
+  title: { fontSize: SIZES.xxl, fontWeight: '800' },
+  subTitle: { fontSize: SIZES.sm, marginTop: 4 },
   body: { padding: 20 },
   fab: { 
     position: 'absolute', 
     bottom: 30, 
     right: 25, 
-    width: 65, 
-    height: 65, 
-    borderRadius: 32.5, 
-    backgroundColor: COLORS.primary, 
+    width: 52, 
+    height: 52, 
+    borderRadius: 26, 
     justifyContent: 'center', 
     alignItems: 'center', 
     ...SHADOW.lg, 
     elevation: 8,
     borderWidth: 2,
-    borderColor: COLORS.white + '30'
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textDark, marginBottom: 16, marginTop: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', marginBottom: 16, marginTop: 10 },
   summaryRow: { flexDirection: 'row', gap: 10 },
   summaryCard: { flex: 1, borderRadius: 16, padding: 12, alignItems: 'center' },
   summaryVal: { fontSize: 18, fontWeight: '800' },
-  summaryLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, marginTop: 2, textTransform: 'uppercase' },
+  summaryLabel: { fontSize: 10, fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
   policyCard: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     gap: 12, 
-    backgroundColor: COLORS.primaryLight, 
     padding: 16, 
     borderRadius: 16, 
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary + '20'
   },
-  policyTitle: { fontSize: 11, fontWeight: '800', color: COLORS.primary, textTransform: 'uppercase' },
-  policyText: { fontSize: 13, color: COLORS.textMain, fontWeight: '600', marginTop: 2 },
-  leaveCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginBottom: 16 },
+  policyTitle: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  policyText: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  leaveCard: { borderRadius: 24, padding: 20, marginBottom: 16, borderWidth: 1 },
   leaveHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  leaveType: { fontSize: 15, fontWeight: '800', color: COLORS.textDark },
-  leaveReason: { fontSize: 13, color: COLORS.textMuted, marginTop: 4 },
+  leaveType: { fontSize: 15, fontWeight: '800' },
+  leaveReason: { fontSize: 13, marginTop: 4 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginLeft: 10 },
   statusText: { fontSize: 11, fontWeight: '700' },
-  leaveDivider: { height: 1, backgroundColor: COLORS.borderLight, marginVertical: 14 },
+  leaveDivider: { height: 1, marginVertical: 14 },
   leaveFooter: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: 20 },
   footerItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerText: { fontSize: 11, color: COLORS.textMuted, fontWeight: '700' },
-  remarkBox: { marginTop: 12, padding: 10, backgroundColor: COLORS.bgMain, borderRadius: 10 },
-  remarkLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, marginBottom: 2 },
-  remarkText: { fontSize: 12, color: COLORS.textDark },
+  footerText: { fontSize: 11, fontWeight: '700' },
+  remarkBox: { marginTop: 12, padding: 10, borderRadius: 10, borderWidth: 1 },
+  remarkLabel: { fontSize: 10, fontWeight: '700', marginBottom: 2 },
+  remarkText: { fontSize: 12 },
   
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: COLORS.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%' },
-  modalHeader: { padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textDark },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%', borderWidth: 1 },
+  modalHeader: { padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1 },
+  modalTitle: { fontSize: 20, fontWeight: '800' },
   modalBody: { padding: 24 },
-  inputLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textDark, marginBottom: 8 },
-  input: { backgroundColor: COLORS.bgMain, borderRadius: 16, padding: 16, fontSize: 14, color: COLORS.textDark, marginBottom: 16, textAlignVertical: 'top' },
-  inputNonEdit: { backgroundColor: COLORS.bgMain, borderRadius: 16, padding: 16, fontSize: 14, color: COLORS.textDark, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight },
-  dateText: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
-  ltBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, backgroundColor: COLORS.bgMain, borderWidth: 1, borderColor: COLORS.borderLight },
-  ltBadgeActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  ltText: { fontSize: 12, color: COLORS.textMuted, fontWeight: '700' },
-  ltTextActive: { color: COLORS.white },
+  inputLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8 },
+  input: { borderRadius: 16, padding: 16, fontSize: 14, marginBottom: 16, textAlignVertical: 'top', borderWidth: 1 },
+  inputNonEdit: { borderRadius: 16, padding: 16, fontSize: 14, marginBottom: 16, borderBottomWidth: 1 },
+  dateText: { fontSize: 14, fontWeight: '700' },
+  ltBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
+  ltBadgeActive: { },
+  ltText: { fontSize: 12, fontWeight: '700' },
+  ltTextActive: { },
   leaveTypesScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  durBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.bgMain, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderLight },
-  durBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  durBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
-  durBtnTextActive: { color: COLORS.white },
-  submitBtn: { backgroundColor: COLORS.primary, padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 10, ...SHADOW.md },
-  submitBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
+  durBtn: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  durBtnActive: { },
+  durBtnText: { fontWeight: '700', fontSize: 13 },
+  durBtnTextActive: { },
+  submitBtn: { padding: 18, borderRadius: 18, alignItems: 'center', marginTop: 10, ...SHADOW.md },
+  submitBtnText: { fontSize: 16, fontWeight: '800' },
   empty: { height: 300, justifyContent: 'center', alignItems: 'center', gap: 20 },
-  emptyText: { fontSize: 16, color: COLORS.textMuted, fontWeight: '600' },
+  emptyText: { fontSize: 16, fontWeight: '600' },
 });

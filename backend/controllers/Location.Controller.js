@@ -2,7 +2,8 @@ import Location from "../models/Location.Model.js";
 
 const getLocations = async (req, res) => {
     try {
-        const locations = await Location.find().sort({ createdAt: -1 });
+        const adminId = req.user._id;
+        const locations = await Location.find({ adminId }).sort({ createdAt: -1 });
         return res.status(200).json({ success: true, locations });
     } catch (error) {
         return res.status(500).json({ success: false, error: "Server Error in fetching locations" });
@@ -21,7 +22,8 @@ const addLocation = async (req, res) => {
             state,
             country,
             pincode,
-            addedBy
+            addedBy,
+            adminId: req.user._id
         });
 
         await newLocation.save();

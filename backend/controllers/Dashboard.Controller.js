@@ -19,7 +19,7 @@ export const getAdminStats = async (req, res) => {
         // Basic Stats
         const adminFilter = { 
             role: { $ne: 'Admin' }, 
-            $or: [{ adminId }, { adminId: { $exists: false } }] 
+            adminId
         };
 
         const totalUsers = await User.countDocuments(adminFilter); 
@@ -27,10 +27,10 @@ export const getAdminStats = async (req, res) => {
         
         // Attendance Stats for Today
         const todayStr = getTodayStr();
-        const presentToday = await Attendance.countDocuments({ date: todayStr, status: 'Present' });
-        const halfDayToday = await Attendance.countDocuments({ date: todayStr, status: 'Half Day' });
-        const onLeaveToday = await Attendance.countDocuments({ date: todayStr, status: 'On Leave' });
-        const totalAttendanceToday = await Attendance.countDocuments({ date: todayStr });
+        const presentToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Present' });
+        const halfDayToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Half Day' });
+        const onLeaveToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'On Leave' });
+        const totalAttendanceToday = await Attendance.countDocuments({ adminId, date: todayStr });
         const absentToday = Math.max(0, activeUsersCount - totalAttendanceToday);
 
         const totalDepartments = await Department.countDocuments({ adminId });
@@ -58,8 +58,7 @@ export const getAdminStats = async (req, res) => {
             { 
                 $match: { 
                     role: { $ne: 'Admin' }, 
-                    department: { $exists: true, $ne: null, $ne: '' },
-                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                    adminId
                 } 
             },
             { $group: { _id: "$department", count: { $sum: 1 } } },
@@ -70,8 +69,7 @@ export const getAdminStats = async (req, res) => {
         const roleStats = await User.aggregate([
             { 
                 $match: { 
-                    role: { $ne: 'Admin' },
-                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                    adminId
                 } 
             },
             { $group: { _id: "$role", count: { $sum: 1 } } }
@@ -82,8 +80,7 @@ export const getAdminStats = async (req, res) => {
             { 
                 $match: { 
                     role: { $ne: 'Admin' }, 
-                    gender: { $exists: true, $ne: null },
-                    $or: [{ adminId }, { adminId: { $exists: false } }]
+                    adminId
                 } 
             },
             { $group: { _id: "$gender", count: { $sum: 1 } } }

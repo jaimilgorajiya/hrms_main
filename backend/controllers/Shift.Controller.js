@@ -4,7 +4,8 @@ import User from '../models/User.Model.js';
 // Get all shifts
 export const getAllShifts = async (req, res) => {
     try {
-        const shifts = await Shift.find()
+        const adminId = req.user._id;
+        const shifts = await Shift.find({ adminId })
             .populate('employeeCount')
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
@@ -35,14 +36,21 @@ export const getShiftById = async (req, res) => {
 export const addShift = async (req, res) => {
     try {
         // Check if shift code already exists (if provided)
-        if (req.body.shiftCode) {
-            const existingShift = await Shift.findOne({ shiftCode: req.body.shiftCode });
-            if (existingShift) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Shift code already exists. Please use a different code.'
-                });
-            }
+        // Check if shift code is provided
+        if (!req.body.shiftCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Shift code is required. Please enter a shift code.'
+            });
+        }
+
+        // Check if shift code already exists
+        const existingShift = await Shift.findOne({ shiftCode: req.body.shiftCode });
+        if (existingShift) {
+            return res.status(400).json({
+                success: false,
+                message: 'Shift code already exists. Please use a different code.'
+            });
         }
 
         // Check if shift name already exists
@@ -56,7 +64,8 @@ export const addShift = async (req, res) => {
 
         const shiftData = {
             ...req.body,
-            createdBy: req.user.id
+            createdBy: req.user._id,
+            adminId: req.user._id
         };
 
         const shift = new Shift(shiftData);
@@ -80,18 +89,24 @@ export const addShift = async (req, res) => {
 // Update shift
 export const updateShift = async (req, res) => {
     try {
-        // Check if shift code already exists (if being updated)
-        if (req.body.shiftCode) {
-            const existingShift = await Shift.findOne({ 
-                shiftCode: req.body.shiftCode,
-                _id: { $ne: req.params.id }
+        // Check if shift code is provided
+        if (!req.body.shiftCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Shift code is required. Please enter a shift code.'
             });
-            if (existingShift) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Shift code already exists. Please use a different code.'
-                });
-            }
+        }
+
+        // Check if shift code already exists (if being updated)
+        const existingShift = await Shift.findOne({ 
+            shiftCode: req.body.shiftCode,
+            _id: { $ne: req.params.id }
+        });
+        if (existingShift) {
+            return res.status(400).json({
+                success: false,
+                message: 'Shift code already exists. Please use a different code.'
+            });
         }
 
         // Check if shift name already exists (if being updated)
@@ -196,7 +211,8 @@ export const getShiftEmployees = async (req, res) => {
     try {
         const employees = await User.find({ 
             'workSetup.shift': req.params.id,
-            status: { $in: ['Active', 'Onboarding'] }
+            status: { $in: ['Active', 'Onboarding'] },
+            adminId: req.user._id
         })
         .select('name email employeeId position department status')
         .sort({ name: 1 });

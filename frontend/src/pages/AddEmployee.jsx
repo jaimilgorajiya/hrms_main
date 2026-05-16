@@ -18,6 +18,8 @@ const AddEmployee = () => {
     const [leaveGroups, setLeaveGroups] = useState([]);
     
     const [countries, setCountries] = useState([]);
+    const [employeeUsage, setEmployeeUsage] = useState(null);
+    const [limitReached, setLimitReached] = useState(false);
     
     const [formData, setFormData] = useState({
         employeeId: '',
@@ -58,7 +60,25 @@ const AddEmployee = () => {
     useEffect(() => {
         fetchDropdownData();
         fetchCountryCodes();
+        fetchEmployeeUsage();
     }, []);
+
+    const fetchEmployeeUsage = async () => {
+        try {
+            const res = await authenticatedFetch(`${API_URL}/api/packages/employee-usage`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success && data.usage) {
+                setEmployeeUsage(data.usage);
+                if (data.usage.remaining <= 0) {
+                    setLimitReached(true);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching employee usage:", error);
+        }
+    };
 
     const fetchCountryCodes = async () => {
         try {
@@ -197,6 +217,13 @@ const AddEmployee = () => {
                     showConfirmButton: false
                 });
                 navigate('/admin/employees/list');
+            } else if (resData.limitReached) {
+                Swal.fire({
+                    title: 'Employee Limit Reached',
+                    text: resData.message,
+                    icon: 'warning',
+                    confirmButtonColor: '#2563EB'
+                });
             } else {
                 Swal.fire('Error', resData.message || 'Failed to add employee', 'error');
             }
@@ -229,8 +256,62 @@ const AddEmployee = () => {
                     </button>
                     <h1 className="hrm-title">Add Employee</h1>
                 </div>
+                {employeeUsage && !limitReached && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ fontSize: '13px', color: '#64748B' }}>
+                            Employees: <strong style={{ color: '#0F172A' }}>{employeeUsage.currentCount}/{employeeUsage.totalAllowed}</strong>
+                        </div>
+                        <div style={{ width: '120px', height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ 
+                                width: `${Math.min((employeeUsage.currentCount / employeeUsage.totalAllowed) * 100, 100)}%`, 
+                                height: '100%', 
+                                background: employeeUsage.remaining <= 3 ? '#EF4444' : '#2563EB', 
+                                borderRadius: '4px',
+                                transition: 'width 0.3s ease' 
+                            }} />
+                        </div>
+                    </div>
+                )}
             </div>
 
+            {/* Employee Limit Reached Banner */}
+            {limitReached && (
+                <div className="hrm-card" style={{ padding: '40px', textAlign: 'center' }}>
+                    <div style={{ width: '80px', height: '80px', background: '#FEF2F2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <h2 style={{ color: '#0F172A', margin: '0 0 12px', fontSize: '24px' }}>Employee Limit Reached</h2>
+                    <p style={{ color: '#64748B', fontSize: '16px', maxWidth: '500px', margin: '0 auto 8px', lineHeight: 1.6 }}>
+                        You have used <strong style={{ color: '#DC2626' }}>{employeeUsage?.currentCount}</strong> of <strong>{employeeUsage?.totalAllowed}</strong> employee slots in your <strong>{employeeUsage?.packageName}</strong> plan.
+                    </p>
+                    <p style={{ color: '#64748B', fontSize: '15px', marginBottom: '32px' }}>
+                        Purchase an employee add-on pack to add more team members.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                        <button 
+                            className="btn-hrm" 
+                            onClick={() => navigate(-1)} 
+                            style={{ padding: '12px 32px', borderRadius: '10px', background: '#F1F5F9', color: '#475569', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                            Go Back
+                        </button>
+                        {/* <button 
+                            className="btn-hrm btn-hrm-primary" 
+                            onClick={() => navigate('/admin/profile')} 
+                            style={{ padding: '12px 32px', borderRadius: '10px' }}
+                        >
+                            Upgrade Plan
+                        </button> */}
+                    </div>
+                </div>
+            )}
+
+            {/* Show form only if limit not reached */}
+            {!limitReached && (
             <div className="hrm-card" style={{ padding: '40px' }}>
                 <form onSubmit={handleSubmit}>
                     {/* Profile Photo Upload */}
@@ -302,7 +383,7 @@ const AddEmployee = () => {
                         <div className="hrm-form-group">
                             <SearchableSelect 
                                 label="Branch"
-                                required={true}
+                                required={false}
                                 searchable={true}
                                 placeholder="Select Branch"
                                 options={branches.map(b => ({ value: b.branchName, label: b.branchName }))}
@@ -450,6 +531,7 @@ const AddEmployee = () => {
                     </div>
                 </form>
             </div>
+            )}
         </div>
     );
 };

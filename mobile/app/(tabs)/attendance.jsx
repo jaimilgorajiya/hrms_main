@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { apiFetch } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
-import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import Toast from 'react-native-toast-message';
 
@@ -18,6 +19,7 @@ import ClockPicker from '../../components/ClockPicker';
 const TimePickerModal = (props) => <ClockPicker {...props} />;
 
 const StatusBadge = ({ status, approvalStatus, category }) => {
+  const { colors } = useTheme();
   const isPresent = status === 'Present';
   const isAbsent = status === 'Absent';
   const isLeave = status === 'Leave' || status === 'On Leave';
@@ -25,16 +27,16 @@ const StatusBadge = ({ status, approvalStatus, category }) => {
   const isLate = status === 'Late' || status === 'Incomplete' || status === 'Clocked In';
   const isMissing = status === 'Missing' || status === 'Ghost';
 
-  let color = COLORS.textMuted;
-  let bg = COLORS.bgMain;
+  let color = colors.textMuted;
+  let bg = colors.bgMain;
   if (approvalStatus === 'Rejected') {
-    color = COLORS.danger; bg = COLORS.dangerLight;
+    color = colors.danger; bg = colors.dangerLight;
   } else if (approvalStatus === 'Pending' && (status === 'Leave' || status === 'Attendance Correction')) {
-    color = COLORS.warning; bg = COLORS.warningLight;
-  } else if (isPresent) { color = COLORS.success; bg = COLORS.successLight; }
-  else if (isAbsent || isLeave) { color = COLORS.danger; bg = COLORS.dangerLight; }
-  else if (isWeekOff) { color = COLORS.purple; bg = COLORS.purpleLight; }
-  else if (isLate || isMissing) { color = COLORS.warning; bg = COLORS.warningLight; }
+    color = colors.warning; bg = colors.warningLight;
+  } else if (isPresent) { color = colors.success; bg = colors.successLight; }
+  else if (isAbsent || isLeave) { color = colors.danger; bg = colors.dangerLight; }
+  else if (isWeekOff) { color = colors.purple; bg = colors.purpleLight; }
+  else if (isLate || isMissing) { color = colors.warning; bg = colors.warningLight; }
 
   let label = status;
   if (approvalStatus === 'Rejected') {
@@ -55,6 +57,7 @@ const StatusBadge = ({ status, approvalStatus, category }) => {
 };
 
 export default function AttendanceScreen() {
+  const { colors, isDarkMode } = useTheme();
   const params = useLocalSearchParams();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,12 +79,12 @@ export default function AttendanceScreen() {
     const keys = Object.keys(markedDates).sort((a,b) => b.localeCompare(a)); // sort descending so newest dates appear at top
     return keys.filter(date => {
       const md = markedDates[date];
-      if (filterModalType === 'Present') return md?.dotColor === COLORS.success;
-      if (filterModalType === 'Absent') return md?.dotColor === COLORS.danger;
+      if (filterModalType === 'Present') return md?.dotColor === colors.success;
+      if (filterModalType === 'Absent') return md?.dotColor === colors.danger;
       if (filterModalType === 'Punch Out Miss') {
         const req = allRequests[date];
         if (req && (req.status === 'Pending' || req.status === 'Approved')) return false;
-        return md?.dotColor === COLORS.warning && data.find(r => r.date === date)?.punchIn && !data.find(r => r.date === date)?.punchOut;
+        return md?.dotColor === colors.warning && data.find(r => r.date === date)?.punchIn && !data.find(r => r.date === date)?.punchOut;
       }
       return false;
     }).map(date => {
@@ -135,56 +138,56 @@ export default function AttendanceScreen() {
       const req = requests[dateStr];
 
       if (r) {
-        let dotColor = COLORS.textMuted;
+        let dotColor = colors.textMuted;
         const isMissingOut = r.punchIn && !r.punchOut;
         
         if (isMissingOut) { 
-          dotColor = COLORS.warning; 
+          dotColor = colors.warning; 
           if (!req || (req.status !== 'Pending' && req.status !== 'Approved')) {
             sMissingOut++; 
           }
         } // Orange for missing punch out
-        else if (r.status === 'Present') { dotColor = COLORS.success; sPresent++; }
-        else if (r.status === 'Absent') { dotColor = COLORS.danger; sAbsent++; }
-        else if (r.status === 'Leave' || r.status === 'On Leave') { dotColor = COLORS.danger; sLeaves++; }
-        else { dotColor = COLORS.warning; sHalfDay++; }
+        else if (r.status === 'Present') { dotColor = colors.success; sPresent++; }
+        else if (r.status === 'Absent') { dotColor = colors.danger; sAbsent++; }
+        else if (r.status === 'Leave' || r.status === 'On Leave') { dotColor = colors.danger; sLeaves++; }
+        else { dotColor = colors.warning; sHalfDay++; }
 
         marked[dateStr] = {
           marked: true,
           dotColor,
           customStyles: {
-            container: { backgroundColor: dotColor + '10', borderRadius: 8 },
+            container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 },
             text: { color: dotColor, fontWeight: '700' }
           }
         };
       } else if (req && req.status === 'Approved') {
-          let dotColor = req.type === 'Leave' ? COLORS.danger : COLORS.success;
-          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + '10', borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
+          let dotColor = req.type === 'Leave' ? colors.danger : colors.success;
+          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
       } else if (req && req.status === 'Rejected') {
-          let dotColor = COLORS.danger;
-          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + '10', borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
+          let dotColor = colors.danger;
+          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
           if (dateStr < today && (!jDate || dateStr >= jDate)) sAbsent++;
       } else if (req && req.status === 'Pending') {
-          let dotColor = COLORS.warning;
-          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + '10', borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
+          let dotColor = colors.warning;
+          marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
       } else if (isWeekOff) {
           marked[dateStr] = {
             marked: true,
-            dotColor: COLORS.purple,
+            dotColor: colors.purple,
             isWeekOff: true,
             customStyles: {
-              container: { backgroundColor: COLORS.purple + '10', borderRadius: 8 },
-              text: { color: COLORS.purple, fontWeight: '700' }
+              container: { backgroundColor: colors.purple + (isDarkMode ? '20' : '15'), borderRadius: 8 },
+              text: { color: colors.purple, fontWeight: '700' }
             }
           };
       } else if (dateStr < today && (!jDate || dateStr >= jDate)) {
         sAbsent++;
         marked[dateStr] = {
           marked: true,
-          dotColor: COLORS.danger,
+          dotColor: colors.danger,
           customStyles: {
-            container: { backgroundColor: COLORS.danger + '10', borderRadius: 8 },
-            text: { color: COLORS.danger, fontWeight: '700' }
+            container: { backgroundColor: colors.danger + (isDarkMode ? '20' : '15'), borderRadius: 8 },
+            text: { color: colors.danger, fontWeight: '700' }
           }
         };
       }
@@ -212,7 +215,7 @@ export default function AttendanceScreen() {
   const selectedRecord = data.find(r => r.date === selectedDate);
   const currentRequest = allRequests[selectedDate];
   const isAbsent = !selectedRecord && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!joiningDate || selectedDate >= joiningDate);
-  const isRedDate = (markedDates[selectedDate]?.dotColor === COLORS.danger) || isAbsent;
+  const isRedDate = (markedDates[selectedDate]?.dotColor === colors.danger) || isAbsent;
   
   // Allow request if absent OR if punch out is missing OR if incomplete/late
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -369,34 +372,36 @@ export default function AttendanceScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bgMain }]} edges={['top']}>
       <ScrollView 
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Attendance History</Text>
-          <Text style={styles.subTitle}>Logs and stats for {format(currentMonth, 'MMMM yyyy')}</Text>
+          <Text style={[styles.title, { color: colors.textDark }]}>Attendance History</Text>
+          <Text style={[styles.subTitle, { color: colors.textLight }]}>Logs and stats for {format(currentMonth, 'MMMM yyyy')}</Text>
         </View>
 
         <View style={styles.body}>
           <View style={styles.statsRow}>
-            <TouchableOpacity style={[styles.statItem, SHADOW.sm]} activeOpacity={0.7} onPress={() => setFilterModalType('Present')}>
-              <Text style={[styles.statVal, { color: COLORS.success }]}>{stats.present}</Text>
-              <Text style={styles.statLabel}>Present</Text>
+            <TouchableOpacity style={[styles.statItem, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => setFilterModalType('Present')}>
+              <Text style={[styles.statVal, { color: colors.success }]}>{stats.present}</Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Present</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.statItem, SHADOW.sm]} activeOpacity={0.7} onPress={() => setFilterModalType('Absent')}>
-              <Text style={[styles.statVal, { color: COLORS.danger }]}>{stats.absent}</Text>
-              <Text style={styles.statLabel}>Absent</Text>
+            <TouchableOpacity style={[styles.statItem, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => setFilterModalType('Absent')}>
+              <Text style={[styles.statVal, { color: colors.danger }]}>{stats.absent}</Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Absent</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.statItem, SHADOW.sm]} activeOpacity={0.7} onPress={() => setFilterModalType('Punch Out Miss')}>
-              <Text style={[styles.statVal, { color: COLORS.warning }]}>{stats.missingOut || 0}</Text>
-              <Text style={styles.statLabel}>Punch Out Miss</Text>
+            <TouchableOpacity style={[styles.statItem, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]} activeOpacity={0.7} onPress={() => setFilterModalType('Punch Out Miss')}>
+              <Text style={[styles.statVal, { color: colors.warning }]}>{stats.missingOut || 0}</Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Punch Out Miss</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.calendarCard, SHADOW.md]}>
+          <View style={[styles.calendarCard, SHADOW.md, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]}>
             <Calendar
+              key={colors.bgCard}
+              style={{ backgroundColor: colors.bgCard, borderRadius: 20 }}
               onMonthChange={onMonthChange}
               onDayPress={(day) => setSelectedDate(day.dateString)}
               markedDates={{
@@ -405,30 +410,32 @@ export default function AttendanceScreen() {
                   [selectedDate]: { 
                     ...markedDates[selectedDate], 
                     customStyles: { 
-                      container: { backgroundColor: COLORS.primary, borderRadius: 10 }, 
-                      text: { color: COLORS.white, fontWeight: '800' } 
+                      container: { backgroundColor: colors.primary, borderRadius: 10 }, 
+                      text: { color: colors.white, fontWeight: '800' } 
                     } 
                   } 
                 } : {})
               }}
               markingType={'custom'}
               theme={{
-                calendarBackground: COLORS.white,
-                selectedDayBackgroundColor: COLORS.primary,
-                todayTextColor: COLORS.primary,
-                dayTextColor: COLORS.textDark,
-                textDisabledColor: COLORS.border,
-                monthTextColor: COLORS.textDark,
+                calendarBackground: colors.bgCard,
+                selectedDayBackgroundColor: colors.primary,
+                todayTextColor: colors.primary,
+                dayTextColor: colors.textDark,
+                textDisabledColor: colors.textMuted + '40',
+                monthTextColor: colors.textDark,
+                arrowColor: colors.primary,
                 textDayFontWeight: '600',
-                textMonthFontWeight: '800'
+                textMonthFontWeight: '800',
+                textSectionTitleColor: colors.textMuted,
               }}
             />
           </View>
 
           {selectedDate && (
-            <View style={[styles.detailCard, SHADOW.sm]}>
+            <View style={[styles.detailCard, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]}>
               <View style={styles.detailHeader}>
-                <Text style={styles.detailTitle}>{format(new Date(selectedDate), 'dd MMMM yyyy')}</Text>
+                <Text style={[styles.detailTitle, { color: colors.textDark }]}>{format(new Date(selectedDate), 'dd MMMM yyyy')}</Text>
                 {selectedRecord ? (
                     <StatusBadge status={currentRequest ? currentRequest.type : selectedRecord.status} approvalStatus={currentRequest?.status || selectedRecord.approvalStatus} category={selectedRecord.leaveCategory} />
                 ) : currentRequest ? (
@@ -443,8 +450,8 @@ export default function AttendanceScreen() {
               {selectedRecord ? (
                 <View>
                   <View style={styles.detailGrid}>
-                    <View style={styles.detailItem}><Text style={styles.detailLabel}>In</Text><Text style={styles.detailValue}>{selectedRecord.punchIn || '—'}</Text></View>
-                    <View style={styles.detailItem}><Text style={styles.detailLabel}>Out</Text><Text style={styles.detailValue}>{selectedRecord.punchOut || '—'}</Text></View>
+                    <View style={styles.detailItem}><Text style={[styles.detailLabel, { color: colors.textLight }]}>In</Text><Text style={[styles.detailValue, { color: colors.textDark }]}>{selectedRecord.punchIn || '—'}</Text></View>
+                    <View style={styles.detailItem}><Text style={[styles.detailLabel, { color: colors.textLight }]}>Out</Text><Text style={[styles.detailValue, { color: colors.textDark }]}>{selectedRecord.punchOut || '—'}</Text></View>
                   </View>
 
                   {(() => {
@@ -468,12 +475,12 @@ export default function AttendanceScreen() {
                     return (
                       <View style={{ marginTop: 12, gap: 8 }}>
                         {summaries.length > 0 && (
-                          <View style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: 4 }}>
+                          <View style={{ backgroundColor: colors.bgMain, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.borderLight }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textLight, textTransform: 'uppercase', marginBottom: 4 }}>
                               Work Report / History
                             </Text>
                             {summaries.map((s, idx) => (
-                              <Text key={idx} style={{ fontSize: 13, color: '#1E293B', lineHeight: 18, marginTop: idx > 0 ? 6 : 0 }}>
+                              <Text key={idx} style={{ fontSize: 13, color: colors.textDark, lineHeight: 18, marginTop: idx > 0 ? 6 : 0 }}>
                                 {s}
                               </Text>
                             ))}
@@ -481,33 +488,33 @@ export default function AttendanceScreen() {
                         )}
 
                         {(lReasons.length > 0 || selectedRecord.lateInPenalty?.isLate) && (
-                          <View style={{ backgroundColor: '#FFF7ED', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#FFEDD5' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#C2410C', textTransform: 'uppercase' }}>
+                          <View style={{ backgroundColor: colors.warningLight, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.warning + '20' }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.warning, textTransform: 'uppercase' }}>
                               Late Arrival
                             </Text>
-                            <Text style={{ fontSize: 12, color: '#9A3412', fontWeight: '600', marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, color: colors.textDark, fontWeight: '600', marginTop: 2 }}>
                               {lReasons.join(' · ') || 'Marked as late entry by shift policy.'}
                             </Text>
                           </View>
                         )}
 
                         {(eReasons.length > 0 || selectedRecord.earlyOutPenalty?.amount > 0) && (
-                          <View style={{ backgroundColor: '#FEF2F2', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#FEE2E2' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase' }}>
+                          <View style={{ backgroundColor: colors.dangerLight, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.danger + '20' }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.danger, textTransform: 'uppercase' }}>
                               Early Departure
                             </Text>
-                            <Text style={{ fontSize: 12, color: '#991B1B', fontWeight: '600', marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, color: colors.textDark, fontWeight: '600', marginTop: 2 }}>
                               {eReasons.join(' · ') || 'Marked as early departure.'}
                             </Text>
                           </View>
                         )}
 
                         {gReasons.length > 0 && (
-                          <View style={{ backgroundColor: '#FEF3C7', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#B45309', textTransform: 'uppercase' }}>
+                          <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.warning, textTransform: 'uppercase' }}>
                               Out of Range Punch
                             </Text>
-                            <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '600', marginTop: 2 }}>
+                            <Text style={{ fontSize: 12, color: colors.textMain, fontWeight: '600', marginTop: 2 }}>
                               {gReasons.join(' · ')}
                             </Text>
                           </View>
@@ -518,68 +525,68 @@ export default function AttendanceScreen() {
 
                   {(isMissingPunchOut || (selectedDate < todayStr && isIncomplete)) && (
                     currentRequest ? (
-                      <View style={[styles.sentRequestCard, { marginTop: 20 }, currentRequest.status === 'Rejected' && { backgroundColor: COLORS.dangerLight, borderColor: COLORS.danger + '40' }]}>
+                      <View style={[styles.sentRequestCard, { marginTop: 20, backgroundColor: colors.bgMain, borderColor: colors.borderLight }, currentRequest.status === 'Rejected' && { backgroundColor: colors.dangerLight, borderColor: colors.danger + '40' }]}>
                         <View style={styles.sentRequestHeader}>
-                          <Ionicons name={currentRequest.status === 'Rejected' ? "close-circle" : "checkmark-done-circle"} size={18} color={currentRequest.status === 'Rejected' ? COLORS.danger : COLORS.primary} />
-                          <Text style={[styles.sentRequestTitle, currentRequest.status === 'Rejected' && { color: COLORS.danger }]}>
+                          <Ionicons name={currentRequest.status === 'Rejected' ? "close-circle" : "checkmark-done-circle"} size={18} color={currentRequest.status === 'Rejected' ? colors.danger : colors.primary} />
+                          <Text style={[styles.sentRequestTitle, { color: colors.textDark }, currentRequest.status === 'Rejected' && { color: colors.danger }]}>
                             {currentRequest.status === 'Rejected' ? (isMissingPunchOut ? 'Punch out correction rejected' : 'Correction request rejected') : (isMissingPunchOut ? 'Punch out missing request is already sent' : 'Correction request is already sent')}
                           </Text>
                         </View>
                         {currentRequest.reason && (
                           <View style={styles.sentRequestRow}>
-                             <Text style={styles.sentRequestLabel}>Reason:</Text>
-                             <Text style={styles.sentRequestValue}>{currentRequest.reason}</Text>
+                             <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Reason:</Text>
+                             <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.reason}</Text>
                           </View>
                         )}
                         {currentRequest.workSummary && (
                           <View style={styles.sentRequestRow}>
-                            <Text style={styles.sentRequestLabel}>Report:</Text>
-                            <Text style={styles.sentRequestValue}>{currentRequest.workSummary}</Text>
+                            <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Report:</Text>
+                            <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.workSummary}</Text>
                           </View>
                         )}
                         {currentRequest.adminRemark && (
                           <View style={styles.sentRequestRow}>
-                            <Text style={styles.sentRequestLabel}>Admin:</Text>
-                            <Text style={[styles.sentRequestValue, { fontStyle: 'italic', color: COLORS.primary }]}>{currentRequest.adminRemark}</Text>
+                            <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Admin:</Text>
+                            <Text style={[styles.sentRequestValue, { fontStyle: 'italic', color: colors.primary }]}>{currentRequest.adminRemark}</Text>
                           </View>
                         )}
                       </View>
                     ) : (
-                      <TouchableOpacity style={[styles.requestBtn, { marginTop: 20 }]} onPress={openRequest}>
-                        <Ionicons name="build-outline" size={18} color={COLORS.white} />
-                        <Text style={styles.requestBtnText}>{isMissingPunchOut ? "Request Punch Out Correction" : "Request Correction"}</Text>
+                      <TouchableOpacity style={[styles.requestBtn, { marginTop: 20, backgroundColor: colors.primary }]} onPress={openRequest}>
+                        <Ionicons name="build-outline" size={18} color={colors.white} />
+                        <Text style={[styles.requestBtnText, { color: colors.white }]}>{isMissingPunchOut ? "Request Punch Out Correction" : "Request Correction"}</Text>
                       </TouchableOpacity>
                     )
                   )}
                 </View>
               ) : currentRequest ? (
-                <View style={[styles.sentRequestCard, currentRequest.status === 'Rejected' && { backgroundColor: COLORS.dangerLight, borderColor: COLORS.danger + '40' }]}>
+                <View style={[styles.sentRequestCard, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, currentRequest.status === 'Rejected' && { backgroundColor: colors.dangerLight, borderColor: colors.danger + '40' }]}>
                   <View style={styles.sentRequestHeader}>
-                    <Ionicons name={currentRequest.status === 'Rejected' ? "close-circle" : "information-circle"} size={16} color={currentRequest.status === 'Rejected' ? COLORS.danger : COLORS.primary} />
-                    <Text style={[styles.sentRequestTitle, currentRequest.status === 'Rejected' && { color: COLORS.danger }]}>
+                    <Ionicons name={currentRequest.status === 'Rejected' ? "close-circle" : "information-circle"} size={16} color={currentRequest.status === 'Rejected' ? colors.danger : colors.primary} />
+                    <Text style={[styles.sentRequestTitle, { color: colors.textDark }, currentRequest.status === 'Rejected' && { color: colors.danger }]}>
                       {currentRequest.status === 'Rejected' ? `Request Rejected (${currentRequest.type})` : `Request already sent (${currentRequest.type})`}
                     </Text>
                   </View>
                   <View style={styles.sentRequestRow}>
-                    <Text style={styles.sentRequestLabel}>Reason:</Text>
-                    <Text style={styles.sentRequestValue}>{currentRequest.reason}</Text>
+                    <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Reason:</Text>
+                    <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.reason}</Text>
                   </View>
                   {currentRequest.workSummary && (
                     <View style={styles.sentRequestRow}>
-                      <Text style={styles.sentRequestLabel}>Report:</Text>
-                      <Text style={styles.sentRequestValue}>{currentRequest.workSummary}</Text>
+                      <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Report:</Text>
+                      <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.workSummary}</Text>
                     </View>
                   )}
                   {currentRequest.adminRemark && (
                     <View style={styles.sentRequestRow}>
-                      <Text style={styles.sentRequestLabel}>Admin:</Text>
-                      <Text style={[styles.sentRequestValue, { fontStyle: 'italic', color: COLORS.primary }]}>{currentRequest.adminRemark}</Text>
+                      <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Admin:</Text>
+                      <Text style={[styles.sentRequestValue, { fontStyle: 'italic', color: colors.primary }]}>{currentRequest.adminRemark}</Text>
                     </View>
                   )}
                   {currentRequest.type === 'Attendance Correction' && (
                     <View style={styles.sentRequestRow}>
-                      <Text style={styles.sentRequestLabel}>Time:</Text>
-                      <Text style={styles.sentRequestValue}>
+                      <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Time:</Text>
+                      <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>
                         {(currentRequest.manualIn || currentRequest.inTime) ? new Date(currentRequest.manualIn || currentRequest.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
                         {' - '} 
                         {(currentRequest.manualOut || currentRequest.outTime) ? new Date(currentRequest.manualOut || currentRequest.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
@@ -588,18 +595,18 @@ export default function AttendanceScreen() {
                   )}
                   {currentRequest.leaveType && (
                     <View style={styles.sentRequestRow}>
-                      <Text style={styles.sentRequestLabel}>Leave:</Text>
-                      <Text style={styles.sentRequestValue}>{currentRequest.leaveType}</Text>
+                      <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Leave:</Text>
+                      <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.leaveType}</Text>
                     </View>
                   )}
                 </View>
               ) : (
                 <View>
-                  <Text style={styles.emptyText}>No logs recorded for this day.</Text>
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>No logs recorded for this day.</Text>
                   {canRequest && (
-                    <TouchableOpacity style={styles.requestBtn} onPress={openRequest}>
-                      <Ionicons name={isMissingPunchOut ? "build-outline" : "paper-plane-outline"} size={18} color={COLORS.white} />
-                      <Text style={styles.requestBtnText}>{isMissingPunchOut ? "Request Punch Out Correction" : "Request Attendance / Leave"}</Text>
+                    <TouchableOpacity style={[styles.requestBtn, { backgroundColor: colors.primary }]} onPress={openRequest}>
+                      <Ionicons name={isMissingPunchOut ? "build-outline" : "paper-plane-outline"} size={18} color={colors.white} />
+                      <Text style={[styles.requestBtnText, { color: colors.white }]}>{isMissingPunchOut ? "Request Punch Out Correction" : "Request Attendance / Leave"}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -611,50 +618,50 @@ export default function AttendanceScreen() {
 
       <Modal visible={showApply} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Request</Text>
-              <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={COLORS.textDark} /></TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: colors.textDark }]}>New Request</Text>
+              <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
-              <Text style={styles.inputLabel}><Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>
+              <Text style={[styles.inputLabel, { color: colors.textDark }]}><Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>
 
                     {!isMissingPunchOut && (
-                      <View style={styles.typeSelector}>
+                      <View style={[styles.typeSelector, { backgroundColor: colors.bgMain, borderColor: colors.borderLight, borderWidth: 1 }]}>
                         <TouchableOpacity 
-                          style={[styles.typeBtn, reqType === 'Leave' && styles.typeBtnActive]} 
+                          style={[styles.typeBtn, reqType === 'Leave' && [styles.typeBtnActive, { backgroundColor: colors.primary }]]} 
                           onPress={() => setReqType('Leave')}
                         >
-                          <Text style={[styles.typeBtnText, reqType === 'Leave' && styles.typeBtnTextActive]}>Leave</Text>
+                          <Text style={[styles.typeBtnText, { color: colors.textMuted }, reqType === 'Leave' && [styles.typeBtnTextActive, { color: colors.white }]]}>Leave</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
-                          style={[styles.typeBtn, reqType === 'Attendance Correction' && styles.typeBtnActive]} 
+                          style={[styles.typeBtn, reqType === 'Attendance Correction' && [styles.typeBtnActive, { backgroundColor: colors.primary }]]} 
                           onPress={() => setReqType('Attendance Correction')}
                         >
-                          <Text style={[styles.typeBtnText, reqType === 'Attendance Correction' && styles.typeBtnTextActive]}>Attendance</Text>
+                          <Text style={[styles.typeBtnText, { color: colors.textMuted }, reqType === 'Attendance Correction' && [styles.typeBtnTextActive, { color: colors.white }]]}>Attendance</Text>
                         </TouchableOpacity>
                       </View>
                     )}
 
                     {reqType === 'Leave' && (
                       filteredLeaves.length === 0 ? (
-                        <View style={styles.infoBox}>
-                          <Ionicons name="information-circle" size={18} color={COLORS.warning} />
-                          <Text style={styles.infoText}>
+                        <View style={[styles.infoBox, { backgroundColor: colors.warningLight, borderColor: colors.warning + '20' }]}>
+                          <Ionicons name="information-circle" size={18} color={colors.warning} />
+                          <Text style={[styles.infoText, { color: colors.textDark }]}>
                             Leave requests are not available for this date. {reqDate < todayStr ? "Back-dated leaves are restricted." : "No applicable leave types found."}
                           </Text>
                         </View>
                       ) : (
                         <View style={{ marginBottom: 16 }}>
-                          <Text style={styles.inputLabel}>Leave Type</Text>
+                          <Text style={[styles.inputLabel, { color: colors.textDark }]}>Leave Type</Text>
                           <View style={styles.leaveTypesScroll}>
                             {filteredLeaves.map(lt => (
                               <TouchableOpacity 
                                 key={lt._id} 
-                                style={[styles.ltBadge, selectedLeaveType === lt._id && styles.ltBadgeActive]}
+                                style={[styles.ltBadge, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, selectedLeaveType === lt._id && [styles.ltBadgeActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
                                 onPress={() => setSelectedLeaveType(lt._id)}
                               >
-                                <Text style={[styles.ltText, selectedLeaveType === lt._id && styles.ltTextActive]}>{lt.name}</Text>
+                                <Text style={[styles.ltText, { color: colors.textMuted }, selectedLeaveType === lt._id && [styles.ltTextActive, { color: colors.white }]]}>{lt.name}</Text>
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -664,23 +671,23 @@ export default function AttendanceScreen() {
 
                     {reqType === 'Leave' && (
                       <View style={{ marginBottom: 16 }}>
-                        <Text style={styles.inputLabel}>Leave Category</Text>
-                        <View style={styles.typeSelector}>
+                        <Text style={[styles.inputLabel, { color: colors.textDark }]}>Leave Category</Text>
+                        <View style={[styles.typeSelector, { backgroundColor: colors.bgMain, borderColor: colors.borderLight, borderWidth: 1 }]}>
                           <TouchableOpacity 
-                            style={[styles.typeBtn, leaveCategory === 'Paid' && styles.typeBtnActive]} 
+                            style={[styles.typeBtn, leaveCategory === 'Paid' && [styles.typeBtnActive, { backgroundColor: colors.primary }]]} 
                             onPress={() => setLeaveCategory('Paid')}
                           >
-                            <Text style={[styles.typeBtnText, leaveCategory === 'Paid' && styles.typeBtnTextActive]}>Paid</Text>
+                            <Text style={[styles.typeBtnText, { color: colors.textMuted }, leaveCategory === 'Paid' && [styles.typeBtnTextActive, { color: colors.white }]]}>Paid</Text>
                           </TouchableOpacity>
                           <TouchableOpacity 
-                            style={[styles.typeBtn, leaveCategory === 'Unpaid' && styles.typeBtnActive]} 
+                            style={[styles.typeBtn, leaveCategory === 'Unpaid' && [styles.typeBtnActive, { backgroundColor: colors.primary }]]} 
                             onPress={() => setLeaveCategory('Unpaid')}
                           >
-                            <Text style={[styles.typeBtnText, leaveCategory === 'Unpaid' && styles.typeBtnTextActive]}>Unpaid</Text>
+                            <Text style={[styles.typeBtnText, { color: colors.textMuted }, leaveCategory === 'Unpaid' && [styles.typeBtnTextActive, { color: colors.white }]]}>Unpaid</Text>
                           </TouchableOpacity>
                         </View>
                         {leaveCategory === 'Paid' && leaveStats.max > 0 && (
-                          <Text style={{ fontSize: 11, color: leaveStats.used >= leaveStats.max ? COLORS.danger : COLORS.textMuted, fontWeight: '700', marginTop: -8 }}>
+                          <Text style={{ fontSize: 11, color: leaveStats.used >= leaveStats.max ? colors.danger : colors.textMuted, fontWeight: '700', marginTop: -8 }}>
                             Monthly Usage: {leaveStats.used} / {leaveStats.max} {leaveStats.used >= leaveStats.max && '(Limit Reached)'}
                           </Text>
                         )}
@@ -690,18 +697,18 @@ export default function AttendanceScreen() {
 
               {reqType === 'Leave' && (
                 <View style={{ marginBottom: 16 }}>
-                  <Text style={styles.inputLabel}>Duration</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textDark }]}>Duration</Text>
                   <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Full Day' && styles.durBtnActive]} onPress={() => setLeaveDuration('Full Day')}>
-                      <Text style={[styles.durBtnText, leaveDuration === 'Full Day' && styles.durBtnTextActive]}>Full Day</Text>
+                    <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'Full Day' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => setLeaveDuration('Full Day')}>
+                      <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'Full Day' && [styles.durBtnTextActive, { color: colors.white }]]}>Full Day</Text>
                     </TouchableOpacity>
                     {leavePolicy !== 'Multiple of 1' && (
                       <>
-                        <TouchableOpacity style={[styles.durBtn, leaveDuration === 'First Half' && styles.durBtnActive]} onPress={() => setLeaveDuration('First Half')}>
-                          <Text style={[styles.durBtnText, leaveDuration === 'First Half' && styles.durBtnTextActive]}>1st Half</Text>
+                        <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'First Half' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => setLeaveDuration('First Half')}>
+                          <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'First Half' && [styles.durBtnTextActive, { color: colors.white }]]}>1st Half</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.durBtn, leaveDuration === 'Second Half' && styles.durBtnActive]} onPress={() => setLeaveDuration('Second Half')}>
-                          <Text style={[styles.durBtnText, leaveDuration === 'Second Half' && styles.durBtnTextActive]}>2nd Half</Text>
+                        <TouchableOpacity style={[styles.durBtn, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }, leaveDuration === 'Second Half' && [styles.durBtnActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]} onPress={() => setLeaveDuration('Second Half')}>
+                          <Text style={[styles.durBtnText, { color: colors.textMuted }, leaveDuration === 'Second Half' && [styles.durBtnTextActive, { color: colors.white }]]}>2nd Half</Text>
                         </TouchableOpacity>
                       </>
                     )}
@@ -715,41 +722,41 @@ export default function AttendanceScreen() {
                     <TouchableOpacity 
                       style={[
                         styles.timeDisplay, 
-                        { flex: 1, flexDirection: 'row', justifyContent: 'flex-start' },
-                        isMissingPunchOut && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }
+                        { flex: 1, flexDirection: 'row', justifyContent: 'flex-start', backgroundColor: colors.bgMain, borderColor: colors.borderLight },
+                        isMissingPunchOut && { backgroundColor: isDarkMode ? colors.bgCardElevated : '#F1F5F9', borderColor: colors.borderLight }
                       ]} 
                       onPress={() => !isMissingPunchOut && setShowInPicker(true)}
                       activeOpacity={isMissingPunchOut ? 1 : 0.7}
                     >
-                      <View style={{ backgroundColor: isMissingPunchOut ? '#64748B20' : COLORS.success + '10', padding: 8, borderRadius: 10, marginRight: 10 }}>
-                        <Ionicons name={isMissingPunchOut ? "lock-closed" : "log-in"} size={20} color={isMissingPunchOut ? "#64748B" : COLORS.success} />
+                      <View style={{ backgroundColor: isMissingPunchOut ? (isDarkMode ? 'rgba(255,255,255,0.05)' : '#64748B20') : colors.successLight, padding: 8, borderRadius: 10, marginRight: 10 }}>
+                        <Ionicons name={isMissingPunchOut ? "lock-closed" : "log-in"} size={20} color={isMissingPunchOut ? colors.textMuted : colors.success} />
                       </View>
                       <View>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>
-                          Punch In {isMissingPunchOut}
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' }}>
+                          Punch In
                         </Text>
-                        <Text style={[styles.timeValue, isMissingPunchOut && { color: '#64748B' }]}>{manualIn}</Text>
+                        <Text style={[styles.timeValue, { color: colors.textDark }, isMissingPunchOut && { color: colors.textMuted }]}>{manualIn}</Text>
                       </View>
                     </TouchableOpacity>
 
                     <TouchableOpacity 
-                      style={[styles.timeDisplay, { flex: 1, flexDirection: 'row', justifyContent: 'flex-start' }, 
-                        (new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && { borderColor: COLORS.danger }]} 
+                      style={[styles.timeDisplay, { flex: 1, flexDirection: 'row', justifyContent: 'flex-start', backgroundColor: colors.bgMain, borderColor: colors.borderLight }, 
+                        (new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && { borderColor: colors.danger }]} 
                       onPress={() => setShowOutPicker(true)}
                     >
-                      <View style={{ backgroundColor: COLORS.danger + '10', padding: 8, borderRadius: 10, marginRight: 10 }}>
-                        <Ionicons name="log-out" size={20} color={COLORS.danger} />
+                      <View style={{ backgroundColor: colors.dangerLight, padding: 8, borderRadius: 10, marginRight: 10 }}>
+                        <Ionicons name="log-out" size={20} color={colors.danger} />
                       </View>
                       <View>
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' }}>Punch Out</Text>
-                        <Text style={styles.timeValue}>{manualOut}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase' }}>Punch Out</Text>
+                        <Text style={[styles.timeValue, { color: colors.textDark }]}>{manualOut}</Text>
                       </View>
                     </TouchableOpacity>
                   </View>
                   
                   {(new Date(`${reqDate}T${manualOut}:00`) <= new Date(`${reqDate}T${manualIn}:00`)) && (
-                    <Text style={{ color: COLORS.danger, fontSize: 11, fontWeight: '700', marginTop: 0, marginLeft: 4 }}>
-                      <Ionicons name="warning" size={12} color={COLORS.danger} /> Out-time must be after In-time ({manualIn})
+                    <Text style={{ color: colors.danger, fontSize: 11, fontWeight: '700', marginTop: 0, marginLeft: 4 }}>
+                      <Ionicons name="warning" size={12} color={colors.danger} /> Out-time must be after In-time ({manualIn})
                     </Text>
                   )}
                 </View>
@@ -757,29 +764,31 @@ export default function AttendanceScreen() {
 
               {reqType === 'Attendance Correction' && (
                 <View style={{ marginBottom: 16 }}>
-                   <Text style={styles.inputLabel}>Work Report <Text style={{ color: COLORS.danger }}>*</Text></Text>
+                   <Text style={[styles.inputLabel, { color: colors.textDark }]}>Work Report <Text style={{ color: colors.danger }}>*</Text></Text>
                    <TextInput 
-                    style={[styles.input, { minHeight: 80 }]} 
+                    style={[styles.input, { minHeight: 80, backgroundColor: colors.bgMain, borderColor: colors.borderLight, color: colors.textDark }]} 
                     multiline 
                     numberOfLines={4} 
                     value={workSummary} 
                     onChangeText={setWorkSummary} 
                     placeholder="Describe your work for this day..." 
+                    placeholderTextColor={colors.textMuted}
                   />
                 </View>
               )}
 
-              <Text style={styles.inputLabel}>Reason <Text style={{ color: COLORS.danger }}>*</Text></Text>
-              <TextInput style={styles.input} multiline numberOfLines={3} value={reason} onChangeText={setReason} placeholder="Explain why..." />
+              <Text style={[styles.inputLabel, { color: colors.textDark }]}>Reason <Text style={{ color: colors.danger }}>*</Text></Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.bgMain, borderColor: colors.borderLight, color: colors.textDark }]} multiline numberOfLines={3} value={reason} onChangeText={setReason} placeholder="Explain why..." placeholderTextColor={colors.textMuted} />
               <TouchableOpacity 
                 style={[
                   styles.submitBtn, 
-                  ((reqType === 'Leave' && filteredLeaves.length === 0) || submitting) && { backgroundColor: COLORS.border, opacity: 0.7 }
+                  { backgroundColor: colors.primary },
+                  ((reqType === 'Leave' && filteredLeaves.length === 0) || submitting) && { backgroundColor: colors.border, opacity: 0.7 }
                 ]} 
                 onPress={handleSubmit} 
                 disabled={submitting || (reqType === 'Leave' && filteredLeaves.length === 0)}
               >
-                {submitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>Submit Request</Text>}
+                {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.submitBtnText, { color: colors.white }]}>Submit Request</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -789,28 +798,28 @@ export default function AttendanceScreen() {
       {/* Filtered Days List Modal */}
       <Modal visible={!!filterModalType} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>{filterModalType} Days</Text>
-                <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
+                <Text style={[styles.modalTitle, { color: colors.textDark }]}>{filterModalType} Days</Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                   Tap any day to view full punch details
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setFilterModalType(null)}>
-                <Ionicons name="close" size={24} color={COLORS.textDark} />
+                <Ionicons name="close" size={24} color={colors.textDark} />
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
               {(() => {
                 const list = getFilteredDays();
                 if (list.length === 0) {
-                  return <Text style={styles.emptyText}>No {filterModalType} days found for this month.</Text>;
+                  return <Text style={[styles.emptyText, { color: colors.textMuted }]}>No {filterModalType} days found for this month.</Text>;
                 }
                 return list.map((item) => (
                   <TouchableOpacity 
                     key={item.date}
-                    style={[styles.filterRow, SHADOW.sm, { padding: 0, overflow: 'hidden' }]}
+                    style={[styles.filterRow, SHADOW.sm, { padding: 0, overflow: 'hidden', backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}
                     activeOpacity={0.7}
                     onPress={() => {
                       setSelectedDate(item.date);
@@ -818,15 +827,23 @@ export default function AttendanceScreen() {
                     }}
                   >
                     <View style={{ flexDirection: 'row' }}>
-                      <View style={{ backgroundColor: filterModalType === 'Present' ? '#ECFDF5' : filterModalType === 'Absent' ? '#FEF2F2' : '#FFF7ED', padding: 14, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: filterModalType === 'Present' ? '#D1FAE5' : filterModalType === 'Absent' ? '#FEE2E2' : '#FFEDD5', width: 65 }}>
-                        <Text style={{ fontSize: 18, fontWeight: '900', color: filterModalType === 'Present' ? '#059669' : filterModalType === 'Absent' ? '#DC2626' : '#EA580C' }}>{format(new Date(item.date), 'dd')}</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: filterModalType === 'Present' ? '#10B981' : filterModalType === 'Absent' ? '#EF4444' : '#F97316', textTransform: 'uppercase' }}>{format(new Date(item.date), 'MMM')}</Text>
+                      <View style={{ 
+                        backgroundColor: filterModalType === 'Present' ? colors.successLight : filterModalType === 'Absent' ? colors.dangerLight : colors.warningLight, 
+                        padding: 14, 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        borderRightWidth: 1, 
+                        borderRightColor: colors.borderLight, 
+                        width: 65 
+                      }}>
+                        <Text style={{ fontSize: 18, fontWeight: '900', color: filterModalType === 'Present' ? colors.success : filterModalType === 'Absent' ? colors.danger : colors.warning }}>{format(new Date(item.date), 'dd')}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: filterModalType === 'Present' ? colors.success : filterModalType === 'Absent' ? colors.danger : colors.warning, textTransform: 'uppercase' }}>{format(new Date(item.date), 'MMM')}</Text>
                       </View>
                       <View style={{ flex: 1, padding: 14, justifyContent: 'center' }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                           <Text style={{ fontSize: 14, fontWeight: '800', color: '#1E293B' }}>{format(new Date(item.date), 'EEEE')}</Text>
-                           <View style={[styles.badge, { backgroundColor: filterModalType === 'Present' ? COLORS.successLight : filterModalType === 'Absent' ? COLORS.dangerLight : COLORS.warningLight }]}>
-                             <Text style={[styles.badgeText, { color: filterModalType === 'Present' ? COLORS.success : filterModalType === 'Absent' ? COLORS.danger : COLORS.warning }]}>
+                           <Text style={{ fontSize: 14, fontWeight: '800', color: colors.textDark }}>{format(new Date(item.date), 'EEEE')}</Text>
+                           <View style={[styles.badge, { backgroundColor: filterModalType === 'Present' ? colors.successLight : filterModalType === 'Absent' ? colors.dangerLight : colors.warningLight }]}>
+                             <Text style={[styles.badgeText, { color: filterModalType === 'Present' ? colors.success : filterModalType === 'Absent' ? colors.danger : colors.warning }]}>
                                {filterModalType}
                              </Text>
                            </View>
@@ -834,20 +851,20 @@ export default function AttendanceScreen() {
                         {item.record ? (
                           <View style={{ flexDirection: 'row', gap: 12 }}>
                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B' }}>In: {item.record.punchIn || '—'}</Text>
+                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textLight }}>In: {item.record.punchIn || '—'}</Text>
                              </View>
                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: filterModalType === 'Punch Out Miss' ? '#EF4444' : '#64748B' }} />
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: filterModalType === 'Punch Out Miss' ? '#EF4444' : '#64748B' }}>Out: {item.record.punchOut || (filterModalType === 'Punch Out Miss' ? 'MISSING' : '—')}</Text>
+                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: filterModalType === 'Punch Out Miss' ? colors.danger : colors.textLight }} />
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: filterModalType === 'Punch Out Miss' ? colors.danger : colors.textLight }}>Out: {item.record.punchOut || (filterModalType === 'Punch Out Miss' ? 'MISSING' : '—')}</Text>
                              </View>
                           </View>
                         ) : (
-                          <Text style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: '600' }}>No punch logs</Text>
+                          <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: '600' }}>No punch logs</Text>
                         )}
                       </View>
-                      <View style={{ backgroundColor: '#F8FAFC', width: 44, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: '#E2E8F0' }}>
-                         <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                      <View style={{ backgroundColor: colors.bgMain, width: 44, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: colors.borderLight }}>
+                         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -865,100 +882,95 @@ export default function AttendanceScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bgMain },
+  safe: { flex: 1 },
   header: { padding: 24, paddingBottom: 10 },
-  title: { fontSize: 24, fontWeight: '800', color: COLORS.textDark },
-  subTitle: { fontSize: 13, color: COLORS.textLight, marginTop: 4 },
+  title: { fontSize: 24, fontWeight: '800' },
+  subTitle: { fontSize: 13, marginTop: 4 },
   body: { padding: 20 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  statItem: { flex: 1, backgroundColor: COLORS.white, borderRadius: 16, padding: 12, alignItems: 'center' },
+  statItem: { flex: 1, borderRadius: 16, padding: 12, alignItems: 'center', borderWidth: 1 },
   statVal: { fontSize: 18, fontWeight: '800' },
-  statLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, marginTop: 2, textTransform: 'uppercase' },
-  calendarCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 10, marginBottom: 20 },
-  detailCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginBottom: 24 },
-  detailTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textDark, marginBottom: 16 },
+  statLabel: { fontSize: 10, fontWeight: '700', marginTop: 2, textTransform: 'uppercase' },
+  calendarCard: { borderRadius: 24, padding: 10, marginBottom: 20, borderWidth: 1 },
+  detailCard: { borderRadius: 24, padding: 20, marginBottom: 24, borderWidth: 1 },
+  detailTitle: { fontSize: 16, fontWeight: '800', marginBottom: 16 },
   detailGrid: { flexDirection: 'row', gap: 16 },
   detailItem: { flex: 1 },
-  detailLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textMuted },
-  detailValue: { fontSize: 15, fontWeight: '700', color: COLORS.textDark, marginTop: 4 },
-  emptyText: { textAlign: 'center', color: COLORS.textMuted, padding: 10 },
-  requestBtn: { backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, borderRadius: 16, marginTop: 10 },
-  requestBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '800' },
+  detailLabel: { fontSize: 11, fontWeight: '600' },
+  detailValue: { fontSize: 15, fontWeight: '700', marginTop: 4 },
+  emptyText: { textAlign: 'center', padding: 10 },
+  requestBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, borderRadius: 16, marginTop: 10 },
+  requestBtnText: { fontSize: 14, fontWeight: '800' },
   detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   sentRequestCard: { 
-    backgroundColor: COLORS.primaryLight, 
     borderRadius: 16, 
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.primary + '20'
   },
   sentRequestHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  sentRequestTitle: { fontSize: 13, fontWeight: '800', color: COLORS.primary },
+  sentRequestTitle: { fontSize: 13, fontWeight: '800' },
   sentRequestRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  sentRequestLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted },
-  sentRequestValue: { fontSize: 11, fontWeight: '700', color: COLORS.textMain, flex: 1, textAlign: 'right', marginLeft: 10 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: COLORS.white, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '90%' },
+  sentRequestLabel: { fontSize: 11, fontWeight: '700' },
+  sentRequestValue: { fontSize: 11, fontWeight: '700', flex: 1, textAlign: 'right', marginLeft: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '90%', borderWidth: 1 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textDark },
+  modalTitle: { fontSize: 20, fontWeight: '800' },
   modalBody: { gap: 16 },
-  inputLabel: { fontSize: 13, fontWeight: '700', color: COLORS.textMain, marginBottom: 8 },
-  input: { backgroundColor: COLORS.bgMain, borderRadius: 14, padding: 16, fontSize: 14, color: COLORS.textDark, textAlignVertical: 'top' },
+  inputLabel: { fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  input: { borderRadius: 14, padding: 16, fontSize: 14, textAlignVertical: 'top', borderWidth: 1 },
   typeSelector: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  typeBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.bgMain, alignItems: 'center' },
-  typeBtnActive: { backgroundColor: COLORS.primary },
-  typeBtnText: { color: COLORS.textMuted, fontWeight: '700' },
-  typeBtnTextActive: { color: COLORS.white },
-  timeDisplay: { backgroundColor: COLORS.bgMain, padding: 16, borderRadius: 14, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderLight },
-  timeValue: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
-  submitBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
-  submitBtnText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
-  durBtn: { flex: 1, padding: 12, borderRadius: 12, backgroundColor: COLORS.bgMain, alignItems: 'center', borderWidth: 1, borderColor: COLORS.borderLight },
-  durBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  durBtnText: { color: COLORS.textMuted, fontWeight: '700', fontSize: 13 },
-  durBtnTextActive: { color: COLORS.white },
+  typeBtn: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  typeBtnActive: { },
+  typeBtnText: { fontWeight: '700' },
+  typeBtnTextActive: { },
+  timeDisplay: { padding: 16, borderRadius: 14, alignItems: 'center', borderWidth: 1 },
+  timeValue: { fontSize: 14, fontWeight: '700' },
+  submitBtn: { padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 10 },
+  submitBtnText: { fontSize: 16, fontWeight: '800' },
+  durBtn: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center', borderWidth: 1 },
+  durBtnActive: { },
+  durBtnText: { fontWeight: '700', fontSize: 13 },
+  durBtnTextActive: { },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeText: { fontSize: 10, fontWeight: '700' },
   leaveTypesScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  ltBadge: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: COLORS.bgMain },
-  ltBadgeActive: { backgroundColor: COLORS.primary },
-  ltText: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
-  ltTextActive: { color: COLORS.white },
-  tpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  tpContent: { backgroundColor: COLORS.white, borderRadius: 24, padding: 24, width: '100%', maxWidth: 300 },
-  tpLabel: { fontSize: 18, fontWeight: '800', color: COLORS.textDark, textAlign: 'center', marginBottom: 20 },
+  ltBadge: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  ltBadgeActive: { },
+  ltText: { fontSize: 12, fontWeight: '600' },
+  ltTextActive: { },
+  tpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  tpContent: { borderRadius: 24, padding: 24, width: '100%', maxWidth: 300, borderWidth: 1 },
+  tpLabel: { fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 20 },
   tpPickers: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  tpSubLabel: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, textAlign: 'center', marginBottom: 8 },
+  tpSubLabel: { fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   tpItem: { padding: 12, alignItems: 'center', borderRadius: 10 },
-  tpItemActive: { backgroundColor: COLORS.primary + '15' },
-  tpText: { fontSize: 16, fontWeight: '600', color: COLORS.textMain },
-  tpTextActive: { color: COLORS.primary, fontWeight: '800' },
-  tpDivider: { width: 1, height: 150, backgroundColor: COLORS.borderLight, marginHorizontal: 20 },
+  tpItemActive: { },
+  tpText: { fontSize: 16, fontWeight: '600' },
+  tpTextActive: { fontWeight: '800' },
+  tpDivider: { width: 1, height: 150, marginHorizontal: 20 },
   tpFooter: { flexDirection: 'row', gap: 12, marginTop: 24 },
   tpBtn: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
-  infoBox: { flexDirection: 'row', gap: 10, backgroundColor: COLORS.warningLight, padding: 16, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.warning + '20' },
-  infoText: { flex: 1, fontSize: 13, color: COLORS.warning, fontWeight: '600' },
+  infoBox: { flexDirection: 'row', gap: 10, padding: 16, borderRadius: 14, marginBottom: 16, borderWidth: 1 },
+  infoText: { flex: 1, fontSize: 13, fontWeight: '600' },
   filterRow: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: COLORS.white, 
     borderRadius: 16, 
     padding: 14, 
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: COLORS.borderLight
   },
   filterRowDate: { 
     alignItems: 'center', 
-    backgroundColor: COLORS.bgMain, 
     paddingHorizontal: 10, 
     paddingVertical: 6, 
     borderRadius: 10, 
     marginRight: 12,
     minWidth: 50
   },
-  filterRowDayName: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, textTransform: 'uppercase' },
-  filterRowDateNum: { fontSize: 14, fontWeight: '800', color: COLORS.primary, marginTop: 2 },
+  filterRowDayName: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  filterRowDateNum: { fontSize: 14, fontWeight: '800', marginTop: 2 },
   filterRowDetails: { flex: 1 },
-  filterRowTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textDark },
+  filterRowTitle: { fontSize: 13, fontWeight: '700' },
 });

@@ -14,21 +14,27 @@ export const getDistance = (lat1, lon1, lat2, lon2) => {
 export const computeWorkingMinutes = (punches, breaks = [], shiftConfig = null) => {
     if (!punches || punches.length === 0) return 0;
 
-    // RULE: If any IN has no corresponding OUT, we do NOT count the hours
-    // Simplified: Check if the last punch of the day is OUT.
     const sorted = [...punches].sort((a, b) => new Date(a.time) - new Date(b.time));
-    const lastPunch = sorted[sorted.length - 1];
-
-    if (lastPunch.type !== 'OUT') {
-        return 0; // Zero working hours until the employee does a punch out
-    }
-
     const firstIn = sorted.find(p => p.type === 'IN');
     if (!firstIn) return 0;
-    
+
+    const lastPunch = sorted[sorted.length - 1];
+    let endTime;
+
+    if (lastPunch.type === 'OUT') {
+        endTime = new Date(lastPunch.time);
+    } else {
+        // If still clocked in, check if it's an active ongoing punch from the current shift/day (e.g. less than 20 hours ago)
+        const now = new Date();
+        const startTime = new Date(firstIn.time);
+        if (now - startTime < 20 * 3600 * 1000) {
+            endTime = now;
+        } else {
+            return 0; // Incomplete punch from a past day
+        }
+    }
+
     const startTime = new Date(firstIn.time);
-    const endTime = new Date(lastPunch.time);
-    
     const totalMs = endTime - startTime;
     return Math.max(0, Math.round(totalMs / 60000));
 };

@@ -7,13 +7,13 @@ import '../../styles/EmployeePanel.css';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 const statusConfig = {
-  Present: { label: 'Present', color: '#10B981', bg: '#ECFDF5' },
-  'Half Day': { label: 'Half Day', color: '#F59E0B', bg: '#FFFBEB' },
-  Absent: { label: 'Absent', color: '#EF4444', bg: '#FEF2F2' },
-  'On Leave': { label: 'On Leave', color: '#8B5CF6', bg: '#F5F3FF' },
-  Incomplete: { label: 'Incomplete', color: '#F97316', bg: '#FFF7ED' },
-  'Clocked In': { label: 'Clocked In', color: '#F97316', bg: '#FFF7ED' },
-  weekend: { label: 'Weekend', color: 'var(--text-muted)', bg: '#F8FAFC' },
+  Present: { label: 'Present', color: 'var(--ep-accent-green)', bg: 'rgba(16, 185, 129, 0.15)' },
+  'Half Day': { label: 'Half Day', color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
+  Absent: { label: 'Absent', color: 'var(--ep-accent-red)', bg: 'rgba(239, 68, 68, 0.15)' },
+  'On Leave': { label: 'On Leave', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)' },
+  Incomplete: { label: 'Incomplete', color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
+  'Clocked In': { label: 'Clocked In', color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
+  weekend: { label: 'Weekend', color: 'var(--ep-text-muted)', bg: 'rgba(255, 255, 255, 0.02)' },
 };
 
 const EmployeeAttendance = () => {
@@ -169,20 +169,20 @@ const EmployeeAttendance = () => {
                 
                 {/* Penalty Section */}
                 {(selected.lateInPenalty?.amount > 0 || selected.earlyOutPenalty?.amount > 0) && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: '#FEF2F2', borderRadius: '8px', borderLeft: '4px solid #EF4444' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#B91C1C', fontWeight: 600, marginBottom: '8px' }}>
+                  <div style={{ marginTop: '12px', padding: '14px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.25)', borderLeft: '4px solid var(--ep-accent-red)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--ep-accent-red)', fontWeight: 700, marginBottom: '10px', fontSize: '13px', fontFamily: 'Sora, sans-serif' }}>
                       <AlertCircle size={16} /> Attendance Penalties
                     </div>
                     {selected.lateInPenalty?.amount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#7F1D1D', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--ep-text-secondary)', marginBottom: '6px' }}>
                         <span>Late In Penalty:</span>
-                        <span style={{ fontWeight: 600 }}>₹{selected.lateInPenalty.amount}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--ep-text-main)' }}>₹{selected.lateInPenalty.amount}</span>
                       </div>
                     )}
                     {selected.earlyOutPenalty?.amount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#7F1D1D' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--ep-text-secondary)' }}>
                         <span>Early Out Penalty:</span>
-                        <span style={{ fontWeight: 600 }}>₹{selected.earlyOutPenalty.amount}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--ep-text-main)' }}>₹{selected.earlyOutPenalty.amount}</span>
                       </div>
                     )}
                   </div>

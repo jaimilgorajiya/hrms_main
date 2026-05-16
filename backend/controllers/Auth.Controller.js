@@ -4,7 +4,17 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import admin from 'firebase-admin';
 import { generateEmployeeId } from "../utils/employeeId.js";
-import { sendPasswordResetEmail } from "../utils/emailService.js";
+import { sendPasswordResetEmail, sendAdminWelcomeEmail } from "../utils/emailService.js";
+import Company from "../models/Company.Model.js";
+import Package from "../models/Package.Model.js";
+import Client from "../models/Client.Model.js";
+import Razorpay from "razorpay";
+import nodemailer from "nodemailer";
+
+const razorpayInstance = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_Rya7YN2wKhxeQO',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'eevaOjQnOAz22VKp8Y4HdEyF',
+});
 
 const otpLogin = async (req, res) => {
     try {
@@ -228,6 +238,161 @@ const register = async (req, res) => {
     }
 };
 
+export const signup = async (req, res) => {
+    try {
+        const { ownerName, businessName, email, phoneNumber, packageId } = req.body;
+        
+        if (!ownerName || !businessName || !email || !phoneNumber || !packageId) {
+            return res.status(400).json({ success: false, message: "All fields are required" });
+        }
+
+        const existingUser = await User.findOne({ email: email.trim().toLowerCase() });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: "Email is already registered" });
+        }
+
+        const selectedPackage = await Package.findById(packageId);
+        if (!selectedPackage) {
+            return res.status(404).json({ success: false, message: "Package not found" });
+        }
+
+        // Create dummy password temporarily
+        const tempPassword = await bcrypt.hash(crypto.randomBytes(8).toString('hex'), 10);
+        const employeeId = await generateEmployeeId();
+
+        const newUser = new User({
+            name: ownerName,
+            email: email.trim().toLowerCase(),
+            password: tempPassword,
+            role: "Admin",
+            status: "Inactive", // Will be active after payment
+            employeeId,
+            phone: phoneNumber
+        });
+        await newUser.save();
+
+        const newCompany = new Company({
+            adminId: newUser._id,
+            companyName: businessName,
+            ownerName,
+            companyEmail: email.trim().toLowerCase(),
+            companyContact: phoneNumber,
+            address: "To be updated",
+            pincode: "000000",
+            packageId: selectedPackage._id,
+            paymentStatus: 'pending',
+            isActive: false
+        });
+        await newCompany.save();
+
+        const newClient = new Client({
+            adminId: newUser._id,
+            ownerName,
+            businessName,
+            email: email.trim().toLowerCase(),
+            phoneNumber,
+            packageId: selectedPackage._id,
+            paymentStatus: 'pending',
+            isActive: false,
+            softwareAccess: 'HRMS',
+            maxEmployees: selectedPackage.maxEmployees || 0
+        });
+        await newClient.save();
+
+        // Create Razorpay Order
+        const options = {
+            amount: selectedPackage.price * 100, // in paise
+            currency: "INR",
+            receipt: `receipt_${newUser._id}`,
+        };
+
+        const order = await razorpayInstance.orders.create(options);
+
+        res.status(201).json({
+            success: true,
+            order,
+            userId: newUser._id,
+            companyId: newCompany._id,
+            key_id: razorpayInstance.key_id
+        });
+
+    } catch (error) {
+        console.error("Signup Error:", error);
+        res.status(500).json({ success: false, message: "Server error during signup" });
+    }
+};
+
+export const verifyPayment = async (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId, companyId } = req.body;
+
+        const body = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'eevaOjQnOAz22VKp8Y4HdEyF')
+            .update(body.toString())
+            .digest("hex");
+
+        if (expectedSignature !== razorpay_signature) {
+            return res.status(400).json({ success: false, message: "Invalid payment signature" });
+        }
+
+        const company = await Company.findById(companyId).populate("packageId");
+        if (!company) {
+            return res.status(404).json({ success: false, message: "Company not found" });
+        }
+
+        const pkgDuration = company.packageId.duration;
+        let expiryDate = new Date();
+        if (pkgDuration.unit === 'day') expiryDate.setDate(expiryDate.getDate() + pkgDuration.value);
+        if (pkgDuration.unit === 'month') expiryDate.setMonth(expiryDate.getMonth() + pkgDuration.value);
+        if (pkgDuration.unit === 'year') expiryDate.setFullYear(expiryDate.getFullYear() + pkgDuration.value);
+
+        company.paymentStatus = 'completed';
+        company.isActive = true;
+        company.packageStartDate = new Date();
+        company.packageExpiryDate = expiryDate;
+        await company.save();
+
+        // Update Client record
+        const client = await Client.findOne({ adminId: userId });
+        if (client) {
+            client.paymentStatus = 'completed';
+            client.isActive = true;
+            client.packageStartDate = new Date();
+            client.packageExpiryDate = expiryDate;
+            client.maxEmployees = company.packageId.maxEmployees || 10;
+            client.paymentHistory.push({
+                packageId: company.packageId._id,
+                amount: company.packageId.price,
+                paymentId: razorpay_payment_id,
+                status: 'completed',
+                type: 'subscription'
+            });
+            await client.save();
+        }
+
+        const plainPassword = crypto.randomBytes(6).toString('hex');
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+        const user = await User.findById(userId);
+        user.status = "Active";
+        user.password = hashedPassword;
+        await user.save();
+
+        // Send Email using the styled template
+        try {
+            await sendAdminWelcomeEmail(user.email, user.name, plainPassword);
+        } catch (emailErr) {
+            console.log("Welcome email failed, but payment succeeded", emailErr);
+        }
+
+        res.status(200).json({ success: true, message: "Payment verified successfully" });
+    } catch (error) {
+        console.error("Payment Verification Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
 const login = async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -242,16 +407,30 @@ const login = async (req, res) => {
 
     email = email.trim().toLowerCase();
 
-    // Find user - using case-insensitive search to be safe for existing data
-    // Populate managementRole so frontend immediately knows permissions
-    const user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } })
+    // Find all users with this email (multi-tenant support)
+    const users = await User.find({ email: { $regex: new RegExp(`^${email}$`, 'i') } })
       .populate("managementRole");
+    
+    if (users.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    let user = null;
+    if (users.length === 1) {
+        user = users[0];
+    } else {
+        // Multi-tenant: Find the one that matches the password
+        for (const u of users) {
+            const match = await bcrypt.compare(password, u.password);
+            if (match) {
+                user = u;
+                break;
+            }
+        }
+    }
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
     // Check account status
@@ -278,6 +457,19 @@ const login = async (req, res) => {
             success: false,
             message: "Employees can only access the HRMS via the Mobile App."
         });
+    }
+
+    // SaaS Package Check for Admins
+    if (user.role === 'Admin') {
+        const client = await Client.findOne({ adminId: user._id });
+        if (client) {
+            if (!client.isActive) {
+                return res.status(403).json({ success: false, message: "Your account is inactive. Please contact support." });
+            }
+            if (client.packageExpiryDate && new Date() > new Date(client.packageExpiryDate)) {
+                return res.status(403).json({ success: false, message: "Your package has expired. You cannot login until you renew your package." });
+            }
+        }
     }
 
     // Compare password
@@ -416,12 +608,23 @@ export { register, login, otpLogin, logout, verifyUser, changePassword, checkPho
 
 export const forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
+        let { email } = req.body;
         if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
-        const user = await User.findOne({ email: email.trim().toLowerCase() });
-        // Always return success to prevent email enumeration
-        if (!user) return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+        email = email.trim().toLowerCase();
+
+        // Use case-insensitive search and check both work and personal email
+        const user = await User.findOne({ 
+            $or: [
+                { email: { $regex: new RegExp(`^${email}$`, 'i') } },
+                { personalEmail: { $regex: new RegExp(`^${email}$`, 'i') } }
+            ]
+        });
+
+        if (!user) {
+            console.log(`Password reset attempt for non-existent email: ${email}`);
+            return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+        }
 
         const token = crypto.randomBytes(32).toString('hex');
         const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -464,3 +667,4 @@ export const resetPassword = async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 };
+

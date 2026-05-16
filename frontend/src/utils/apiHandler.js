@@ -28,16 +28,15 @@ export const authenticatedFetch = async (endpoint, options = {}) => {
     try {
         const response = await fetch(url, config);
 
-        if (response.status === 401) {
-            // Token expired or unauthorized
-            console.warn('Unauthorized access detected. Logging out...');
+        if (response.status === 401 || response.status === 403) {
+            // Token expired, unauthorized, or Account Inactive
+            console.warn('Access denied or account inactive. Logging out...');
             
             // Clear local storage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             
             // Redirect to login page
-            // We use window.location.href to ensure a full reload and clear any state
             if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/login?expired=true';
             }

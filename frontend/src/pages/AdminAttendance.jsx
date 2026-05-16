@@ -4,6 +4,7 @@ import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, 
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
+import Swal from 'sweetalert2';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -64,8 +65,15 @@ const AdminAttendance = () => {
         setManualModal(false);
         setManualData({ ...manualData, employeeId: '', remark: '' });
         fetchRecords();
+        Swal.fire({
+          title: 'Success!',
+          text: 'Attendance log added successfully.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
       } else {
-        alert(json.message);
+        Swal.fire('Error', json.message, 'error');
       }
     } catch (e) { console.error(e); }
     finally { setFormLoading(false); }
@@ -90,6 +98,12 @@ const AdminAttendance = () => {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
   useEffect(() => { if (manualModal) fetchEmployees(); }, [manualModal]);
+
+  const [liveNow, setLiveNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setLiveNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const filtered = records.filter(r => {
     const q = search.toLowerCase();
@@ -223,49 +237,65 @@ const AdminAttendance = () => {
                   <p style={{ fontWeight: '800', color: 'var(--text-dark)' }}>No Records Found</p>
                 </td></tr>
               ) : (
-                filtered.map(r => (
-                  <tr key={r._id} 
-                    onClick={() => { setSelectedRecord(r); setDrawerOpen(true); }}
-                    style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                    className="hrm-table-row-hover"
-                  >
-                    <td style={{ paddingLeft: '24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'var(--bg-main)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: 'var(--primary-blue)' }}>
-                          {r.employee?.name?.charAt(0)}
+                filtered.map(r => {
+                  let displayHours = r.workingFormatted || '00:00';
+                  if (r.status === 'Clocked In' && r.punches?.length > 0) {
+                    const firstIn = r.punches.find(p => p.type === 'IN');
+                    if (firstIn) {
+                      const start = new Date(firstIn.time);
+                      if (liveNow - start < 20 * 3600 * 1000) {
+                        const diffMins = Math.max(0, Math.round((liveNow - start) / 60000));
+                        const h = Math.floor(diffMins / 60);
+                        const m = diffMins % 60;
+                        displayHours = `${h}h ${m}m`;
+                      }
+                    }
+                  }
+
+                  return (
+                    <tr key={r._id} 
+                      onClick={() => { setSelectedRecord(r); setDrawerOpen(true); }}
+                      style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                      className="hrm-table-row-hover"
+                    >
+                      <td style={{ paddingLeft: '24px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'var(--bg-main)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: 'var(--primary-blue)' }}>
+                            {r.employee?.name?.charAt(0)}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employee?.name}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{r.employee?.employeeId} · {r.employee?.department}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employee?.name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{r.employee?.employeeId} · {r.employee?.department}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`hrm-badge ${['Present', 'Clocked In'].includes(r.status) ? 'hrm-badge-success' : r.status === 'Absent' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ fontSize: '10px' }}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td>
-                      {r.punchIn ? <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}><LogIn size={13} color="var(--success)" /> {r.punchIn}</div> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td>
-                      {r.punchOut ? <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}><LogOut size={13} color="var(--danger)" /> {r.punchOut}</div> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary-blue)' }}>{r.workingFormatted || '00:00'}</div>
-                    </td>
-                    <td>
-                      <span className={`hrm-badge ${r.approvalStatus === 'Approved' ? 'hrm-badge-success' : r.approvalStatus === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
-                         {r.approvalStatus || 'Pending'}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center', paddingRight: '24px' }}>
-                      <button className="icon-btn" style={{ margin: '0 auto' }}>
-                        <ArrowRight size={20} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td>
+                        <span className={`hrm-badge ${['Present', 'Clocked In'].includes(r.status) ? 'hrm-badge-success' : r.status === 'Absent' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ fontSize: '10px' }}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td>
+                        {r.punchIn ? <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}><LogIn size={13} color="var(--success)" /> {r.punchIn}</div> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      </td>
+                      <td>
+                        {r.punchOut ? <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '6px' }}><LogOut size={13} color="var(--danger)" /> {r.punchOut}</div> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary-blue)' }}>{displayHours}</div>
+                      </td>
+                      <td>
+                        <span className={`hrm-badge ${r.approvalStatus === 'Approved' ? 'hrm-badge-success' : r.approvalStatus === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
+                           {r.approvalStatus || 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center', paddingRight: '24px' }}>
+                        <button className="icon-btn" style={{ margin: '0 auto' }}>
+                          <ArrowRight size={20} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

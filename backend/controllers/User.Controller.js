@@ -23,35 +23,59 @@ const createUser = async (req, res) => {
 
         const { emailId, email, firstName, lastName } = bodyContent;
         const targetEmail = emailId || email;
+        const adminId = req.user._id;
         
         if (!targetEmail) {
             return res.status(400).json({ success: false, message: "Email is required" });
         }
 
-        // Check if user already exists
-        console.log('Checking email:', targetEmail);
-        console.log('Trimmed email:', targetEmail.trim());
+        // --- ENFORCE EMPLOYEE LIMIT ---
+        const Client = (await import('../models/Client.Model.js')).default;
+        const client = await Client.findOne({ adminId });
         
-        // Let MongoDB handle the lowercase conversion via the model schema
+        if (client) {
+            const currentEmployeeCount = await User.countDocuments({ adminId });
+            const maxAllowed = client.maxEmployees || 0;
+            
+            if (currentEmployeeCount >= maxAllowed) {
+                return res.status(403).json({ 
+                    success: false, 
+                    limitReached: true,
+                    message: `You have reached your limit of ${maxAllowed} employees. Please upgrade your plan or purchase an add-on to add more team members.`
+                });
+            }
+        }
+        // ------------------------------
+
+        // Check if user already exists in THIS company
         const existingUser = await User.findOne({ 
-            email: targetEmail.trim() 
+            email: targetEmail.trim(),
+            adminId: req.user._id
         });
-        console.log('Existing user found:', existingUser ? 'YES' : 'NO');
+        
         if (existingUser) {
-            console.log('Existing user email:', existingUser.email);
+            return res.status(400).json({ success: false, message: "User with this email already exists in your company" });
         }
         
-        if (existingUser) {
-            return res.status(400).json({ success: false, message: "User with this email already exists" });
+        // Check for existing employee ID in THIS company
+        if (bodyContent.employeeId) {
+            const idExists = await User.findOne({ 
+                employeeId: bodyContent.employeeId.trim(),
+                adminId: req.user._id
+            });
+            if (idExists) {
+                return res.status(400).json({ success: false, message: "Employee ID already exists in your company" });
+            }
         }
 
-        // Check if phone already exists
+        // Check if phone already exists in THIS company
         if (bodyContent.phone) {
             const phoneExists = await User.findOne({ 
-                phone: bodyContent.phone.trim() 
+                phone: bodyContent.phone.trim(),
+                adminId: req.user._id
             });
             if (phoneExists) {
-                return res.status(400).json({ success: false, message: "A user with this phone number already exists" });
+                return res.status(400).json({ success: false, message: "A user with this phone number already exists in your company" });
             }
         }
         
@@ -219,13 +243,8 @@ const getUsers = async (req, res) => {
 
         const users = await User.find({ 
             role: { $ne: 'Admin' },
+            adminId,
             $and: [
-                {
-                    $or: [
-                        { adminId },
-                        { adminId: { $exists: false } }
-                    ]
-                },
                 {
                     $or: [
                         { status: { $in: ['Active', 'Inactive', 'Onboarding'] } },
@@ -279,13 +298,8 @@ const getExEmployees = async (req, res) => {
         const adminId = req.user._id;
         const users = await User.find({ 
             role: { $ne: 'Admin' },
+            adminId,
             $and: [
-                {
-                    $or: [
-                        { adminId },
-                        { adminId: { $exists: false } }
-                    ]
-                },
                 {
                     $or: [
                         { status: { $in: ['Ex-Employee', 'Terminated', 'Absconding', 'Retired'] } },
@@ -698,4 +712,53 @@ const getLeaveBalances = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances };
+const updateUserStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, isActive } = req.body;
+        
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (status) user.status = status;
+        if (isActive !== undefined) {
+            user.status = isActive ? "Active" : "Inactive";
+        }
+        await user.save();
+
+        // Also update the associated company if it exists
+        const Company = (await import('../models/Company.Model.js')).default;
+        const company = await Company.findOne({ adminId: id });
+        if (company) {
+            company.isActive = user.status === "Active";
+            await company.save();
+        }
+
+        res.status(200).json({ success: true, message: `User status updated to ${user.status}`, user });
+    } catch (error) {
+        console.error("Error in updateUserStatus:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+const deleteProfilePhoto = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        user.profilePhoto = null;
+        await user.save();
+
+        res.status(200).json({ success: true, message: "Profile photo removed successfully", user });
+    } catch (error) {
+        console.error("Error in deleteProfilePhoto:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto };

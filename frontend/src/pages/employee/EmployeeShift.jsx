@@ -129,7 +129,7 @@ const EmployeeShift = () => {
 
       {/* Weekly schedule */}
       <div className="ep-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="ep-card-header" style={{ padding: '16px 20px', borderBottom: '1px solid #F1F5F9' }}>
+        <div className="ep-card-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--ep-border)' }}>
           <Calendar size={17} /><h3>Weekly Schedule</h3>
         </div>
         <div className="ep-shift-week-grid">
@@ -195,7 +195,7 @@ const EmployeeShift = () => {
             <div className="ep-policy-row"><label>Type</label><span>{shift.lateEarlyType || '—'}</span></div>
             <div className="ep-policy-row">
               <label>Apply Leave if Exceeded</label>
-              <span>{shift.applyLeaveIfLimitExceeded ? <CheckCircle size={14} color="#10B981" /> : <XCircle size={14} color="var(--text-muted)" />}</span>
+              <span>{shift.applyLeaveIfLimitExceeded ? <CheckCircle size={14} color="var(--ep-accent-green)" /> : <XCircle size={14} color="var(--ep-text-muted)" />}</span>
             </div>
             {shift.applyLeaveIfLimitExceeded && (
               <div className="ep-policy-row"><label>Leave Type</label><span>{shift.leaveTypeIfExceeded}</span></div>
@@ -210,7 +210,7 @@ const EmployeeShift = () => {
             <div className="ep-policy-row"><label>Break Mode</label><span>{shift.breakMode || '—'}</span></div>
             <div className="ep-policy-row">
               <label>Short Leave Allowed</label>
-              <span>{shift.allowShortLeave ? <CheckCircle size={14} color="#10B981" /> : <XCircle size={14} color="var(--text-muted)" />}</span>
+              <span>{shift.allowShortLeave ? <CheckCircle size={14} color="var(--ep-accent-green)" /> : <XCircle size={14} color="var(--ep-text-muted)" />}</span>
             </div>
             {shift.allowShortLeave && <>
               <div className="ep-policy-row"><label>Monthly Short Leaves</label><span>{shift.monthlyShortLeaves}</span></div>
@@ -232,7 +232,7 @@ const EmployeeShift = () => {
             <div className="ep-policy-row"><label>Week Off Days</label><span>{shift.weekOffDays?.join(', ') || '—'}</span></div>
             <div className="ep-policy-row">
               <label>Multiple Punch</label>
-              <span>{shift.multiplePunchAllowed ? <CheckCircle size={14} color="#10B981" /> : <XCircle size={14} color="var(--text-muted)" />}</span>
+              <span>{shift.multiplePunchAllowed ? <CheckCircle size={14} color="var(--ep-accent-green)" /> : <XCircle size={14} color="var(--ep-text-muted)" />}</span>
             </div>
           </div>
         </div>

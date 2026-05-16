@@ -225,12 +225,14 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 32px;
   margin-bottom: 32px;
+  align-items: start;
 }
 
 .dashboard-main-grid {
   display: grid;
   grid-template-columns: 1.8fr 1fr;
   gap: 32px;
+  align-items: start;
 }
 
 .card-prem {

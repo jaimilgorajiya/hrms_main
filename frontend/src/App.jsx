@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLayout from "./layout/AdminLayout";
@@ -73,6 +74,7 @@ import EmployeeDocuments from './pages/employee/EmployeeDocuments';
 import EmployeeShift from './pages/employee/EmployeeShift';
 import EmployeeResignation from './pages/employee/EmployeeResignation';
 import ResetPassword from './pages/ResetPassword';
+import AdminPackages from './pages/AdminPackages';
 
 function App() {
   return (
@@ -81,7 +83,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login isRegister={false} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/register" element={<Login isRegister={true} />} />
+          <Route path="/register" element={<Signup />} />
 
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
             <Route path="/admin" element={<AdminLayout />}>
@@ -165,6 +167,7 @@ function App() {
               <Route path="holidays/*" element={<ModulePlaceholder title="Holiday Management" />} />
               <Route path="documents/*" element={<ModulePlaceholder title="Company Documents" />} />
               <Route path="engagement/*" element={<ModulePlaceholder title="Employee Engagement" />} />
+              <Route path="packages" element={<AdminPackages />} />
             </Route>
             <Route path="/admin-dashboard" element={<Navigate to="/admin" replace />} />
           </Route>

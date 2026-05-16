@@ -67,24 +67,27 @@ const EmployeeResignation = () => {
   };
 
   const statusColors = {
-    Pending: { color: '#F59E0B', bg: '#FFF7ED', icon: <Clock size={20} /> },
-    Approved: { color: '#10B981', bg: '#F0FDF4', icon: <CheckCircle size={20} /> },
-    Rejected: { color: '#EF4444', bg: '#FEF2F2', icon: <XCircle size={20} /> },
+    Pending: { color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)', icon: <Clock size={16} /> },
+    Approved: { color: 'var(--ep-accent-green)', bg: 'rgba(16, 185, 129, 0.15)', icon: <CheckCircle size={16} /> },
+    Rejected: { color: 'var(--ep-accent-red)', bg: 'rgba(239, 68, 68, 0.15)', icon: <XCircle size={16} /> },
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="dashboard-loading">
+        <div className="loader"></div>
+        <span>Loading resignation details...</span>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', margin: '0 0 4px' }}>Resignation</h2>
-        <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px' }}>Initiate your resignation process or track your request status</p>
+    <div className="ep-page">
+      <div className="ep-page-header">
+        <div>
+          <h2>Resignation</h2>
+          <p>Initiate your resignation process or track your request status</p>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: resignation ? '1fr' : '1fr 350px', gap: '32px' }}>
@@ -92,83 +95,81 @@ const EmployeeResignation = () => {
         {/* Left Column: Form or Current Status */}
         <div>
           {resignation ? (
-            <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <div className="ep-card">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>Request Details</h3>
+                <h3 style={{ fontFamily: 'Sora, sans-serif', fontSize: '18px', fontWeight: '800', margin: 0, color: 'var(--ep-text-main)' }}>Request Details</h3>
                 <div style={{ 
                   display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '12px',
-                  backgroundColor: statusColors[resignation.status].bg, color: statusColors[resignation.status].color,
+                  backgroundColor: statusColors[resignation.status]?.bg, color: statusColors[resignation.status]?.color,
                   fontWeight: '700', fontSize: '13px'
                 }}>
-                  {statusColors[resignation.status].icon}
+                  {statusColors[resignation.status]?.icon}
                   {resignation.status}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-                <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Applied On</div>
-                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(resignation.createdAt).toLocaleDateString()}</div>
+                <div style={{ padding: '20px', background: 'var(--ep-surface-elevated)', borderRadius: '16px', border: '1px solid var(--ep-border)' }}>
+                   <div style={{ fontFamily: 'Sora, sans-serif', fontSize: '11px', color: 'var(--ep-text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}>Applied On</div>
+                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--ep-text-main)' }}>{new Date(resignation.createdAt).toLocaleDateString('en-IN')}</div>
                 </div>
-                <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Requested LWD</div>
-                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{new Date(resignation.lastWorkingDay).toLocaleDateString()}</div>
+                <div style={{ padding: '20px', background: 'var(--ep-surface-elevated)', borderRadius: '16px', border: '1px solid var(--ep-border)' }}>
+                   <div style={{ fontFamily: 'Sora, sans-serif', fontSize: '11px', color: 'var(--ep-text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.05em' }}>Requested LWD</div>
+                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--ep-text-main)' }}>{new Date(resignation.lastWorkingDay).toLocaleDateString('en-IN')}</div>
                 </div>
               </div>
 
               <div style={{ marginBottom: '24px' }}>
-                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px' }}>Reason for Resignation</div>
-                 <div style={{ padding: '20px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9', color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '14px' }}>
+                 <div style={{ fontFamily: 'Sora, sans-serif', fontSize: '11px', color: 'var(--ep-text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Reason for Resignation</div>
+                 <div style={{ padding: '20px', background: 'var(--ep-surface-elevated)', borderRadius: '16px', border: '1px solid var(--ep-border)', color: 'var(--ep-text-secondary)', lineHeight: '1.6', fontSize: '14px' }}>
                    {resignation.reason}
                  </div>
               </div>
 
               {resignation.comments && (
-                <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#EFF6FF', borderRadius: '16px', border: '1px solid #DBEAFE' }}>
-                   <div style={{ fontSize: '11px', color: '#2563EB', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px' }}>Admin Comments</div>
-                   <p style={{ margin: 0, fontSize: '14px', color: '#1E40AF', fontWeight: '500' }}>{resignation.comments}</p>
+                <div style={{ marginTop: '24px', padding: '20px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                   <div style={{ fontFamily: 'Sora, sans-serif', fontSize: '11px', color: 'var(--ep-accent-primary-hover)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Admin Comments</div>
+                   <p style={{ margin: 0, fontSize: '14px', color: 'var(--ep-text-main)', fontWeight: '600' }}>{resignation.comments}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <div className="ep-card">
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '10px' }}>Notice Details</label>
+                  <label style={{ display: 'block', fontFamily: 'Sora, sans-serif', fontSize: '13px', fontWeight: '700', color: 'var(--ep-text-secondary)', marginBottom: '10px' }}>Notice Details</label>
                   <div style={{ position: 'relative' }}>
-                    <Calendar size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <Calendar size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ep-text-muted)' }} />
                     <input 
                       type="date"
                       value={lastWorkingDay}
                       onChange={e => setLastWorkingDay(e.target.value)}
-                      style={{ width: '100%', padding: '14px 14px 14px 48px', border: '1.5px solid #E2E8F0', borderRadius: '14px', outline: 'none', fontSize: '14px' }}
+                      style={{ width: '100%', padding: '14px 14px 14px 48px', background: 'var(--ep-surface-elevated)', border: '1px solid var(--ep-border)', color: 'var(--ep-text-main)', borderRadius: '14px', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }}
                       min={new Date().toISOString().split('T')[0]}
+                      required
                     />
                   </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>Please select your preferred last working day based on your notice period.</p>
+                  <p style={{ fontSize: '12px', color: 'var(--ep-text-muted)', marginTop: '8px' }}>Please select your preferred last working day based on your notice period.</p>
                 </div>
 
                 <div style={{ marginBottom: '32px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '10px' }}>Reason for Resignation</label>
+                  <label style={{ display: 'block', fontFamily: 'Sora, sans-serif', fontSize: '13px', fontWeight: '700', color: 'var(--ep-text-secondary)', marginBottom: '10px' }}>Reason for Resignation</label>
                   <textarea 
                     value={reason}
                     onChange={e => setReason(e.target.value)}
                     placeholder="Share your thoughts or future plans..."
-                    style={{ width: '100%', padding: '16px', border: '1.5px solid #E2E8F0', borderRadius: '16px', outline: 'none', minHeight: '180px', fontSize: '14px', resize: 'none' }}
+                    style={{ width: '100%', padding: '16px', background: 'var(--ep-surface-elevated)', border: '1px solid var(--ep-border)', color: 'var(--ep-text-main)', borderRadius: '16px', outline: 'none', minHeight: '180px', fontSize: '14px', resize: 'none', boxSizing: 'border-box' }}
+                    required
                   />
                 </div>
 
                 <button 
                   type="submit" 
                   disabled={submitting}
-                  style={{ 
-                    width: '100%', padding: '16px', borderRadius: '16px', border: 'none', 
-                    background: '#EF4444', color: '#fff', fontWeight: '800', fontSize: '16px', 
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                    transition: 'all 0.2s', opacity: submitting ? 0.7 : 1
-                  }}
+                  className="ep-btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '16px', fontSize: '15px' }}
                 >
-                  <Send size={20} /> {submitting ? 'Submitting...' : 'Submit Resignation Request'}
+                  <Send size={18} /> {submitting ? 'Submitting...' : 'Submit Resignation Request'}
                 </button>
               </form>
             </div>
@@ -178,31 +179,31 @@ const EmployeeResignation = () => {
         {/* Right Column: Information/Guide (Only show if not submitted) */}
         {!resignation && (
           <div>
-            <div style={{ background: '#FFFBEB', borderRadius: '24px', border: '1px solid #FEF3C7', padding: '24px', marginBottom: '24px' }}>
+            <div style={{ background: 'rgba(245, 158, 11, 0.08)', borderRadius: '24px', border: '1px solid rgba(245, 158, 11, 0.25)', padding: '24px', marginBottom: '24px' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                  <AlertTriangle color="#D97706" size={24} />
-                  <h4 style={{ margin: 0, color: '#92400E', fontWeight: '800' }}>Important Notice</h4>
+                  <AlertTriangle color="var(--ep-accent-orange)" size={22} />
+                  <h4 style={{ margin: 0, fontFamily: 'Sora, sans-serif', color: 'var(--ep-accent-orange)', fontWeight: '800', fontSize: '15px' }}>Important Notice</h4>
                </div>
-               <ul style={{ margin: 0, padding: '0 0 0 20px', color: '#B45309', fontSize: '13px', lineHeight: '1.6' }}>
+               <ul style={{ margin: 0, padding: '0 0 0 20px', color: 'var(--ep-text-secondary)', fontSize: '13px', lineHeight: '1.6' }}>
                   <li style={{ marginBottom: '8px' }}>Resignations are subject to approval by the management.</li>
                   <li style={{ marginBottom: '8px' }}>Standard notice period of 30 days is applicable unless stated otherwise.</li>
                   <li style={{ marginBottom: '0' }}>You can only have one pending resignation request at a time.</li>
                </ul>
             </div>
 
-            <div style={{ background: '#F8FAFC', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '24px' }}>
-               <h4 style={{ margin: '0 0 16px', color: 'var(--text-primary)', fontWeight: '800' }}>Next Steps</h4>
+            <div className="ep-card" style={{ padding: '24px' }}>
+               <h4 style={{ margin: '0 0 16px', fontFamily: 'Sora, sans-serif', color: 'var(--ep-text-main)', fontWeight: '800', fontSize: '15px' }}>Next Steps</h4>
                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#2563EB', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>1</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Submit your request through this panel.</p>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', color: 'var(--ep-accent-primary-hover)', border: '1px solid rgba(59, 130, 246, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>1</div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ep-text-secondary)' }}>Submit your request through this panel.</p>
                </div>
                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>2</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Management will review and approve/reject your request.</p>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--ep-surface-elevated)', color: 'var(--ep-text-muted)', border: '1px solid var(--ep-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>2</div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ep-text-secondary)' }}>Management will review and approve/reject your request.</p>
                </div>
                <div style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#E2E8F0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>3</div>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>Once approved, your LWD will be finalized and offboarding initiated.</p>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--ep-surface-elevated)', color: 'var(--ep-text-muted)', border: '1px solid var(--ep-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '800', flexShrink: 0 }}>3</div>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--ep-text-secondary)' }}>Once approved, your LWD will be finalized and offboarding initiated.</p>
                </div>
             </div>
           </div>

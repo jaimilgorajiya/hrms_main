@@ -29,6 +29,11 @@ const locationSchema = new mongoose.Schema(
         addedBy: {
             type: String, // We'll store user name/email here
         },
+        adminId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
         coordinates: {
             latitude: { type: Number }, // e.g., 28.6139
             longitude: { type: Number }, // e.g., 77.2090

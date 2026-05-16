@@ -7,47 +7,48 @@ import { menuItems } from '../config/menuItems';
 const Sidebar = ({ isCollapsed }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const [companyName, setCompanyName] = useState("");
+  const [expiryDate, setExpiryDate] = useState(null);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const fetchCompanyData = async () => {
+    const fetchData = async () => {
       try {
-        
         const token = localStorage.getItem('token');
-        const response = await authenticatedFetch(`${API_URL}/api/company`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.companyName) {
-            setCompanyName(data.companyName);
+        const [companyRes, subRes, userRes] = await Promise.all([
+          authenticatedFetch(`${API_URL}/api/company`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          authenticatedFetch(`${API_URL}/api/packages/subscription-details`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          authenticatedFetch(`${API_URL}/api/auth/verify`)
+        ]);
+
+        if (companyRes.ok) {
+          const data = await companyRes.json();
+          if (data && data.companyName) setCompanyName(data.companyName);
+        }
+
+        if (subRes.ok) {
+          const data = await subRes.json();
+          if (data.success && data.subscription?.expiryDate) {
+            setExpiryDate(data.subscription.expiryDate);
           }
         }
-      } catch (error) {
-        console.error("Error fetching company name:", error);
-      }
-    };
-    
-    const fetchUserData = async () => {
-      try {
-        const response = await authenticatedFetch(`${API_URL}/api/auth/verify`);
-        if (response.ok) {
-          const data = await response.json();
+
+        if (userRes.ok) {
+          const data = await userRes.json();
           setUser(data.user);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching sidebar data:", error);
       }
     };
     
-    fetchCompanyData();
-    fetchUserData();
+    fetchData();
 
-    // Listen for cross-component updates from the CompanyDetails page
     const handleCompanyUpdate = (event) => {
       if (event.detail && event.detail.companyName) {
         setCompanyName(event.detail.companyName);
@@ -188,6 +189,11 @@ const Sidebar = ({ isCollapsed }) => {
             </svg>
             <span className="truncate-text">{companyName}</span>
           </div>
+          {expiryDate && (
+            <div className="subscription-expiry-sidebar">
+              Expires: {new Date(expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+          )}
         </div>
       )} 
       

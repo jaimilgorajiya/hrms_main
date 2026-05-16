@@ -9,14 +9,16 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { apiFetch, getImageUrl } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
-import { COLORS, RADIUS, SHADOW, GRADIENTS } from '../../constants/theme';
+import { RADIUS, SHADOW } from '../../constants/theme';
 import Toast from 'react-native-toast-message';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
 // Animated Background Decor
 const BackgroundDecor = () => {
+  const { colors, theme } = useTheme();
   const moveAnim1 = useRef(new Animated.Value(0)).current;
   const moveAnim2 = useRef(new Animated.Value(0)).current;
 
@@ -40,24 +42,24 @@ const BackgroundDecor = () => {
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View style={[styles.blob, { backgroundColor: '#4338CA', top: -50, right: -50, width: 250, height: 250, opacity: 0.15, transform: [{ translateX: transX1 }, { translateY: transY1 }] }]} />
-      <Animated.View style={[styles.blob, { backgroundColor: '#6366F1', bottom: 100, left: -80, width: 300, height: 300, opacity: 0.1, transform: [{ translateX: transX2 }, { translateY: transY2 }] }]} />
-      {/* Mesh Pattern Overlay */}
-      <View style={styles.meshPattern} />
+      <Animated.View style={[styles.blob, { backgroundColor: colors.primary, top: -50, right: -50, width: 250, height: 250, opacity: theme === 'dark' ? 0.15 : 0.08, transform: [{ translateX: transX1 }, { translateY: transY1 }] }]} />
+      <Animated.View style={[styles.blob, { backgroundColor: colors.purple, bottom: 100, left: -80, width: 300, height: 300, opacity: theme === 'dark' ? 0.1 : 0.05, transform: [{ translateX: transX2 }, { translateY: transY2 }] }]} />
+      <View style={[styles.meshPattern, { opacity: theme === 'dark' ? 0.03 : 0.015 }]} />
     </View>
   );
 };
 
 const ProfileItem = ({ label, value, icon, iconLib = Ionicons }) => {
+  const { colors } = useTheme();
   const IconComponent = iconLib;
   return (
     <View style={styles.profileItem}>
-      <View style={styles.iconContainer}>
-        <IconComponent name={icon} size={20} color={COLORS.primary} />
+      <View style={[styles.iconContainer, { backgroundColor: colors.bgSection, borderColor: colors.borderLight }]}>
+        <IconComponent name={icon} size={20} color={colors.primary} />
       </View>
       <View style={styles.itemContent}>
-        <Text style={styles.itemLabel}>{label}</Text>
-        <Text style={styles.itemValue}>{value || 'Not specified'}</Text>
+        <Text style={[styles.itemLabel, { color: colors.textMuted }]}>{label}</Text>
+        <Text style={[styles.itemValue, { color: colors.textDark }]}>{value || 'Not specified'}</Text>
       </View>
     </View>
   );
@@ -70,6 +72,7 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { logout } = useAuth();
+  const { theme, colors, toggleTheme } = useTheme();
 
   const handleLogout = () => {
     logout().then(() => {
@@ -99,15 +102,14 @@ export default function ProfileScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loaderContainer, { backgroundColor: colors.bgMain }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.bgMain }]}>
       <BackgroundDecor />
       
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -116,49 +118,60 @@ export default function ProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
           scrollEventThrottle={16}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor={colors.primary} />}
         >
           {/* Header Card */}
           <View style={styles.headerCardContainer}>
-            <View style={[styles.glassCard, styles.mainHeaderCard, SHADOW.premium]}>
+            <View style={[styles.glassCard, styles.mainHeaderCard, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }, SHADOW.premium]}>
               <View style={styles.headerTop}>
                 <View>
-                  <Text style={styles.headerTitle}>Account</Text>
-                  <Text style={styles.headerStatus}>Premium Access</Text>
+                  <Text style={[styles.headerTitle, { color: colors.textMuted }]}>Account</Text>
+                  {/* <Text style={[styles.headerStatus, { color: colors.textDark }]}>Premium Access</Text> */}
                 </View>
-                <TouchableOpacity style={styles.glassActionBtn} onPress={handleLogout}>
-                  <Feather name="log-out" size={18} color={COLORS.textDark} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity 
+                    style={[styles.glassActionBtn, { backgroundColor: colors.bgSection, borderColor: colors.borderLight }]} 
+                    onPress={toggleTheme}
+                  >
+                    <Feather name={theme === 'dark' ? 'sun' : 'moon'} size={18} color={colors.textDark} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.glassActionBtn, { backgroundColor: colors.bgSection, borderColor: colors.borderLight }]} 
+                    onPress={handleLogout}
+                  >
+                    <Feather name="log-out" size={18} color={colors.textDark} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.profileMeta}>
                 <View style={styles.avatarWrapper}>
-                  <LinearGradient colors={GRADIENTS.primary} style={styles.avatarRing} />
-                  <View style={styles.avatarInner}>
+                  <View style={[styles.avatarRing, { backgroundColor: colors.primary, opacity: 0.2 }]} />
+                  <View style={[styles.avatarInner, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
                     {photoUrl ? (
                       <Image source={{ uri: photoUrl }} style={styles.avatar} />
                     ) : (
-                      <Text style={styles.avatarInitial}>{(data?.name || 'E')[0]}</Text>
+                      <Text style={[styles.avatarInitial, { color: colors.primary }]}>{(data?.name || 'E')[0]}</Text>
                     )}
                   </View>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.profileName}>{data?.name || 'Loading...'}</Text>
-                  <View style={styles.designationTag}>
-                    <Text style={styles.designationText}>{data?.designation || 'Staff'}</Text>
+                  <Text style={[styles.profileName, { color: colors.textDark }]}>{data?.name || 'Loading...'}</Text>
+                  <View style={[styles.designationTag, { backgroundColor: colors.primaryLight }]}>
+                    <Text style={[styles.designationText, { color: colors.primary }]}>{data?.designation || 'Staff'}</Text>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.statsOverview}>
+              <View style={[styles.statsOverview, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }]}>
                 <View style={styles.statBox}>
-                  <Text style={styles.statVal}>{data?.employeeId || '---'}</Text>
-                  <Text style={styles.statLabel}>EMP ID</Text>
+                  <Text style={[styles.statVal, { color: colors.textDark }]}>{data?.employeeId || '---'}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>EMP ID</Text>
                 </View>
-                <View style={styles.statDivider} />
+                <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
                 <View style={styles.statBox}>
-                  <Text style={[styles.statVal, { color: COLORS.success }]}>{data?.personalInfo?.status || 'ACTIVE'}</Text>
-                  <Text style={styles.statLabel}>STATUS</Text>
+                  <Text style={[styles.statVal, { color: colors.success }]}>{data?.personalInfo?.status || 'ACTIVE'}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textMuted }]}>STATUS</Text>
                 </View>
               </View>
             </View>
@@ -170,10 +183,18 @@ export default function ProfileScreen() {
               {['Personal', 'Work', 'Contact', 'Experience', 'Documents'].map(tab => (
                 <TouchableOpacity 
                   key={tab} 
-                  style={[styles.navPill, activeTab === tab && styles.navPillActive]}
+                  style={[
+                    styles.navPill, 
+                    { backgroundColor: colors.bgCard, borderColor: colors.borderLight },
+                    activeTab === tab && { backgroundColor: colors.primary, borderColor: colors.primary }
+                  ]}
                   onPress={() => setActiveTab(tab)}
                 >
-                  <Text style={[styles.navText, activeTab === tab && styles.navTextActive]}>{tab}</Text>
+                  <Text style={[
+                    styles.navText, 
+                    { color: colors.textMuted },
+                    activeTab === tab && { color: colors.white }
+                  ]}>{tab}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -181,10 +202,10 @@ export default function ProfileScreen() {
 
           {/* Detailed Content */}
           <View style={styles.contentWrapper}>
-            <View style={[styles.glassCard, styles.contentCard]}>
+            <View style={[styles.glassCard, styles.contentCard, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
               <View style={styles.tabHeader}>
-                <Text style={styles.tabTitle}>{activeTab} Details</Text>
-                <View style={styles.tabLine} />
+                <Text style={[styles.tabTitle, { color: colors.textDark }]}>{activeTab} Details</Text>
+                <View style={[styles.tabLine, { backgroundColor: colors.borderLight }]} />
               </View>
 
               <View style={styles.tabBody}>
@@ -222,18 +243,18 @@ export default function ProfileScreen() {
                     {(data?.pastExperience || []).length > 0 ? (
                       data.pastExperience.map((exp, i) => (
                         <View key={i} style={styles.expNode}>
-                          <View style={styles.expIconBox}>
-                            <Ionicons name="briefcase" size={16} color={COLORS.white} />
+                          <View style={[styles.expIconBox, { backgroundColor: colors.primary }]}>
+                            <Ionicons name="briefcase" size={16} color={colors.white} />
                           </View>
-                          <View style={styles.expContent}>
-                            <Text style={styles.expCompany}>{exp.companyName}</Text>
-                            <Text style={styles.expRole}>{exp.designation}</Text>
-                            <Text style={styles.expDate}>{exp.workFrom ? new Date(exp.workFrom).getFullYear() : ''} - {exp.workTo ? new Date(exp.workTo).getFullYear() : 'Present'}</Text>
+                          <View style={[styles.expContent, { borderBottomColor: colors.borderLight }]}>
+                            <Text style={[styles.expCompany, { color: colors.textDark }]}>{exp.companyName}</Text>
+                            <Text style={[styles.expRole, { color: colors.textLight }]}>{exp.designation}</Text>
+                            <Text style={[styles.expDate, { color: colors.primary }]}>{exp.workFrom ? new Date(exp.workFrom).getFullYear() : ''} - {exp.workTo ? new Date(exp.workTo).getFullYear() : 'Present'}</Text>
                           </View>
                         </View>
                       ))
                     ) : (
-                      <Text style={styles.emptyText}>No experience data</Text>
+                      <Text style={[styles.emptyText, { color: colors.textPlaceholder }]}>No experience data</Text>
                     )}
                   </View>
                 )}
@@ -242,19 +263,19 @@ export default function ProfileScreen() {
                   <View style={{ gap: 12 }}>
                     {(data?.documents || []).length > 0 ? (
                       data.documents.map((doc, i) => (
-                        <TouchableOpacity key={i} style={styles.glassDocItem} onPress={() => doc.fileUrl && Linking.openURL(getImageUrl(doc.fileUrl))}>
-                          <View style={styles.docIconWrapper}>
-                            <MaterialCommunityIcons name="file-document" size={20} color={COLORS.primary} />
+                        <TouchableOpacity key={i} style={[styles.glassDocItem, { backgroundColor: colors.bgSection, borderColor: colors.borderLight }]} onPress={() => doc.fileUrl && Linking.openURL(getImageUrl(doc.fileUrl))}>
+                          <View style={[styles.docIconWrapper, { backgroundColor: colors.bgCardElevated }]}>
+                            <MaterialCommunityIcons name="file-document" size={20} color={colors.primary} />
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.docName} numberOfLines={1}>{doc.originalName || 'Document'}</Text>
-                            <Text style={styles.docType}>{doc.documentType?.documentTypeName || 'Internal'}</Text>
+                            <Text style={[styles.docName, { color: colors.textDark }]} numberOfLines={1}>{doc.originalName || 'Document'}</Text>
+                            <Text style={[styles.docType, { color: colors.textMuted }]}>{doc.documentType?.documentTypeName || 'Internal'}</Text>
                           </View>
-                          <Feather name="chevron-right" size={18} color={COLORS.textMuted} />
+                          <Feather name="chevron-right" size={18} color={colors.textMuted} />
                         </TouchableOpacity>
                       ))
                     ) : (
-                      <Text style={styles.emptyText}>No documents found</Text>
+                      <Text style={[styles.emptyText, { color: colors.textPlaceholder }]}>No documents found</Text>
                     )}
                   </View>
                 )}
@@ -268,76 +289,69 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // Background Decor
-  blob: { position: 'absolute', borderRadius: 200, blur: 100 },
-  meshPattern: { ...StyleSheet.absoluteFillObject, opacity: 0.03, backgroundColor: 'transparent', backgroundImage: 'radial-gradient(#000 0.5px, transparent 0.5px)', backgroundSize: '10px 10px' },
+  blob: { position: 'absolute', borderRadius: 200 },
+  meshPattern: { ...StyleSheet.absoluteFillObject, backgroundColor: 'transparent' },
 
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
 
-  // Glass Card Base
-  glassCard: { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.8)', overflow: 'hidden' },
+  glassCard: { borderRadius: 32, borderWidth: 1, overflow: 'hidden' },
   
-  // Header Section
   headerCardContainer: { padding: 20, paddingTop: 10 },
   mainHeaderCard: { padding: 24, paddingTop: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
-  headerTitle: { fontSize: 13, fontWeight: '800', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1.5 },
-  headerStatus: { fontSize: 18, fontWeight: '900', color: COLORS.textDark, marginTop: 2 },
-  glassActionBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f0f0f0' },
+  headerTitle: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5 },
+  headerStatus: { fontSize: 18, fontWeight: '900', marginTop: 2 },
+  glassActionBtn: { width: 42, height: 42, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
 
   profileMeta: { flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 30 },
   avatarWrapper: { position: 'relative', width: 88, height: 88, padding: 4 },
   avatarRing: { ...StyleSheet.absoluteFillObject, borderRadius: 32, opacity: 0.2 },
-  avatarInner: { flex: 1, borderRadius: 28, backgroundColor: '#f0f4f8', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 3, borderColor: '#fff' },
+  avatarInner: { flex: 1, borderRadius: 28, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 3 },
   avatar: { width: '100%', height: '100%' },
-  avatarInitial: { fontSize: 32, fontWeight: '900', color: COLORS.primary },
+  avatarInitial: { fontSize: 32, fontWeight: '900' },
 
-  profileName: { fontSize: 24, fontWeight: '900', color: COLORS.textDark },
-  designationTag: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, backgroundColor: COLORS.primaryLight, marginTop: 6 },
-  designationText: { fontSize: 11, fontWeight: '800', color: COLORS.primary, textTransform: 'uppercase' },
+  profileName: { fontSize: 24, fontWeight: '900' },
+  designationTag: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginTop: 6 },
+  designationText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
 
-  statsOverview: { flexDirection: 'row', backgroundColor: 'rgba(248, 250, 252, 0.5)', borderRadius: 20, padding: 16, alignItems: 'center' },
+  statsOverview: { flexDirection: 'row', borderRadius: 20, padding: 16, alignItems: 'center', borderWidth: 1 },
   statBox: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, height: 24, backgroundColor: '#e2e8f0' },
-  statVal: { fontSize: 15, fontWeight: '900', color: COLORS.textDark },
-  statLabel: { fontSize: 9, fontWeight: '800', color: COLORS.textMuted, marginTop: 2, letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 24 },
+  statVal: { fontSize: 15, fontWeight: '900' },
+  statLabel: { fontSize: 9, fontWeight: '800', marginTop: 2, letterSpacing: 0.5 },
 
-  // Navigation
   navContainer: { marginBottom: 25 },
   navScroll: { paddingHorizontal: 20, gap: 12 },
-  navPill: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.8)', borderWidth: 1, borderColor: '#f0f0f0' },
-  navPillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  navText: { fontSize: 14, fontWeight: '700', color: COLORS.textMuted },
-  navTextActive: { color: COLORS.white },
+  navPill: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 16, borderWidth: 1 },
+  navText: { fontSize: 14, fontWeight: '700' },
 
-  // Content
   contentWrapper: { paddingHorizontal: 20 },
   contentCard: { padding: 24, minHeight: 400 },
   tabHeader: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 25 },
-  tabTitle: { fontSize: 18, fontWeight: '900', color: COLORS.textDark },
-  tabLine: { flex: 1, height: 2, backgroundColor: '#f1f5f9', borderRadius: 1 },
+  tabTitle: { fontSize: 18, fontWeight: '900' },
+  tabLine: { flex: 1, height: 2, borderRadius: 1 },
   
   tabBody: { gap: 20 },
   profileItem: { flexDirection: 'row', gap: 16, alignItems: 'center' },
-  iconContainer: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+  iconContainer: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   itemContent: { flex: 1 },
-  itemLabel: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  itemValue: { fontSize: 15, fontWeight: '800', color: COLORS.textDark, marginTop: 2 },
+  itemLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  itemValue: { fontSize: 15, fontWeight: '800', marginTop: 2 },
 
   expNode: { flexDirection: 'row', gap: 16 },
-  expIconBox: { width: 36, height: 36, borderRadius: 12, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  expContent: { flex: 1, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  expCompany: { fontSize: 16, fontWeight: '900', color: COLORS.textDark },
-  expRole: { fontSize: 13, fontWeight: '600', color: COLORS.textLight, marginTop: 2 },
-  expDate: { fontSize: 12, fontWeight: '800', color: COLORS.primary, marginTop: 6 },
+  expIconBox: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  expContent: { flex: 1, paddingBottom: 20, borderBottomWidth: 1 },
+  expCompany: { fontSize: 16, fontWeight: '900' },
+  expRole: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  expDate: { fontSize: 12, fontWeight: '800', marginTop: 6 },
 
-  glassDocItem: { flexDirection: 'row', alignItems: 'center', gap: 15, padding: 14, backgroundColor: 'rgba(248, 250, 252, 0.5)', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9' },
-  docIconWrapper: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  docName: { fontSize: 14, fontWeight: '800', color: COLORS.textDark },
-  docType: { fontSize: 11, fontWeight: '700', color: COLORS.textMuted, marginTop: 2 },
-  emptyText: { textAlign: 'center', color: COLORS.textPlaceholder, padding: 40, fontSize: 14, fontWeight: '600' },
+  glassDocItem: { flexDirection: 'row', alignItems: 'center', gap: 15, padding: 14, borderRadius: 20, borderWidth: 1 },
+  docIconWrapper: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  docName: { fontSize: 14, fontWeight: '800' },
+  docType: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+  emptyText: { textAlign: 'center', padding: 40, fontSize: 14, fontWeight: '600' },
 });

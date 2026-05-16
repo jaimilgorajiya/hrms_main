@@ -144,12 +144,7 @@ export const getEmployeeRequests = async (req, res) => {
 export const getAdminRequests = async (req, res) => {
     try {
         const { status, requestType, employee, startDate, endDate } = req.query;
-        let filter = {};
-        
-        // If not super admin, only show assigned employees
-        if (req.user.role !== 'Admin') {
-            filter.adminId = req.user._id;
-        }
+        let filter = { adminId: req.user._id };
         
         if (status && status !== 'All') filter.status = status;
         if (requestType && requestType !== 'All') filter.requestType = requestType;

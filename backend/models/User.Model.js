@@ -15,7 +15,6 @@ const userSchema = new mongoose.Schema(
         email: {
             type: String,
             required: true,
-            unique: true,
             trim: true,
             lowercase: true
         },
@@ -25,7 +24,7 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["Admin", "Manager", "Employee"],
+            enum: ["Admin", "Manager", "Employee", "Master Admin"],
             default: "Employee"
         },
         managementRole: {
@@ -48,7 +47,6 @@ const userSchema = new mongoose.Schema(
         },
         phone: {
             type: String,
-            unique: true,
             sparse: true
         },
         dateOfBirth: {
@@ -132,7 +130,6 @@ const userSchema = new mongoose.Schema(
         },
         employeeId: {
             type: String,
-            unique: true,
             sparse: true
         }, 
         position: {
@@ -292,7 +289,13 @@ const userSchema = new mongoose.Schema(
     {
         timestamps: true
     }
-)
+);
+
+// Compound Unique Indexes for Multi-Tenant Isolation
+// This allows the same email/phone/employeeId to exist across different Admins (companies)
+userSchema.index({ email: 1, adminId: 1 }, { unique: true });
+userSchema.index({ employeeId: 1, adminId: 1 }, { unique: true, sparse: true });
+userSchema.index({ phone: 1, adminId: 1 }, { unique: true, sparse: true });
 
 const User = mongoose.model("User", userSchema)
 

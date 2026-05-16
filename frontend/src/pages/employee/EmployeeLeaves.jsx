@@ -18,9 +18,9 @@ const mockHistory = [
 ];
 
 const statusStyle = {
-  Approved: { color: '#10B981', bg: '#ECFDF5' },
-  Rejected: { color: '#EF4444', bg: '#FEF2F2' },
-  Pending: { color: '#F59E0B', bg: '#FFFBEB' },
+  Approved: { color: 'var(--ep-accent-green)', bg: 'rgba(16, 185, 129, 0.15)' },
+  Rejected: { color: 'var(--ep-accent-red)', bg: 'rgba(239, 68, 68, 0.15)' },
+  Pending: { color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
 };
 
 const EmployeeLeaves = () => {

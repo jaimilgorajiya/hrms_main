@@ -7,34 +7,36 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { apiFetch, getImageUrl } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
-import { COLORS, SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import Toast from 'react-native-toast-message';
 
 const DocCard = ({ doc }) => {
+  const { colors } = useTheme();
   const url = getImageUrl(doc.file);
   const isExpired = doc.expiryDate && new Date(doc.expiryDate) < new Date();
 
   return (
-    <View style={[styles.docCard, SHADOW.sm]}>
-      <View style={[styles.docIcon, { backgroundColor: isExpired ? COLORS.dangerLight : COLORS.primaryLight }]}>
-        <Ionicons name="document-text" size={30} color={isExpired ? COLORS.danger : COLORS.primary} />
+    <View style={[styles.docCard, SHADOW.sm, { backgroundColor: colors.bgCard, borderColor: colors.borderLight, borderWidth: 1 }]}>
+      <View style={[styles.docIcon, { backgroundColor: isExpired ? colors.dangerLight : colors.primaryLight }]}>
+        <Ionicons name="document-text" size={30} color={isExpired ? colors.danger : colors.primary} />
       </View>
       <View style={styles.docContent}>
         <View style={styles.docHeader}>
-          <Text style={styles.docTitle} numberOfLines={1}>{doc.documentType || 'Personal Document'}</Text>
-          {isExpired && <View style={styles.expiredBadge}><Text style={styles.expiredText}>EXPIRY</Text></View>}
+          <Text style={[styles.docTitle, { color: colors.textDark }]} numberOfLines={1}>{doc.documentType || 'Personal Document'}</Text>
+          {isExpired && <View style={[styles.expiredBadge, { backgroundColor: colors.danger }]}><Text style={[styles.expiredText, { color: colors.white }]}>EXPIRY</Text></View>}
         </View>
-        <Text style={styles.docNum}>ID: {doc.documentNumber || '—'}</Text>
+        <Text style={[styles.docNum, { color: colors.textMuted }]}>ID: {doc.documentNumber || '—'}</Text>
         
-        <View style={styles.docMeta}>
+        <View style={[styles.docMeta, { backgroundColor: colors.bgMain }]}>
           <View style={styles.metaRow}>
-            <Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} />
-            <Text style={styles.metaText}>Issued: {doc.issueDate ? new Date(doc.issueDate).toLocaleDateString() : '—'}</Text>
+            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+            <Text style={[styles.metaText, { color: colors.textMain }]}>Issued: {doc.issueDate ? new Date(doc.issueDate).toLocaleDateString() : '—'}</Text>
           </View>
           {doc.expiryDate && (
             <View style={styles.metaRow}>
-              <Ionicons name="alert-circle-outline" size={14} color={isExpired ? COLORS.danger : COLORS.textMuted} />
-              <Text style={[styles.metaText, isExpired && { color: COLORS.danger, fontWeight: '700' }]}>
+              <Ionicons name="alert-circle-outline" size={14} color={isExpired ? colors.danger : colors.textMuted} />
+              <Text style={[styles.metaText, { color: colors.textMain }, isExpired && { color: colors.danger, fontWeight: '700' }]}>
                 Expiry: {new Date(doc.expiryDate).toLocaleDateString()}
               </Text>
             </View>
@@ -42,13 +44,13 @@ const DocCard = ({ doc }) => {
         </View>
 
         <View style={styles.docActions}>
-          <TouchableOpacity style={[styles.actionBtn, styles.viewBtn]} onPress={() => Linking.openURL(url)}>
-            <Ionicons name="eye-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.viewBtnText}>View File</Text>
+          <TouchableOpacity style={[styles.actionBtn, styles.viewBtn, { backgroundColor: colors.primaryLight, borderColor: colors.primary + '30' }]} onPress={() => Linking.openURL(url)}>
+            <Ionicons name="eye-outline" size={16} color={colors.primary} />
+            <Text style={[styles.viewBtnText, { color: colors.primary }]}>View File</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.downloadBtn]} onPress={() => Linking.openURL(url)}>
-            <Ionicons name="download-outline" size={16} color={COLORS.white} />
-            <Text style={styles.downloadBtnText}>Download</Text>
+          <TouchableOpacity style={[styles.actionBtn, styles.downloadBtn, { backgroundColor: colors.primary }]} onPress={() => Linking.openURL(url)}>
+            <Ionicons name="download-outline" size={16} color={colors.white} />
+            <Text style={[styles.downloadBtnText, { color: colors.white }]}>Download</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -57,6 +59,7 @@ const DocCard = ({ doc }) => {
 };
 
 export default function DocumentsScreen() {
+  const { colors } = useTheme();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,24 +81,24 @@ export default function DocumentsScreen() {
   useEffect(() => { loadDocs(); }, []);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.bgMain }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Documents</Text>
-        <Text style={styles.subTitle}>Manage and download your official records</Text>
+        <Text style={[styles.title, { color: colors.textDark }]}>My Documents</Text>
+        <Text style={[styles.subTitle, { color: colors.textLight }]}>Manage and download your official records</Text>
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDocs(); }} tintColor={COLORS.primary} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDocs(); }} tintColor={colors.primary} />}
         >
           {docs.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="folder-open-outline" size={80} color={COLORS.border} />
-              <Text style={styles.emptyText}>No documents uploaded yet.</Text>
+              <Ionicons name="folder-open-outline" size={80} color={colors.border} />
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>No documents uploaded yet.</Text>
             </View>
           ) : (
             docs.map((doc, idx) => <DocCard key={doc._id || idx} doc={doc} />)
@@ -107,30 +110,30 @@ export default function DocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.bgMain },
+  safe: { flex: 1 },
   header: { padding: 24, paddingBottom: 10 },
-  title: { fontSize: SIZES.xxl, fontWeight: '800', color: COLORS.textDark },
-  subTitle: { fontSize: SIZES.sm, color: COLORS.textLight, marginTop: 4 },
+  title: { fontSize: SIZES.xxl, fontWeight: '800' },
+  subTitle: { fontSize: SIZES.sm, marginTop: 4 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   scrollContent: { padding: 20, paddingBottom: 100 },
-  docCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
+  docCard: { borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20, gap: 16 },
   docIcon: { width: 64, height: 64, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   docContent: { flex: 1 },
   docHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  docTitle: { fontSize: 16, fontWeight: '800', color: COLORS.textDark, flex: 1 },
-  expiredBadge: { backgroundColor: COLORS.danger, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  expiredText: { fontSize: 10, fontWeight: '800', color: COLORS.white },
-  docNum: { fontSize: 13, color: COLORS.textMuted, fontWeight: '600', marginBottom: 12 },
-  docMeta: { gap: 6, marginBottom: 16, backgroundColor: COLORS.bgMain, padding: 10, borderRadius: 12 },
+  docTitle: { fontSize: 16, fontWeight: '800', flex: 1 },
+  expiredBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  expiredText: { fontSize: 10, fontWeight: '800' },
+  docNum: { fontSize: 13, fontWeight: '600', marginBottom: 12 },
+  docMeta: { gap: 6, marginBottom: 16, padding: 10, borderRadius: 12 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  metaText: { fontSize: 12, color: COLORS.textMain, fontWeight: '600' },
+  metaText: { fontSize: 12, fontWeight: '600' },
   docActions: { flexDirection: 'row', gap: 10 },
   actionBtn: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  viewBtn: { backgroundColor: COLORS.primaryLight, borderWidth: 1, borderColor: COLORS.primaryBorder },
-  viewBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
-  downloadBtn: { backgroundColor: COLORS.primary },
-  downloadBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
+  viewBtn: { borderWidth: 1 },
+  viewBtnText: { fontSize: 13, fontWeight: '700' },
+  downloadBtn: { },
+  downloadBtnText: { fontSize: 13, fontWeight: '700' },
   empty: { height: 400, justifyContent: 'center', alignItems: 'center', gap: 20 },
-  emptyText: { fontSize: 16, color: COLORS.textMuted, fontWeight: '600' },
+  emptyText: { fontSize: 16, fontWeight: '600' },
 });

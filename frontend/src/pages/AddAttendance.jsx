@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
+import Swal from 'sweetalert2';
 
 const AddAttendance = () => {
     const navigate = useNavigate();
@@ -81,8 +82,15 @@ const AddAttendance = () => {
             if (json.success) {
                 setModalOpen(false);
                 fetchData();
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Record updated successfully.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             } else {
-                alert(json.message);
+                Swal.fire('Error', json.message, 'error');
             }
         } catch (e) { console.error(e); }
         finally { setFormLoading(false); }
