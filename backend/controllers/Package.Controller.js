@@ -69,13 +69,41 @@ export const getEmployeeUsage = async (req, res) => {
         const adminId = req.user._id;
         const client = await Client.findOne({ adminId }).populate('packageId');
 
+        const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+        const isMaster = (masterEmail && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) || req.user.role === 'Master Admin';
+
         if (!client) {
+            if (isMaster) {
+                const currentCount = await User.countDocuments({
+                    adminId,
+                    role: { $ne: 'Admin' },
+                    status: { $in: ['Active', 'Onboarding', 'Resigned'] }
+                });
+                return res.status(200).json({
+                    success: true,
+                    usage: {
+                        currentCount,
+                        baseLimit: 999999,
+                        addonTotal: 0,
+                        totalAllowed: 999999,
+                        remaining: 999999,
+                        packageName: "Infinite Admin Plan",
+                        packageExpiry: null,
+                        addonPurchases: []
+                    }
+                });
+            }
             return res.status(200).json({ success: true, usage: null });
         }
 
-        const baseLimit = client.packageId?.maxEmployees || 0;
-        const totalAllowed = client.maxEmployees || baseLimit;
-        const addonTotal = totalAllowed - baseLimit;
+        const baseLimit = client.packageId?.maxEmployees || client.maxEmployees || 0;
+        const addonTotal = (client.addonPurchases || [])
+            .reduce((sum, addon) => sum + (addon.employeesAdded || 0), 0);
+        let totalAllowed = baseLimit + addonTotal;
+
+        if (isMaster) {
+            totalAllowed = 999999; // Unlimited for master admin
+        }
 
         const currentCount = await User.countDocuments({
             adminId,
@@ -90,8 +118,8 @@ export const getEmployeeUsage = async (req, res) => {
                 baseLimit,
                 addonTotal,
                 totalAllowed,
-                remaining: totalAllowed - currentCount,
-                packageName: client.packageId?.name,
+                remaining: Math.max(0, totalAllowed - currentCount),
+                packageName: client.packageId?.name || "Standard Plan",
                 packageExpiry: client.packageExpiryDate,
                 addonPurchases: client.addonPurchases || []
             }
@@ -227,7 +255,26 @@ export const getSubscriptionDetails = async (req, res) => {
             .populate('paymentHistory.packageId')
             .populate('addonPurchases.packageId');
 
+        const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+        const isMaster = (masterEmail && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) || req.user.role === 'Master Admin';
+
         if (!client) {
+            if (isMaster) {
+                return res.status(200).json({
+                    success: true,
+                    subscription: {
+                        packageName: "Infinite Admin Plan",
+                        packagePrice: 0,
+                        packageType: "subscription",
+                        startDate: new Date(),
+                        expiryDate: null,
+                        isActive: true,
+                        maxEmployees: 999999,
+                        paymentHistory: [],
+                        addonPurchases: []
+                    }
+                });
+            }
             return res.status(200).json({ success: true, subscription: null });
         }
 

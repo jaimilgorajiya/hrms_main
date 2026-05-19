@@ -266,11 +266,10 @@ const DocumentType = () => {
                     <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>
                         TOTAL: {filteredDocs.length} DOCUMENTS
                     </div>
-                    <div className="hrm-search-wrapper" style={{ width: '300px' }}>
-                        <Search size={16} className="hrm-search-icon" />
+                    <div className="search-wrapper" style={{ width: '300px' }}>
+                        <Search size={16} color="var(--text-secondary)" />
                         <input 
                             type="text" 
-                            className="hrm-input hrm-search-input" 
                             placeholder="Search by name..." 
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 

@@ -33,7 +33,7 @@ import EmployeeOnboarding from './pages/EmployeeOnboarding';
 import EmployeeOffboarding from './pages/EmployeeOffboarding';
 import PayrollTaxSetting from './pages/PayrollTaxSetting';
 import DocumentType from './pages/DocumentType';
-import OnboardingDocSetting from './pages/OnboardingDocSetting';
+import DocumentApproval from './pages/DocumentApproval';
 import Employees from './pages/Employees';
 import AddEmployee from './pages/AddEmployee';
 import EmployeeProfile from './pages/EmployeeProfile';
@@ -137,7 +137,7 @@ function App() {
               <Route path="payroll/history" element={<PayoutHistory />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />
-              <Route path="document/onboarding-setting" element={<OnboardingDocSetting />} />
+              <Route path="document/approval" element={<DocumentApproval />} />
               <Route path="document/*" element={<ModulePlaceholder title="Document Management" />} />
               <Route path="employees/list" element={<Employees />} />
               <Route path="employees/add" element={<AddEmployee />} />

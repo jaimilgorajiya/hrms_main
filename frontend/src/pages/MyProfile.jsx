@@ -444,7 +444,7 @@ const MyProfile = () => {
               </div>
               <h3 className="pkg-mini-title">{subscription.packageName}</h3>
               <div className="pkg-mini-stats">
-                {subscription.maxEmployees} Employees • Active
+                {subscription.maxEmployees >= 999999 ? <span className="infinity-symbol-small">∞</span> : subscription.maxEmployees} Employees • Active
               </div>
               <div className="expiry-pill-premium">
                 <Calendar size={14} />
@@ -479,7 +479,9 @@ const MyProfile = () => {
                   <div className="stat-box-premium">
                     <label>Employee Limit</label>
                     <div className="value">
-                      {employeeUsage ? employeeUsage.totalAllowed : subscription.maxEmployees}
+                      {employeeUsage 
+                        ? (employeeUsage.totalAllowed >= 999999 ? <span className="infinity-symbol">∞</span> : employeeUsage.totalAllowed) 
+                        : (subscription.maxEmployees >= 999999 ? <span className="infinity-symbol">∞</span> : subscription.maxEmployees)}
                     </div>
                   </div>
                 </div>
@@ -526,86 +528,65 @@ const MyProfile = () => {
             )}
           </div>
 
-          {/* Expand Team Section - Temporarily Hidden */}
-          {false && selectedAddon && employeeUsage && (
+          {/* Expand Team Section */}
+          {selectedAddon && employeeUsage && employeeUsage.totalAllowed < 999999 && (
             <div className="glass-card-premium">
               <div className="card-header-premium">
-                <div className="card-icon-box" style={{ background: '#F0FDF4', color: '#10B981' }}>
+                <div className="card-icon-box green-box-prem">
                   <Users size={22} />
                 </div>
                 <div>
                   <h3>Expand Your Team</h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+                  <p className="card-subtitle-prem">
                     Need more employee slots? Purchase additional seats instantly.
                   </p>
                 </div>
               </div>
 
               {/* Current Usage Stats */}
-              <div className="sub-stats-row-premium" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className="sub-stats-row-premium sub-stats-four-cols">
                 <div className="stat-box-premium">
                   <label>Base Limit</label>
                   <div className="value">{employeeUsage.baseLimit}</div>
                 </div>
                 <div className="stat-box-premium">
                   <label>Add-on Seats</label>
-                  <div className="value" style={{ color: '#10B981' }}>+{employeeUsage.addonTotal}</div>
+                  <div className="value accent-green-text">+{employeeUsage.addonTotal}</div>
                 </div>
                 <div className="stat-box-premium">
                   <label>Total Allowed</label>
-                  <div className="value">{employeeUsage.totalAllowed}</div>
+                  <div className="value">
+                    {employeeUsage.totalAllowed >= 999999 ? <span className="infinity-symbol">∞</span> : employeeUsage.totalAllowed}
+                  </div>
                 </div>
                 <div className="stat-box-premium">
                   <label>Currently Used</label>
-                  <div className="value" style={{ color: employeeUsage.remaining <= 2 ? '#EF4444' : '#1E293B' }}>
+                  <div className={`value ${employeeUsage.remaining <= 2 ? 'danger-text-prem' : ''}`}>
                     {employeeUsage.currentCount}
                   </div>
                 </div>
               </div>
 
               {/* Purchase Flow */}
-              <div style={{ 
-                background: '#F8FAFC', 
-                borderRadius: '20px', 
-                padding: '28px', 
-                border: '1px solid #E2E8F0' 
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <TrendingUp size={16} style={{ color: '#2563EB' }} />
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B' }}>
+              <div className="purchase-flow-container-prem">
+                <div className="purchase-flow-header-prem">
+                  <TrendingUp size={16} className="trend-icon-prem" />
+                  <span className="addon-title-prem">
                     {selectedAddon.name} — ₹{selectedAddon.price.toLocaleString()} per employee
                   </span>
                 </div>
 
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '24px', 
-                  flexWrap: 'wrap' 
-                }}>
+                <div className="purchase-flow-body-prem">
                   {/* Quantity Picker */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    <label className="qty-label-prem">
                       Number of Employees
                     </label>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '0', 
-                      border: '1px solid #E2E8F0', 
-                      borderRadius: '14px', 
-                      overflow: 'hidden',
-                      background: '#FFFFFF'
-                    }}>
+                    <div className="qty-picker-container-prem">
                       <button 
                         type="button"
                         onClick={() => setAddonQty(prev => Math.max(1, prev - 1))}
-                        style={{ 
-                          width: '48px', height: '48px', border: 'none', 
-                          background: 'transparent', cursor: 'pointer', 
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#64748B', borderRight: '1px solid #E2E8F0'
-                        }}
+                        className="qty-picker-btn-prem"
                       >
                         <Minus size={16} />
                       </button>
@@ -618,21 +599,12 @@ const MyProfile = () => {
                           if (!isNaN(val) && val >= 1) setAddonQty(val);
                           else if (e.target.value === '') setAddonQty(1);
                         }}
-                        style={{
-                          width: '80px', height: '48px', border: 'none', 
-                          textAlign: 'center', fontSize: '18px', fontWeight: 800, 
-                          color: '#1E293B', outline: 'none', background: 'transparent'
-                        }}
+                        className="qty-picker-input-prem"
                       />
                       <button 
                         type="button"
                         onClick={() => setAddonQty(prev => prev + 1)}
-                        style={{ 
-                          width: '48px', height: '48px', border: 'none', 
-                          background: 'transparent', cursor: 'pointer', 
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#64748B', borderLeft: '1px solid #E2E8F0'
-                        }}
+                        className="qty-picker-btn-prem"
                       >
                         <Plus size={16} />
                       </button>
@@ -641,13 +613,13 @@ const MyProfile = () => {
 
                   {/* Live Price Display */}
                   <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    <label className="qty-label-prem">
                       Total Amount
                     </label>
-                    <div style={{ fontSize: '28px', fontWeight: 800, color: '#0F172A' }}>
+                    <div className="total-amount-val-prem">
                       ₹{(addonQty * selectedAddon.price).toLocaleString()}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+                    <div className="total-amount-sub-prem">
                       {addonQty} x ₹{selectedAddon.price.toLocaleString()} per seat
                     </div>
                   </div>
@@ -655,10 +627,9 @@ const MyProfile = () => {
                   {/* Purchase Button */}
                   <div>
                     <button 
-                      className="btn-update-premium" 
+                      className="btn-update-premium btn-purchase-prem" 
                       onClick={handleAddonPurchase}
                       disabled={addonLoading}
-                      style={{ background: '#10B981', whiteSpace: 'nowrap' }}
                     >
                       <CreditCard size={18} />
                       {addonLoading ? 'Processing...' : 'Purchase Seats'}

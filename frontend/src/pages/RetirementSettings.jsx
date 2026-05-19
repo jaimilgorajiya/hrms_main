@@ -26,7 +26,7 @@ const Toggle = ({ checked, onChange, label }) => (
             onClick={(e) => { e.preventDefault(); onChange(!checked); }}
             style={{
                 width: 44, height: 24, borderRadius: 20, position: 'relative', cursor: 'pointer',
-                background: checked ? 'var(--primary-gradient)' : '#E2E8F0', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                background: checked ? 'var(--primary-gradient)' : 'var(--border)', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: checked ? '0 2px 6px rgba(37, 99, 235, 0.2)' : 'none'
             }}
         >
@@ -143,7 +143,7 @@ const RetirementSettings = () => {
                 <div className="hrm-card">
                     <div style={{ padding: 24 }}>
                         <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-dark)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Settings size={18} className="text-primary-blue" />
+                            <Settings size={18} style={{ color: 'var(--primary-blue)' }} />
                             BASIC CONFIGURATION
                         </h3>
 
@@ -171,7 +171,7 @@ const RetirementSettings = () => {
                 <div className="hrm-card">
                     <div style={{ padding: 24 }}>
                         <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-dark)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Clock size={18} className="text-primary-blue" />
+                            <Clock size={18} style={{ color: 'var(--primary-blue)' }} />
                             NOTIFICATIONS
                         </h3>
 
@@ -265,7 +265,7 @@ const RetirementSettings = () => {
                                                         set('departmentAgeOverrides', arr);
                                                     }} />
                                                 <button onClick={() => set('departmentAgeOverrides', form.departmentAgeOverrides.filter((_, j) => j !== i))}
-                                                    style={{ background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer' }}>
+                                                    style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer' }}>
                                                     <X size={16} />
                                                 </button>
                                             </div>
@@ -274,7 +274,7 @@ const RetirementSettings = () => {
                                             <Plus size={16} /> ADD DEPARTMENT OVERRIDE
                                         </button>
                                     </div>
-                                )}
+                                    )}
 
                                 {form.enableRoleBasedAge && (
                                     <div>
@@ -299,7 +299,7 @@ const RetirementSettings = () => {
                                                         set('roleAgeOverrides', arr);
                                                     }} />
                                                 <button onClick={() => set('roleAgeOverrides', form.roleAgeOverrides.filter((_, j) => j !== i))}
-                                                    style={{ background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer' }}>
+                                                    style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--danger)', border: 'none', borderRadius: 8, padding: 10, cursor: 'pointer' }}>
                                                     <X size={16} />
                                                 </button>
                                             </div>

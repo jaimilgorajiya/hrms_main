@@ -8,20 +8,27 @@ import Client from '../models/Client.Model.js';
  */
 export const checkEmployeeLimit = async (req, res, next) => {
     try {
-        // Skip check for Master Admin bypass
+        // Skip check for Master Admin bypass (via API key)
         if (req.isMasterBypass) return next();
+
+        // Skip check if the user is the master admin (via email or role)
+        const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+        const isMaster = (masterEmail && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) || req.user.role === 'Master Admin';
+        if (isMaster) {
+            return next();
+        }
 
         const adminId = req.user._id;
 
         // Get client record for this admin
-        const client = await Client.findOne({ adminId });
+        const client = await Client.findOne({ adminId }).populate('packageId');
         if (!client) {
             // No client record means legacy account — allow freely
             return next();
         }
 
         // Calculate total allowed employees
-        const baseLimit = client.maxEmployees || 10;
+        const baseLimit = client.packageId?.maxEmployees || client.maxEmployees || 0;
         const addonTotal = (client.addonPurchases || [])
             .reduce((sum, addon) => sum + (addon.employeesAdded || 0), 0);
         const totalAllowed = baseLimit + addonTotal;

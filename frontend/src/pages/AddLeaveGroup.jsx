@@ -61,7 +61,7 @@ const AddLeaveGroup = () => {
         <div className="hrm-container">
             <div className="hrm-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
                         <ArrowLeft size={20} />
                     </button>
                     <h1 className="hrm-title">Add Leave Group</h1>
@@ -70,39 +70,41 @@ const AddLeaveGroup = () => {
 
             <form onSubmit={handleSubmit}>
                 <div className="hrm-card" style={{ padding: '30px', overflow: 'visible' }}>
-                    {/* Section: General Settings */}
-                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        General Settings
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-                        <div className="hrm-form-group">
-                            <label className="hrm-label">Leave Group Name <span className="req">*</span></label>
-                            <input type="text" name="leaveGroupName" className="hrm-input" value={formData.leaveGroupName} onChange={handleChange} placeholder="Enter leave group name" required />
+                    <div>
+                        {/* Section: General Settings */}
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 24px 0', paddingBottom: '12px', borderBottom: '2px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            General Settings
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+                            <div className="hrm-form-group">
+                                <label className="hrm-label">Leave Group Name <span className="req">*</span></label>
+                                <input type="text" name="leaveGroupName" className="hrm-input" value={formData.leaveGroupName} onChange={handleChange} placeholder="Enter leave group name" required />
+                            </div>
+                            <div className="hrm-form-group">
+                                <SearchableSelect
+                                    label="Leave Balance Visibility"
+                                    options={[
+                                        { label: 'Default (Multiple of 0.5)', value: 'Default (Multiple of 0.5)' },
+                                        { label: 'Multiple of 1', value: 'Multiple of 1' },
+                                    ]}
+                                    value={formData.leaveBalanceVisibility}
+                                    onChange={(val) => handleSelect('leaveBalanceVisibility', val)}
+                                />
+                            </div>
+
+                        
+
                         </div>
-                        <div className="hrm-form-group">
-                            <SearchableSelect
-                                label="Leave Balance Visibility"
-                                options={[
-                                    { label: 'Default (Multiple of 0.5)', value: 'Default (Multiple of 0.5)' },
-                                    { label: 'Multiple of 1', value: 'Multiple of 1' },
-                                ]}
-                                value={formData.leaveBalanceVisibility}
-                                onChange={(val) => handleSelect('leaveBalanceVisibility', val)}
-                            />
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+                            <button type="button" className="btn-hrm btn-hrm-secondary" onClick={handleReset}>
+                                <RotateCcw size={16} /> Reset
+                            </button>
+                            <button type="submit" className="btn-hrm btn-hrm-primary">
+                                <Check size={16} /> Add Leave Group
+                            </button>
                         </div>
-
-                      
-
-                    </div>
-
-                    {/* Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #F1F5F9' }}>
-                        <button type="button" className="btn-hrm btn-hrm-secondary" onClick={handleReset}>
-                            <RotateCcw size={16} /> Reset
-                        </button>
-                        <button type="submit" className="btn-hrm btn-hrm-primary">
-                            <Check size={16} /> Add Leave Group
-                        </button>
                     </div>
                 </div>
             </form>

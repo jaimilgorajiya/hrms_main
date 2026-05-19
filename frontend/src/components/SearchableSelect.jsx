@@ -97,7 +97,7 @@ const SearchableSelect = ({
                         ? '1px solid var(--accent-primary)'
                         : '1px solid var(--border)',
                     borderRadius: 'var(--radius-sm)',
-                    backgroundColor: disabled ? '#F8FAFC' : 'var(--bg-base)',
+                    backgroundColor: disabled ? 'var(--bg-main)' : 'var(--bg-base)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -155,16 +155,16 @@ const SearchableSelect = ({
                     top: 'calc(100% + 6px)',
                     left: 0,
                     right: 0,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: 'var(--bg-elevated)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-md)',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25)',
                     zIndex: 99999,
                     overflow: 'hidden',
                     animation: 'ssDropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}>
                     {searchable && (
-                        <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: '#F8FAFC' }}>
+                        <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: 'var(--bg-base)' }}>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                 <Search size={14} style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
                                 <input
@@ -182,7 +182,7 @@ const SearchableSelect = ({
                                         borderRadius: 'var(--radius-sm)',
                                         fontSize: '13px',
                                         outline: 'none',
-                                        background: '#FFFFFF',
+                                        background: 'var(--bg-elevated)',
                                         color: 'var(--text-primary)',
                                         boxSizing: 'border-box'
                                     }}
@@ -217,7 +217,7 @@ const SearchableSelect = ({
                                             marginBottom: '2px'
                                         }}
                                         onMouseEnter={(e) => {
-                                            if (!isSelected) e.currentTarget.style.backgroundColor = '#F1F5F9';
+                                            if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-main)';
                                         }}
                                         onMouseLeave={(e) => {
                                             if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';

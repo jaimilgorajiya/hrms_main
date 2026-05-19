@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { menuItems } from '../config/menuItems';
-import { Bell } from 'lucide-react';
+import { Bell, Sun, Moon } from 'lucide-react';
 
 const buildSearchableItems = () => {
   const items = [];
@@ -43,6 +43,23 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Premium Theme Switcher logic using mobile app's curated dark/light tokens
+  const [theme, setTheme] = useState(localStorage.getItem('admin-theme') || 'light');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('admin-theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('admin-theme', 'light');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -245,6 +262,30 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
 
       <div className="header-right">
       
+        {/* Sleek Premium Theme Toggler */}
+        <button 
+          className="icon-btn theme-toggle-btn" 
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '8px',
+            borderRadius: '10px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
+          {theme === 'light' ? (
+            <Moon size={20} style={{ color: '#64748B', transition: 'transform 0.5s ease' }} />
+          ) : (
+            <Sun size={20} style={{ color: '#F59E0B', transition: 'transform 0.5s ease' }} />
+          )}
+        </button>
+
         <div style={{ position: 'relative' }} ref={notifRef}>
           <button className="icon-btn notification-btn" onClick={() => { setShowNotifs(o => !o); if (!showNotifs) fetchNotifications(); }}>
             <Bell size={20} />

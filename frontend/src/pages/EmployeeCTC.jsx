@@ -224,11 +224,10 @@ const EmployeeCTC = () => {
                     <p className="hrm-subtitle">Manage individual salary structures and compensation breakdowns</p>
                 </div>
                 
-                <div className="hrm-search-wrapper" style={{ width: '350px' }}>
-                    <Search size={18} className="hrm-search-icon" />
+                <div className="search-wrapper" style={{ width: '350px' }}>
+                    <Search size={18} color="var(--text-secondary)" />
                     <input 
                         type="text" 
-                        className="hrm-input hrm-search-input"
                         placeholder="Search by name or Employee ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

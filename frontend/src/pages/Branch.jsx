@@ -246,11 +246,11 @@ const Branch = () => {
                                 
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '24px' }}>
                                     <div style={{ 
-                                        background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', 
+                                        background: 'var(--primary-light)', 
                                         padding: '14px', 
                                         borderRadius: '14px', 
                                         color: 'var(--primary-blue)',
-                                        boxShadow: '0 4px 10px rgba(37, 99, 235, 0.1)'
+                                        boxShadow: '0 4px 10px var(--accent-primary-glow)'
                                     }}>
                                         <Building2 size={24} />
                                     </div>
@@ -270,7 +270,7 @@ const Branch = () => {
                                 </div>
                                 
                                 <div style={{ 
-                                    background: 'linear-gradient(to bottom, #F8FAFC, #F1F5F9)', 
+                                    background: 'var(--bg-base)', 
                                     padding: '16px', 
                                     borderRadius: '16px', 
                                     border: '1px solid var(--border)', 
@@ -300,7 +300,7 @@ const Branch = () => {
                                         </div>
                                     </div>
                                     
-                                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)' }}>ALLOWED RADIUS</div>
                                         <div className="hrm-badge hrm-badge-success" style={{ fontWeight: '800' }}>{branch.radius || 500}M</div>
                                     </div>
@@ -325,7 +325,7 @@ const Branch = () => {
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
                     <div className="hrm-modal-content" style={{ maxWidth: '650px', width: '100%' }}>
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                        <div className="hrm-modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ 
                                     background: 'var(--primary-gradient)', 
@@ -337,15 +337,15 @@ const Branch = () => {
                                     <Building2 size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                                         {isEditing ? 'Update Branch' : 'Create New Branch'}
                                     </h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-light)', fontWeight: 500 }}>
                                         Configure branch details and attendance geofencing
                                     </p>
                                 </div>
                             </div>
-                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -394,13 +394,13 @@ const Branch = () => {
                                 
                                 <div style={{ 
                                     padding: '24px', 
-                                    background: '#F1F5F9', 
+                                    background: 'var(--bg-main)', 
                                     borderRadius: '20px', 
-                                    border: '1px solid #E2E8F0',
+                                    border: '1px solid var(--border)',
                                     boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
                                 }}>
-                                    <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: 'var(--primary-blue)', display: 'flex' }}>
+                                    <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ background: 'var(--bg-elevated)', padding: '6px', borderRadius: '8px', color: 'var(--primary-blue)', display: 'flex', border: '1px solid var(--border)' }}>
                                             <MapPin size={16} />
                                         </div>
                                         LOCATION & GEOFENCING
@@ -431,7 +431,7 @@ const Branch = () => {
                                             value={formData.address} 
                                             readOnly 
                                             placeholder="Address will be auto-filled from map selection"
-                                            style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
+                                            style={{ background: 'var(--primary-light)', height: '48px', color: 'var(--primary-blue)', fontWeight: 600, border: '1px solid var(--border)' }}
                                         />
                                     </div>
 
@@ -441,7 +441,7 @@ const Branch = () => {
                                             <input 
                                                 type="text" className="hrm-input" name="latitude" 
                                                 value={formData.latitude} readOnly 
-                                                placeholder="0.0000000000" style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
+                                                placeholder="0.0000000000" style={{ background: 'var(--primary-light)', height: '48px', color: 'var(--primary-blue)', fontWeight: 600, border: '1px solid var(--border)' }}
                                             />
                                         </div>
                                         <div className="hrm-form-group" style={{ margin: 0 }}>
@@ -449,7 +449,7 @@ const Branch = () => {
                                             <input 
                                                 type="text" className="hrm-input" name="longitude" 
                                                 value={formData.longitude} readOnly 
-                                                placeholder="0.0000000000" style={{ background: '#EFF6FF', height: '48px', color: '#1E40AF', fontWeight: 600, border: '1px solid #BFDBFE' }}
+                                                placeholder="0.0000000000" style={{ background: 'var(--primary-light)', height: '48px', color: 'var(--primary-blue)', fontWeight: 600, border: '1px solid var(--border)' }}
                                             />
                                         </div>
                                     </div>
@@ -472,13 +472,13 @@ const Branch = () => {
                                             onChange={(e) => setFormData({ ...formData, radius: parseInt(e.target.value) })} 
                                             style={{ width: '100%', cursor: 'pointer' }}
                                         />
-                                        <p style={{ fontSize: '11px', color: '#64748B', marginTop: '10px', lineHeight: '1.5', fontStyle: 'italic' }}>
+                                        <p style={{ fontSize: '11px', color: 'var(--text-light)', marginTop: '10px', lineHeight: '1.5', fontStyle: 'italic' }}>
                                             Employees must be within this distance of the coordinates to verify their location during attendance marking.
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                            <div className="hrm-modal-footer" style={{ padding: '24px 32px' }}>
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>

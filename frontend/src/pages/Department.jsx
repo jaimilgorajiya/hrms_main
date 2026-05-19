@@ -269,7 +269,7 @@ const Department = () => {
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
                     <div className="hrm-modal-content" style={{ maxWidth: '550px', width: '100%' }}>
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                        <div className="hrm-modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ 
                                     background: 'var(--primary-gradient)', 
@@ -281,15 +281,15 @@ const Department = () => {
                                     <Building2 size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                                         {isEditing ? 'Update Department' : 'Create Department'}
                                     </h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-light)', fontWeight: 500 }}>
                                         Configure organizational structure and notice period
                                     </p>
                                 </div>
                             </div>
-                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -333,10 +333,10 @@ const Department = () => {
                                         required 
                                         min="0" 
                                     />
-                                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#64748B' }}>Standard duration an employee must serve before leaving</p>
+                                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-light)' }}>Standard duration an employee must serve before leaving</p>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                            <div className="hrm-modal-footer" style={{ padding: '24px 32px' }}>
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>
@@ -352,7 +352,7 @@ const Department = () => {
             {isBulkModalOpen && (
                 <div className="hrm-modal-overlay">
                     <div className="hrm-modal-content" style={{ maxWidth: '700px', width: '100%' }}>
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                        <div className="hrm-modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ 
                                     background: 'var(--primary-gradient)', 
@@ -364,15 +364,15 @@ const Department = () => {
                                     <Layout size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                                         Bulk Add Departments
                                     </h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-light)', fontWeight: 500 }}>
                                         Quickly add multiple departments to a specific branch
                                     </p>
                                 </div>
                             </div>
-                            <button className="icon-btn" onClick={() => setIsBulkModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                            <button className="icon-btn" onClick={() => setIsBulkModalOpen(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -405,7 +405,7 @@ const Department = () => {
                                                     />
                                                 </div>
                                                 {bulkDepartments.length > 1 && (
-                                                    <button type="button" className="btn-hrm" style={{ padding: '12px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2' }} onClick={() => removeBulkRow(idx)}>
+                                                    <button type="button" className="btn-hrm" style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#FF8A8A', border: '1px solid rgba(239, 68, 68, 0.2)' }} onClick={() => removeBulkRow(idx)}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 )}
@@ -417,7 +417,7 @@ const Department = () => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                            <div className="hrm-modal-footer" style={{ padding: '24px 32px' }}>
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsBulkModalOpen(false)} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>

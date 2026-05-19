@@ -259,7 +259,7 @@ const AddEmployee = () => {
                 {employeeUsage && !limitReached && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ fontSize: '13px', color: '#64748B' }}>
-                            Employees: <strong style={{ color: '#0F172A' }}>{employeeUsage.currentCount}/{employeeUsage.totalAllowed}</strong>
+                            Employees: <strong style={{ color: '#0F172A' }}>{employeeUsage.currentCount}/{employeeUsage.totalAllowed >= 999999 ? <span className="infinity-symbol-small">∞</span> : employeeUsage.totalAllowed}</strong>
                         </div>
                         <div style={{ width: '120px', height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ 
@@ -286,7 +286,7 @@ const AddEmployee = () => {
                     </div>
                     <h2 style={{ color: '#0F172A', margin: '0 0 12px', fontSize: '24px' }}>Employee Limit Reached</h2>
                     <p style={{ color: '#64748B', fontSize: '16px', maxWidth: '500px', margin: '0 auto 8px', lineHeight: 1.6 }}>
-                        You have used <strong style={{ color: '#DC2626' }}>{employeeUsage?.currentCount}</strong> of <strong>{employeeUsage?.totalAllowed}</strong> employee slots in your <strong>{employeeUsage?.packageName}</strong> plan.
+                        You have used <strong style={{ color: '#DC2626' }}>{employeeUsage?.currentCount}</strong> of <strong>{employeeUsage?.totalAllowed >= 999999 ? <span className="infinity-symbol-small">∞</span> : employeeUsage?.totalAllowed}</strong> employee slots in your <strong>{employeeUsage?.packageName}</strong> plan.
                     </p>
                     <p style={{ color: '#64748B', fontSize: '15px', marginBottom: '32px' }}>
                         Purchase an employee add-on pack to add more team members.
@@ -299,13 +299,13 @@ const AddEmployee = () => {
                         >
                             Go Back
                         </button>
-                        {/* <button 
+                        <button 
                             className="btn-hrm btn-hrm-primary" 
                             onClick={() => navigate('/admin/profile')} 
                             style={{ padding: '12px 32px', borderRadius: '10px' }}
                         >
                             Upgrade Plan
-                        </button> */}
+                        </button>
                     </div>
                 </div>
             )}

@@ -49,15 +49,15 @@ const ExEmployees = () => {
         e.stopPropagation(); // Prevent card click navigation
         
         const result = await Swal.fire({
-            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Re-activate Employee?</span>',
-            html: `<p style="color: #64748B; font-size: 15px; line-height: 1.6; margin-top: 10px;">Are you sure you want to re-activate <b>${emp.name}</b>? This will restore them to Active status and clear separation metadata.</p>`,
+            title: '<span style="font-size: 24px; font-weight: 800; color: var(--text-dark);">Re-activate Employee?</span>',
+            html: `<p style="color: var(--text-secondary); font-size: 15px; line-height: 1.6; margin-top: 10px;">Are you sure you want to re-activate <b>${emp.name}</b>? This will restore them to Active status and clear separation metadata.</p>`,
             icon: 'question',
             iconColor: '#3B648B',
             showCancelButton: true,
             confirmButtonText: 'Yes, Re-activate',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#3B648B',
-            cancelButtonColor: '#F1F5F9',
+            cancelButtonColor: 'var(--bg-main)',
             customClass: {
                 popup: 'premium-swal-popup',
                 confirmButton: 'premium-swal-confirm',
@@ -71,7 +71,7 @@ const ExEmployees = () => {
             style.innerHTML = `
                 .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; }
                 .premium-swal-confirm { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
-                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
+                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: var(--text-secondary) !important; }
             `;
             document.head.appendChild(style);
         }
@@ -225,10 +225,10 @@ const ExEmployees = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
                 {Object.entries(groupedByDepartment).length === 0 ? (
                     <div className="hrm-card" style={{ textAlign: 'center', padding: '120px 40px', background: 'transparent', border: '2px dashed var(--border)' }}>
-                        <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#CBD5E1', boxShadow: '0 8px 16px -4px rgba(0,0,0,0.05)' }}>
+                        <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--text-muted)', boxShadow: 'var(--shadow-sm)' }}>
                             <Users size={40} />
                         </div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', margin: '0 0 8px' }}>No alumni found</h3>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 8px' }}>No alumni found</h3>
                         <p style={{ color: 'var(--text-muted)', maxWidth: '300px', margin: '0 auto', fontSize: '14px' }}>Try adjusting your search or filters to find specific former colleagues.</p>
                     </div>
                 ) : (
@@ -259,7 +259,7 @@ const ExEmployees = () => {
                                             <div style={{ display: 'flex', gap: '20px', alignItems: 'start' }}>
                                                 <div style={{ 
                                                     width: '64px', height: '64px', borderRadius: '18px', 
-                                                    background: 'var(--bg-main)', border: '2.5px solid white',
+                                                    background: 'var(--bg-main)', border: '2.5px solid var(--bg-elevated)',
                                                     boxShadow: 'var(--shadow-sm)', overflow: 'hidden', flexShrink: 0
                                                 }}>
                                                     {emp.profilePhoto ? (
@@ -273,13 +273,13 @@ const ExEmployees = () => {
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                         <div>
-                                                            <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#1E293B', margin: '0 0 2px' }}>{emp.name}</h3>
+                                                            <h3 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-dark)', margin: '0 0 2px' }}>{emp.name}</h3>
                                                             <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>{emp.employeeId || 'ID N/A'}</p>
                                                         </div>
                                                         <div style={{ 
                                                             padding: '4px 10px', borderRadius: '8px', fontSize: '10px', fontWeight: '800',
-                                                            background: emp.status === 'Resigned' ? '#FEE2E2' : '#F1F5F9',
-                                                            color: emp.status === 'Resigned' ? '#EF4444' : '#64748B'
+                                                            background: emp.status === 'Resigned' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-main)',
+                                                            color: emp.status === 'Resigned' ? 'var(--danger)' : 'var(--text-muted)'
                                                         }}>
                                                             {emp.status?.toUpperCase() || 'EXITED'}
                                                         </div>
@@ -288,14 +288,14 @@ const ExEmployees = () => {
                                             </div>
 
                                             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#475569', fontWeight: 600 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                                                     <Briefcase size={15} color="var(--primary-blue)" />
                                                     {emp.designation || 'Former Staff'}
                                                 </div>
                                                 <div style={{ 
                                                     display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', 
-                                                    color: '#EF4444', fontWeight: 700, padding: '12px', background: '#FEF2F2',
-                                                    borderRadius: '12px', border: '1px solid #FEE2E2'
+                                                    color: 'var(--danger)', fontWeight: 700, padding: '12px', background: 'rgba(239, 68, 68, 0.05)',
+                                                    borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.15)'
                                                 }}>
                                                     <LogOut size={15} />
                                                     Relieved: {emp.exitDate ? new Date(emp.exitDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date N/A'}
@@ -304,7 +304,7 @@ const ExEmployees = () => {
                                         </div>
                                         
                                         <div style={{ 
-                                            padding: '12px 24px', background: '#F8FAFC', borderTop: '1px solid #F1F5F9',
+                                            padding: '12px 24px', background: 'var(--bg-base)', borderTop: '1px solid var(--border)',
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                                         }}>
                                             <button 
@@ -314,17 +314,19 @@ const ExEmployees = () => {
                                                     padding: '6px 12px', 
                                                     fontSize: '11px', 
                                                     height: 'auto',
-                                                    background: 'rgba(59, 100, 139, 0.05)',
-                                                    border: '1px solid rgba(59, 100, 139, 0.1)',
-                                                    color: '#3B648B'
+                                                    background: 'var(--bg-main)',
+                                                    border: '1px solid var(--border)',
+                                                    color: 'var(--text-secondary)'
                                                 }}
                                                 onMouseOver={(e) => {
-                                                    e.currentTarget.style.background = '#3B648B';
-                                                    e.currentTarget.style.color = 'white';
+                                                    e.currentTarget.style.background = 'var(--bg-elevated)';
+                                                    e.currentTarget.style.color = 'var(--text-dark)';
+                                                    e.currentTarget.style.borderColor = 'var(--primary-blue)';
                                                 }}
                                                 onMouseOut={(e) => {
-                                                    e.currentTarget.style.background = 'rgba(59, 100, 139, 0.05)';
-                                                    e.currentTarget.style.color = '#3B648B';
+                                                    e.currentTarget.style.background = 'var(--bg-main)';
+                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                    e.currentTarget.style.borderColor = 'var(--border)';
                                                 }}
                                             >
                                                 <RotateCcw size={12} style={{ marginRight: '6px' }} /> REACTIVATE

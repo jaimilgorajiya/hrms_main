@@ -1,4 +1,4 @@
-import authenticatedFetch from '../utils/apiHandler';
+wimport authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, X, Edit2, AlertCircle, Check, Search, Clock, Zap } from 'lucide-react';
@@ -280,15 +280,13 @@ const GraceTime = () => {
                 <div className="hrm-card">
                     <div className="hrm-modal-header" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-main)', padding: '16px 24px' }}>
                         <h3 className="hrm-modal-title" style={{ fontSize: '15px' }}>Existing Rules</h3>
-                        <div className="hrm-search-wrapper" style={{ maxWidth: '300px', marginLeft: 'auto' }}>
-                            <Search size={16} className="hrm-search-icon" />
+                        <div className="search-wrapper" style={{ maxWidth: '300px', marginLeft: 'auto' }}>
+                            <Search size={16} color="var(--text-secondary)" />
                             <input 
                                 type="text"
-                                className="hrm-input hrm-search-input"
                                 placeholder="Search shift..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ height: '36px' }}
                             />
                         </div>
                     </div>

@@ -56,7 +56,7 @@ const HourMinutePicker = ({ value, onChange }) => {
             <div style={{ position: 'relative' }}>
                 <select 
                     className="hm-dropdown"
-                    style={{...selectBaseStyle, color: value ? '#1E293B' : '#94a3b8', backgroundPosition: 'right 4px center', backgroundSize: '10px'}}
+                    style={{...selectBaseStyle, color: value ? 'var(--text-primary)' : 'var(--text-muted)', backgroundPosition: 'right 4px center', backgroundSize: '10px'}}
                     value={value ? hours : ''} 
                     onChange={handleHourChange}
                 >
@@ -68,7 +68,7 @@ const HourMinutePicker = ({ value, onChange }) => {
             <div style={{ position: 'relative' }}>
                 <select 
                     className="hm-dropdown"
-                    style={{...selectBaseStyle, color: value ? '#1E293B' : '#94a3b8', backgroundPosition: 'right 4px center', backgroundSize: '10px'}}
+                    style={{...selectBaseStyle, color: value ? 'var(--text-primary)' : 'var(--text-muted)', backgroundPosition: 'right 4px center', backgroundSize: '10px'}}
                     value={value ? minutes : ''} 
                     onChange={handleMinuteChange}
                 >

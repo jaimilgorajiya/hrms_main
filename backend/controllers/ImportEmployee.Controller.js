@@ -75,9 +75,24 @@ const importEmployees = async (req, res) => {
 
         // Get current limit info
         const Client = (await import('../models/Client.Model.js')).default;
-        const client = await Client.findOne({ adminId });
-        const maxAllowed = client ? (client.maxEmployees || 0) : 0;
-        let currentEmployeeCount = await User.countDocuments({ adminId });
+        const client = await Client.findOne({ adminId }).populate('packageId');
+        
+        let maxAllowed = 999999;
+        const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+        const isMaster = (masterEmail && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) || req.user.role === 'Master Admin';
+        
+        if (client && !isMaster && !req.isMasterBypass) {
+            const baseLimit = client.packageId?.maxEmployees || client.maxEmployees || 0;
+            const addonTotal = (client.addonPurchases || [])
+                .reduce((sum, addon) => sum + (addon.employeesAdded || 0), 0);
+            maxAllowed = baseLimit + addonTotal;
+        }
+
+        let currentEmployeeCount = await User.countDocuments({
+            adminId,
+            role: { $ne: 'Admin' },
+            status: { $in: ['Active', 'Onboarding', 'Resigned'] }
+        });
 
         for (const row of data) {
             // Check if limit reached during import

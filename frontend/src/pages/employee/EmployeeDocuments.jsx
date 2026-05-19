@@ -80,6 +80,45 @@ const EmployeeDocuments = () => {
                     {doc.issueDate && <span>Issued: {new Date(doc.issueDate).toLocaleDateString('en-IN')}</span>}
                     {doc.expiryDate && <span>Expires: {new Date(doc.expiryDate).toLocaleDateString('en-IN')}</span>}
                   </div>
+                  <div style={{ marginTop: '10px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 10px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      background: doc.status === 'Approved' ? 'rgba(16, 185, 129, 0.12)' : doc.status === 'Rejected' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                      color: doc.status === 'Approved' ? '#10B981' : doc.status === 'Rejected' ? '#EF4444' : '#F59E0B',
+                      border: '1px solid',
+                      borderColor: doc.status === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : doc.status === 'Rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                    }}>
+                      <span style={{
+                        width: '5px',
+                        height: '5px',
+                        borderRadius: '50%',
+                        background: doc.status === 'Approved' ? '#10B981' : doc.status === 'Rejected' ? '#EF4444' : '#F59E0B'
+                      }}></span>
+                      {doc.status || 'Pending'}
+                    </span>
+                  </div>
+
+                  {doc.status === 'Rejected' && doc.rejectionReason && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#EF4444',
+                      background: 'rgba(239, 68, 68, 0.05)',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.12)',
+                      marginTop: '8px',
+                      lineHeight: '1.4'
+                    }}>
+                      <strong>Reason:</strong> {doc.rejectionReason}
+                    </div>
+                  )}
+
                   <span className="ep-doc-uploaded">Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('en-IN')}</span>
                 </div>
                 <div className="ep-doc-actions">

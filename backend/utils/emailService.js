@@ -65,7 +65,7 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                         <div class="content">
                             <p>Hello <strong>${userName}</strong>,</p>
                             
-                            <p>Your account has been successfully created in our Employee Management System. Below are your login credentials:</p>
+                            <p>Your account has been successfully created in our Employee Management System. Your registered profile details are below:</p>
                             
                             <div class="credentials">
                                 <div class="credential-item">
@@ -76,24 +76,27 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                                     <span class="credential-label">Email:</span>
                                     <span class="credential-value">${userEmail}</span>
                                 </div>
-                                <div class="credential-item">
-                                    <span class="credential-label">Temporary Password:</span>
-                                    <span class="credential-value">${temporaryPassword}</span>
-                                </div>
                             </div>
                             
-                            <div class="warning">
-                                <strong>⚠️ Important Security Notice:</strong>
-                                <ul>
-                                    <li>You will be required to change this password on your first login</li>
-                                    <li>Do not share your credentials with anyone</li>
-                                    <li>Keep this email secure or delete it after changing your password</li>
-                                </ul>
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+                                <h3 style="margin-top: 0; color: #1e40af; font-size: 16px; font-weight: 700;">📱 Download Our Mobile App</h3>
+                                <p style="margin: 8px 0 16px 0; font-size: 13px; color: #1e3a8a; line-height: 1.5;">
+                                    Access your attendance, punch in/out, check leave requests, and view pay details directly on the go. Get the Android application using the one-click download button below:
+                                </p>
+                                <center style="text-align: left;">
+                                    <a href="https://expo.dev/accounts/jaimilgorajiya/projects/hrms-employee-app/builds/8a55d650-5008-4a66-8d61-de9a764c6802" 
+                                       style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
+                                        📥 Download Android App (APK)
+                                    </a>
+                                </center>
                             </div>
-                            
-                            <center>
-                                <a href="${process.env.CLIENT_URL}/login" class="button">Login to Your Account</a>
-                            </center>
+
+                            <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; margin: 20px 0; border-left: 4px solid #f59e0b; border-radius: 5px;">
+                                <strong>🔑 Secure OTP Sign In:</strong>
+                                <p style="margin: 5px 0 0 0; font-size: 13.5px; color: #92400e; line-height: 1.5;">
+                                    There is no password required for your account. You can securely log in to the employee dashboard or mobile application at any time using your registered mobile number and a one-time verification code (OTP) sent directly to your phone.
+                                </p>
+                            </div>
                             
                             <p>If you have any questions or need assistance, please contact your HR department or system administrator.</p>
                             

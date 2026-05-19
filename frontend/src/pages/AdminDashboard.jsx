@@ -111,13 +111,13 @@ const AdminDashboard = () => {
   if (loading && !data) return <PageLoader message="Synchronizing Management Intelligence" />;
 
   const stats = data?.stats || {};
-  const DEPT_COLORS = ['#1e293b', '#059669', '#0369a1', '#4f46e5', '#be123c', '#0891b2', '#475569'];
+  const DEPT_COLORS = ['#c3c0ff', '#10b981', '#3b82f6', '#f43f5e', '#f59e0b', '#8b5cf6', '#06b6d4'];
   
   const attendanceDonutData = [
-    { name: 'Present',  value: stats.presentToday || 0, color: '#059669' },
-    { name: 'Absent',   value: stats.absentToday || 0, color: '#be123c' },
-    { name: 'Half Day', value: stats.halfDayToday || 0, color: '#d97706' },
-    { name: 'On Leave', value: stats.onLeaveToday || 0, color: '#4f46e5' },
+    { name: 'Present',  value: stats.presentToday || 0, color: '#10b981' },
+    { name: 'Absent',   value: stats.absentToday || 0, color: '#f43f5e' },
+    { name: 'Half Day', value: stats.halfDayToday || 0, color: '#f59e0b' },
+    { name: 'On Leave', value: stats.onLeaveToday || 0, color: '#c3c0ff' },
   ].filter(d => d.value > 0);
 
   const deptBarData = (data?.departmentStats || []).slice(0, 7).map(d => ({ name: d.name, Employees: d.count }));
@@ -233,12 +233,12 @@ const AdminDashboard = () => {
                    <div className="chart-center-label">Active</div>
                 </div>
               </div>
-              <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="chart-legend-grid-prem">
                  {attendanceDonutData.map((d, i) => (
-                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: d.color, boxShadow: `0 0 8px ${d.color}44` }} />
-                     <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{d.name}</span>
-                     <span style={{ fontSize: '13px', fontWeight: '700', color: '#1c1b1b', marginLeft: 'auto' }}>{d.value}</span>
+                   <div key={i} className="chart-legend-item-prem">
+                     <div className="chart-legend-dot-prem" style={{ background: d.color, boxShadow: `0 0 8px ${d.color}44` }} />
+                     <span className="legend-name-prem">{d.name}</span>
+                     <span className="legend-value-prem">{d.value}</span>
                    </div>
                  ))}
               </div>
@@ -301,23 +301,23 @@ const AdminDashboard = () => {
                        else navigate('/admin/attendance/request');
                      }}
                    >
-                      <div className={`icon-box-prem ${req.requestType === 'Leave' ? 'blue' : 'purple'}`} style={{ width: '40px', height: '40px', minWidth: '40px', borderRadius: '12px' }}>
+                      <div className={`icon-box-prem ${req.requestType === 'Leave' ? 'blue' : 'purple'}`}>
                          {req.requestType === 'Leave' ? <Calendar size={18} /> : <Check size={18} />}
                       </div>
                       <div className="activity-info-prem">
                          <span className="user-name-prem">{req.employee?.name || 'Employee'}</span>
-                         <span style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8' }}>{req.requestType} • {req.date || req.fromDate}</span>
+                         <span className="activity-type-prem">{req.requestType} • {req.date || req.fromDate}</span>
                       </div>
                       <ChevronRight size={14} color="#cbd5e1" />
                    </div>
                  ))}
                  {pendingRequests.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                        <div style={{ background: '#f0fdf4', color: '#10b981', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.1)' }}>
+                    <div className="empty-state-card-prem">
+                        <div className="empty-state-icon-prem">
                             <Check size={28} />
                         </div>
-                        <p style={{ fontWeight: '700', color: '#1c1b1b', margin: 0, fontFamily: 'Sora' }}>System Clear</p>
-                        <p style={{ fontSize: '13px', color: '#94a3b8', margin: '4px 0 0' }}>No pending tasks requiring action.</p>
+                        <p className="system-clear-title-prem">System Clear</p>
+                        <p className="system-clear-desc-prem">No pending tasks requiring action.</p>
                     </div>
                  )}
               </div>
@@ -408,21 +408,12 @@ const AdminDashboard = () => {
                           key={i} 
                           className="dist-item-prem clickable-item-prem" 
                           onClick={() => navigate(item.link)}
-                          style={{ cursor: 'pointer', padding: '12px', borderRadius: '16px', transition: 'all 0.2s', border: '1px solid transparent' }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f8fafc';
-                            e.currentTarget.style.borderColor = '#e2e8f0';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.borderColor = 'transparent';
-                          }}
                         >
                             <div className="dist-info-prem">
-                                <span style={{ fontWeight: '700', color: '#475569', fontSize: '14px' }}>{item.label}</span>
-                                <span style={{ fontWeight: '900', color: '#1e293b', fontSize: '16px' }}>{item.value}</span>
+                                <span className="dist-label-prem">{item.label}</span>
+                                <span className="dist-val-prem">{item.value}</span>
                             </div>
-                            <div className="progress-bar-prem" style={{ marginTop: '8px' }}>
+                            <div className="progress-bar-prem">
                                 <div className="progress-fill-prem" style={{ width: `${Math.min(100, (item.value / (stats.totalUsers || 1)) * 100)}%`, background: `linear-gradient(90deg, ${item.color}cc, ${item.color})`, boxShadow: `0 0 10px ${item.color}44` }} />
                             </div>
                         </div>

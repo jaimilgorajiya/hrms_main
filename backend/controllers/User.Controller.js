@@ -31,18 +31,31 @@ const createUser = async (req, res) => {
 
         // --- ENFORCE EMPLOYEE LIMIT ---
         const Client = (await import('../models/Client.Model.js')).default;
-        const client = await Client.findOne({ adminId });
+        const client = await Client.findOne({ adminId }).populate('packageId');
         
         if (client) {
-            const currentEmployeeCount = await User.countDocuments({ adminId });
-            const maxAllowed = client.maxEmployees || 0;
+            const masterEmail = process.env.MASTER_ADMIN_EMAIL;
+            const isMaster = (masterEmail && req.user.email && req.user.email.toLowerCase() === masterEmail.toLowerCase()) || req.user.role === 'Master Admin';
             
-            if (currentEmployeeCount >= maxAllowed) {
-                return res.status(403).json({ 
-                    success: false, 
-                    limitReached: true,
-                    message: `You have reached your limit of ${maxAllowed} employees. Please upgrade your plan or purchase an add-on to add more team members.`
+            if (!isMaster && !req.isMasterBypass) {
+                const baseLimit = client.packageId?.maxEmployees || client.maxEmployees || 0;
+                const addonTotal = (client.addonPurchases || [])
+                    .reduce((sum, addon) => sum + (addon.employeesAdded || 0), 0);
+                const maxAllowed = baseLimit + addonTotal;
+                
+                const currentEmployeeCount = await User.countDocuments({
+                    adminId,
+                    role: { $ne: 'Admin' },
+                    status: { $in: ['Active', 'Onboarding', 'Resigned'] }
                 });
+                
+                if (currentEmployeeCount >= maxAllowed) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        limitReached: true,
+                        message: `You have reached your limit of ${maxAllowed} employees. Please upgrade your plan or purchase an add-on to add more team members.`
+                    });
+                }
             }
         }
         // ------------------------------
@@ -761,4 +774,78 @@ const deleteProfilePhoto = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto };
+const getAllUploadedDocuments = async (req, res) => {
+    try {
+        const adminId = req.user._id;
+        const users = await User.find({ adminId })
+            .populate('documents.documentType')
+            .select('name employeeId branch department documents');
+
+        let allDocs = [];
+        users.forEach(user => {
+            if (user.documents && user.documents.length > 0) {
+                user.documents.forEach(doc => {
+                    allDocs.push({
+                        _id: doc._id,
+                        employeeId: user._id,
+                        employeeName: user.name,
+                        employeeCode: user.employeeId,
+                        branch: user.branch,
+                        department: user.department,
+                        documentType: doc.documentType?.name || 'Unknown Type',
+                        originalName: doc.originalName || doc.fileUrl,
+                        fileUrl: doc.fileUrl,
+                        documentNumber: doc.documentNumber,
+                        issueDate: doc.issueDate,
+                        expiryDate: doc.expiryDate,
+                        uploadedAt: doc.uploadedAt,
+                        status: doc.status || 'Pending',
+                        rejectionReason: doc.rejectionReason || ''
+                    });
+                });
+            }
+        });
+
+        allDocs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+        res.status(200).json({ success: true, documents: allDocs });
+    } catch (error) {
+        console.error("Error in getAllUploadedDocuments:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    }
+};
+
+const reviewUserDocument = async (req, res) => {
+    try {
+        const { id: userId, docId } = req.params;
+        const { status, rejectionReason } = req.body;
+
+        if (!['Approved', 'Rejected'].includes(status)) {
+            return res.status(400).json({ success: false, message: "Invalid status" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const doc = user.documents.id(docId);
+        if (!doc) {
+            return res.status(404).json({ success: false, message: "Document not found" });
+        }
+
+        doc.status = status;
+        if (status === 'Rejected') {
+            doc.rejectionReason = rejectionReason || '';
+        } else {
+            doc.rejectionReason = undefined;
+        }
+
+        await user.save();
+        res.status(200).json({ success: true, message: `Document status updated to ${status}` });
+    } catch (error) {
+        console.error("Error in reviewUserDocument:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    }
+};
+
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument };

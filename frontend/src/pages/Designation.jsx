@@ -278,7 +278,7 @@ const Designation = () => {
             {isModalOpen && (
                 <div className="hrm-modal-overlay">
                     <div className="hrm-modal-content" style={{ maxWidth: '600px', width: '100%' }}>
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)' }}>
+                        <div className="hrm-modal-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ 
                                     background: 'var(--primary-gradient)', 
@@ -290,15 +290,15 @@ const Designation = () => {
                                     <Briefcase size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                                         {isEditing ? 'Update Designation' : 'Create Designation'}
                                     </h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-light)', fontWeight: 500 }}>
                                         Define role names and job responsibilities
                                     </p>
                                 </div>
                             </div>
-                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                            <button className="icon-btn" onClick={() => setIsModalOpen(false)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -344,7 +344,7 @@ const Designation = () => {
                                     ></textarea>
                                 </div>
                             </div>
-                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                            <div className="hrm-modal-footer" style={{ padding: '24px 32px' }}>
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={() => setIsModalOpen(false)} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>

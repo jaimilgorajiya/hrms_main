@@ -191,7 +191,7 @@ export default function PunchMissingScreen() {
                       </View>
                     </View>
                     <View style={{ backgroundColor: colors.primary, width: 50, alignItems: 'center', justifyContent: 'center' }}>
-                       <Ionicons name="arrow-forward" size={20} color={colors.white} />
+                       <Ionicons name= "arrow-forward" size={20} color={colors.white} />
                     </View>
                   </View>
                 </TouchableOpacity>

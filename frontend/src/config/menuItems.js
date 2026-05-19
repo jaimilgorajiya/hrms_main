@@ -28,8 +28,8 @@ export const menuItems = [
         path: "/admin/attendance-settings",
         children: [
           { title: "Break Type", path: "/admin/attendance/break-type" },
-          { title: "Attendance/Breaks Setting", path: "/admin/attendance/breaks-setting" },
-          { title: "EMP Attendance Setting", path: "/admin/attendance/emp-setting" },
+          // { title: "Attendance/Breaks Setting", path: "/admin/attendance/breaks-setting" },
+          // { title: "EMP Attendance Setting", path: "/admin/attendance/emp-setting" },
         ],
       },
       {
@@ -39,7 +39,7 @@ export const menuItems = [
           { title: "Add Shift", path: "/admin/shift/add" },
           { title: "Manage Shift", path: "/admin/shift/manage" },
           { title: "Penalty Rules", path: "/admin/shift/penalty" },
-          { title: "Add Next Day Grace Time", path: "/admin/shift/grace-time" },
+          // { title: "Add Next Day Grace Time", path: "/admin/shift/grace-time" },
         ],
       },
       {
@@ -54,7 +54,7 @@ export const menuItems = [
         title: "Payroll Setting",
         path: "/admin/payroll-settings",
         children: [
-          { title: "Payroll & Tax Setting", path: "/admin/payroll/tax-setting" },
+          // { title: "Payroll & Tax Setting", path: "/admin/payroll/tax-setting" },
           { title: "Earning & Deduction Type", path: "/admin/payroll/earning-deduction" },
           { title: "Salary Group", path: "/admin/payroll/salary-group" },
         ],
@@ -64,7 +64,7 @@ export const menuItems = [
         path: "/admin/document-settings",
         children: [
           { title: "Employee Documents Types", path: "/admin/document/emp-types" },
-          { title: "Onboarding Doc. Setting", path: "/admin/document/onboarding-setting" },
+          { title: "Approve Uploaded Docs", path: "/admin/document/approval" },
         ],
       },
     ],
@@ -93,15 +93,15 @@ export const menuItems = [
           { title: "Employee Promotion", path: "/admin/employees/promotion" },
         ],
       },
-      {
-        title: "Shift Management",
-        path: "/admin/shifts",
-        children: [
-          { title: "Shift Rotation", path: "/admin/shifts/rotation" },
-          { title: "Emp Shift", path: "/admin/shifts/emp" },
-          { title: "Shift change request", path: "/admin/shifts/request" },
-        ],
-      },
+      // {
+      //   title: "Shift Management",
+      //   path: "/admin/shifts",
+      //   children: [
+      //     { title: "Shift Rotation", path: "/admin/shifts/rotation" },
+      //     { title: "Emp Shift", path: "/admin/shifts/emp" },
+      //     { title: "Shift change request", path: "/admin/shifts/request" },
+      //   ],
+      // },
       {
         title: "Attendance",
         path: "/admin/attendance",

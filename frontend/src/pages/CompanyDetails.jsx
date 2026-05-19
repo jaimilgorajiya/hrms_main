@@ -198,7 +198,7 @@ const CompanyDetails = () => {
       <header className="designation-header">
         <div>
           <h1 className="profile-title">Company Profile</h1>
-          <p className="text-light" style={{ fontSize: '14px', marginTop: '4px', color: '#64748B' }}>
+          <p className="text-light" style={{ fontSize: '14px', marginTop: '4px', color: 'var(--text-light)' }}>
             Manage your organization's core contact information and branding.
           </p>
         </div>

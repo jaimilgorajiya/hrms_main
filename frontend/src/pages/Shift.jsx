@@ -166,11 +166,10 @@ const Shift = () => {
 
             <div className="hrm-card" style={{ marginBottom: '24px' }}>
                 <div style={{ padding: '24px' }}>
-                    <div className="hrm-search-wrapper" style={{ maxWidth: '400px' }}>
-                        <Search size={18} className="hrm-search-icon" />
+                    <div className="search-wrapper" style={{ maxWidth: '400px' }}>
+                        <Search size={18} color="var(--text-secondary)" />
                         <input
                             type="text"
-                            className="hrm-input hrm-search-input"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search by shift name or code..."

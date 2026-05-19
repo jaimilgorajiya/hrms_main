@@ -95,21 +95,21 @@ const EmployeeIdFormat = () => {
                 <div style={{ padding: '32px' }}>
                     {/* Live Preview */}
                     <div style={{ 
-                        background: 'linear-gradient(135deg, var(--primary-light), #DBEAFE)', 
+                        background: 'linear-gradient(135deg, var(--primary-light), var(--bg-elevated))', 
                         borderRadius: 'var(--radius-md)', 
                         padding: '28px 32px', 
                         marginBottom: '32px', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'space-between', 
-                        border: '1px solid #BFDBFE',
+                        border: '1px solid var(--border)',
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
                     }}>
                         <div>
                             <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Eye size={14} /> Live Preview
                             </div>
-                            <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--primary-dark)', letterSpacing: '2px', fontFamily: '"JetBrains Mono", monospace' }}>{preview}</div>
+                            <div style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '2px', fontFamily: '"JetBrains Mono", monospace' }}>{preview}</div>
                         </div>
                         <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', textAlign: 'right', opacity: 0.8 }}>
                             <div>Next employee will get</div>
@@ -173,7 +173,7 @@ const EmployeeIdFormat = () => {
 
                     {/* Format breakdown */}
                     <div style={{ background: 'var(--bg-main)', borderRadius: 'var(--radius-sm)', padding: '20px 24px', margin: '32px 0', border: '1px solid var(--border)', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ padding: '8px 12px', background: '#fff', borderRadius: '6px', border: '1px solid var(--border)', fontWeight: '700', fontSize: '12px', color: 'var(--text-dark)' }}>PATTERN</div>
+                        <div style={{ padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: '6px', border: '1px solid var(--border)', fontWeight: '700', fontSize: '12px', color: 'var(--text-primary)' }}>PATTERN</div>
                         <div>
                             <span style={{ fontFamily: 'monospace', color: 'var(--primary-blue)', fontWeight: '700' }}>{format.prefix}</span>
                             {format.separator && <span style={{ fontFamily: 'monospace', color: 'var(--warning)', fontWeight: '700' }}>{format.separator}</span>}

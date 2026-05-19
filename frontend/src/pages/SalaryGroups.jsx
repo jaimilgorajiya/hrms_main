@@ -153,7 +153,7 @@ const SalaryGroups = () => {
                 </button>
             </div>
 
-            <div className="hrm-card">
+            <div className="hrm-card" style={{ padding: 0, overflow: 'hidden' }}>
                 {loading ? (
                     <div style={{ padding: '100px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         <div className="animate-spin" style={{ display: 'inline-block' }}><Calculator size={32} /></div>
@@ -165,7 +165,7 @@ const SalaryGroups = () => {
                         <p style={{ fontWeight: '600' }}>No salary groups found. Add your first group.</p>
                     </div>
                 ) : (
-                    <div className="hrm-table-container">
+                    <div className="hrm-table-wrapper">
                         <table className="hrm-table">
                             <thead>
                                 <tr>
@@ -202,10 +202,10 @@ const SalaryGroups = () => {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                <button className="icon-btn" onClick={() => handleEdit(g)} title="Edit">
+                                                <button className="btn-action-edit" onClick={() => handleEdit(g)} title="Edit">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button className="icon-btn" style={{ color: 'var(--danger)' }} onClick={() => handleDelete(g._id)} title="Delete">
+                                                <button className="btn-action-delete" onClick={() => handleDelete(g._id)} title="Delete">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -222,7 +222,7 @@ const SalaryGroups = () => {
             {showForm && (
                 <div className="hrm-modal-overlay">
                     <div className="hrm-modal-content" style={{ maxWidth: '750px', width: '100%' }}>
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', borderBottom: '1px solid #E2E8F0' }}>
+                        <div className="hrm-modal-header" style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ 
                                     background: 'var(--primary-gradient)', 
@@ -234,15 +234,15 @@ const SalaryGroups = () => {
                                     <Calculator size={20} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
                                         {editingId ? 'Update Salary Group' : 'Create New Salary Group'}
                                     </h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
                                         Configure payroll cycles and working day policies
                                     </p>
                                 </div>
                             </div>
-                            <button className="icon-btn" onClick={resetForm} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                            <button className="icon-btn" onClick={resetForm} style={{ background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
                                 <X size={20} />
                             </button>
                         </div>
@@ -310,9 +310,9 @@ const SalaryGroups = () => {
                                     gridTemplateColumns: '1fr 1fr', 
                                     gap: '24px', 
                                     padding: '24px', 
-                                    background: '#F8FAFC', 
+                                    background: 'var(--bg-main)', 
                                     borderRadius: '16px', 
-                                    border: '1px solid #E2E8F5',
+                                    border: '1px solid var(--border)',
                                     marginBottom: '32px'
                                 }}>
                                     <div className="hrm-form-group" style={{ margin: 0 }}>
@@ -334,17 +334,19 @@ const SalaryGroups = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="hrm-form-group" style={{ margin: 0 }}>
-                                    <SearchableSelect
-                                        label="Group Status"
-                                        options={statusOptions}
-                                        value={form.status}
-                                        onChange={v => setForm({ ...form, status: v })}
-                                    />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                    <div className="hrm-form-group" style={{ margin: 0 }}>
+                                        <SearchableSelect
+                                            label="Group Status"
+                                            options={statusOptions}
+                                            value={form.status}
+                                            onChange={v => setForm({ ...form, status: v })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="hrm-modal-footer" style={{ background: '#F8FAFC', padding: '24px 32px' }}>
+                            <div className="hrm-modal-footer" style={{ background: 'var(--bg-main)', borderTop: '1px solid var(--border)', padding: '24px 32px' }}>
                                 <button type="button" className="btn-hrm btn-hrm-secondary" onClick={resetForm} style={{ padding: '12px 28px' }}>
                                     DISCARD
                                 </button>

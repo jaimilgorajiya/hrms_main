@@ -36,11 +36,11 @@ const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
             <div
                 onClick={() => setIsOpen(o => !o)}
                 style={{
-                    padding: '8px 10px', border: `1px solid ${isOpen ? '#3B82F6' : '#E2E8F0'}`,
-                    borderRadius: 6, cursor: 'pointer', backgroundColor: '#fff',
+                    padding: '8px 10px', border: `1px solid ${isOpen ? 'var(--accent-primary)' : 'var(--border)'}`,
+                    borderRadius: 6, cursor: 'pointer', backgroundColor: 'var(--bg-elevated)',
                     textAlign: 'center', fontSize: 13, minWidth: 94,
-                    color: value ? '#1E293B' : '#94A3B8', whiteSpace: 'nowrap',
-                    boxShadow: isOpen ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                    color: value ? 'var(--text-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap',
+                    boxShadow: isOpen ? '0 0 0 3px var(--accent-primary-glow)' : 'none',
                     transition: 'border-color 0.2s, box-shadow 0.2s'
                 }}
             >
@@ -50,8 +50,8 @@ const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
             {isOpen && (
                 <div style={{
                     position: 'absolute', top: '110%', left: 0, zIndex: 9999,
-                    background: '#fff', borderRadius: 10, padding: 16,
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0',
+                    background: 'var(--bg-elevated)', borderRadius: 10, padding: 16,
+                    boxShadow: 'var(--shadow-dropdown)', border: '1px solid var(--border)',
                     minWidth: 200
                 }}>
                     <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>Select Time</div>
@@ -61,19 +61,19 @@ const ShiftTimePicker = ({ value, onChange, placeholder = "--:--" }) => {
                         onChange={e => setInternalTime(e.target.value)}
                         style={{
                             width: '100%', padding: '10px 12px', fontSize: 18, fontWeight: 600,
-                            border: '1.5px solid #3B82F6', borderRadius: 8, outline: 'none',
-                            color: 'var(--text-primary)', background: '#f8fafc', textAlign: 'center',
+                            border: '1.5px solid var(--accent-primary)', borderRadius: 8, outline: 'none',
+                            color: 'var(--text-primary)', background: 'var(--bg-base)', textAlign: 'center',
                             letterSpacing: 2, marginBottom: 12
                         }}
                         autoFocus
                     />
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <button onClick={handleClear} style={{
-                            padding: '6px 14px', background: '#f1f5f9', color: 'var(--text-secondary)',
+                            padding: '6px 14px', background: 'var(--bg-base)', color: 'var(--text-secondary)',
                             border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
                         }}>CLEAR</button>
                         <button onClick={handleConfirm} style={{
-                            padding: '6px 18px', background: '#336691', color: '#fff',
+                            padding: '6px 18px', background: 'var(--accent-primary)', color: '#fff',
                             border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
                         }}>OK</button>
                     </div>

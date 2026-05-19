@@ -1,5 +1,5 @@
 import express from "express";
-import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto } from "../controllers/User.Controller.js";
+import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument } from "../controllers/User.Controller.js";
 import { downloadSample, importEmployees } from "../controllers/ImportEmployee.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
 import { checkEmployeeLimit } from "../middleware/EmployeeLimit.Middleware.js";
@@ -16,6 +16,7 @@ router.post("/bulk-update-ids", verifyToken, isAdmin, bulkUpdateEmployeeIds);
 router.get("/leave-balance", verifyToken, isAdmin, getLeaveBalances);
 router.get("/import/sample", verifyToken, isAdmin, downloadSample);
 router.post("/import", verifyToken, isAdmin, upload.single('file'), importEmployees);
+router.get("/documents/all", verifyToken, isAdmin, getAllUploadedDocuments);
 router.get("/:id", verifyToken, isAdmin, getUser);
 router.put("/:id", verifyToken, isAdmin, upload.single('profilePhoto'), updateUser);
 router.patch("/:id/status", updateUserStatus);
@@ -23,6 +24,7 @@ router.delete("/:id", verifyToken, isAdmin, deleteUser);
 router.post("/:id/reactivate", verifyToken, isAdmin, reactivateUser);
 router.post("/:id/documents", verifyToken, isAdmin, upload.single('file'), uploadUserDocument);
 router.delete("/:id/documents/:docId", verifyToken, isAdmin, deleteUserDocument);
+router.put("/:id/documents/:docId/review", verifyToken, isAdmin, reviewUserDocument);
 router.put("/:id/change-branch", verifyToken, isAdmin, changeBranch);
 router.delete("/:id/profile-photo", verifyToken, isAdmin, deleteProfilePhoto);
 

@@ -38,7 +38,7 @@ const Employees = () => {
             if (userData.success) setEmployees(userData.users);
             if (branchData.success && branchData.branches.length > 0) {
                 setBranches(branchData.branches);
-                if (!activeBranchId) setActiveBranchId(branchData.branches[0]._id);
+                if (!activeBranchId) setActiveBranchId('all');
             }
             if (deptData.success) setDepartments(deptData.departments);
         } catch (error) {
@@ -62,8 +62,8 @@ const Employees = () => {
                         }
                         .import-step-card {
                             flex: 1;
-                            background: #F8FAFC;
-                            border: 1px solid #E2E8F0;
+                            background: var(--bg-elevated, #F8FAFC);
+                            border: 1px solid var(--border, #E2E8F0);
                             border-radius: 20px;
                             padding: 24px;
                             transition: all 0.3s ease;
@@ -71,13 +71,13 @@ const Employees = () => {
                             flex-direction: column;
                         }
                         .import-step-card:hover {
-                            border-color: #CBD5E1;
-                            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+                            border-color: var(--primary-blue, #CBD5E1);
+                            box-shadow: var(--shadow-sm, 0 10px 25px -5px rgba(0,0,0,0.05));
                             transform: translateY(-2px);
                         }
                         .step-badge {
-                            background: #E0F2FE;
-                            color: #0369A1;
+                            background: var(--primary-light, #E0F2FE);
+                            color: var(--primary-blue, #0369A1);
                             font-size: 11px;
                             font-weight: 800;
                             padding: 4px 12px;
@@ -90,13 +90,13 @@ const Employees = () => {
                         }
                         .step-title {
                             font-weight: 800;
-                            color: #0F172A;
+                            color: var(--text-dark, #0F172A);
                             font-size: 17px;
                             margin-bottom: 8px;
                             display: block;
                         }
                         .step-desc {
-                            color: #64748B;
+                            color: var(--text-muted, #64748B);
                             font-size: 13px;
                             margin-bottom: 24px;
                             display: block;
@@ -104,13 +104,13 @@ const Employees = () => {
                             flex: 1;
                         }
                         .custom-file-upload {
-                            border: 2px dashed #CBD5E1;
+                            border: 2px dashed var(--border, #CBD5E1);
                             border-radius: 16px;
                             padding: 30px 20px;
                             text-align: center;
                             cursor: pointer;
                             transition: all 0.2s;
-                            background: white;
+                            background: transparent;
                             display: flex;
                             flex-direction: column;
                             align-items: center;
@@ -118,24 +118,24 @@ const Employees = () => {
                             min-height: 140px;
                         }
                         .custom-file-upload:hover {
-                            border-color: #2563EB;
-                            background: #F0F7FF;
+                            border-color: var(--primary-blue, #2563EB);
+                            background: var(--primary-light, #F0F7FF);
                         }
                         #file-name-display {
                             font-weight: 700;
-                            color: #2563EB;
+                            color: var(--primary-blue, #2563EB);
                             margin-top: 12px;
                             display: none;
                             font-size: 13px;
-                            background: #EFF6FF;
+                            background: var(--primary-light, #EFF6FF);
                             padding: 6px 12px;
                             border-radius: 8px;
                             word-break: break-all;
                         }
                         .sample-download-btn {
-                            background: white; 
-                            border: 2px solid #E2E8F0; 
-                            color: #475569; 
+                            background: transparent; 
+                            border: 2px solid var(--border, #E2E8F0); 
+                            color: var(--text-secondary, #475569); 
                             width: 100%; 
                             justify-content: center; 
                             font-weight: 700; 
@@ -148,9 +148,9 @@ const Employees = () => {
                             transition: all 0.2s;
                         }
                         .sample-download-btn:hover {
-                            border-color: #CBD5E1;
-                            background: #F8FAFC;
-                            color: #1E293B;
+                            border-color: var(--primary-blue, #CBD5E1);
+                            background: var(--bg-elevated, #F8FAFC);
+                            color: var(--text-dark, #1E293B);
                         }
                     </style>
 
@@ -171,18 +171,18 @@ const Employees = () => {
                             <span class="step-desc">Upload your data. We'll automatically provision new Departments, Branches, and Roles.</span>
                             
                             <label for="importFile" class="custom-file-upload">
-                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                <div style="font-size: 14px; color: #475569; font-weight: 600;">Drop personnel file here</div>
-                                <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Supports XLSX & XLS</div>
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; color: var(--text-muted);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <div style="font-size: 14px; color: var(--text-secondary); font-weight: 600;">Drop personnel file here</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Supports XLSX & XLS</div>
                                 <div id="file-name-display"></div>
                                 <input type="file" id="importFile" hidden accept=".xlsx, .xls">
                             </label>
                         </div>
                     </div>
                     
-                    <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: #F0F9FF; border-radius: 12px; border: 1px solid #BAE6FD;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369A1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                        <p style="margin: 0; font-size: 13px; color: #0C4A6E; font-weight: 500; line-height: 1.4;">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--primary-light, #F0F9FF); border-radius: 12px; border: 1px solid var(--border, #BAE6FD);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary-blue, #0369A1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <p style="margin: 0; font-size: 13px; color: var(--text-dark, #0C4A6E); font-weight: 500; line-height: 1.4;">
                             <strong>Pro Tip:</strong> Our intelligent parser will auto-resolve structural metadata to eliminate manual configuration.
                         </p>
                     </div>
@@ -294,6 +294,7 @@ const Employees = () => {
     };
 
     const relevantEmployees = useMemo(() => {
+        if (activeBranchId === 'all') return employees;
         if (!activeBranchId) return [];
         const activeBranch = branches.find(b => b._id === activeBranchId);
         if (!activeBranch) return [];
@@ -362,6 +363,25 @@ const Employees = () => {
 
             {/* Branch Selector Tabs */}
             <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', overflowX: 'auto', padding: '4px' }}>
+                <button
+                    onClick={() => setActiveBranchId('all')}
+                    style={{
+                        padding: '10px 24px', borderRadius: '12px', whiteSpace: 'nowrap',
+                        border: '1px solid', borderColor: activeBranchId === 'all' ? 'var(--primary-blue)' : 'var(--border)',
+                        background: activeBranchId === 'all' ? 'var(--primary-blue)' : 'var(--bg-surface)',
+                        color: activeBranchId === 'all' ? 'white' : 'var(--text-secondary)',
+                        fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                        boxShadow: activeBranchId === 'all' ? '0 8px 16px -4px rgba(37, 99, 235, 0.25)' : 'none'
+                    }}
+                >
+                    All
+                    <span style={{
+                        background: activeBranchId === 'all' ? 'rgba(255,255,255,0.2)' : 'var(--bg-main)',
+                        color: activeBranchId === 'all' ? 'white' : 'var(--text-muted)',
+                        padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800'
+                    }}>{employees.length}</span>
+                </button>
                 {branches.map(branch => {
                     const isActive = activeBranchId === branch._id;
                     const count = employees.filter(emp => emp.branch === branch.branchName).length;
@@ -450,7 +470,7 @@ const Employees = () => {
                                     >
                                         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
                                             <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
-                                                <div style={{ width: '100%', height: '100%', borderRadius: '18px', overflow: 'hidden', background: 'var(--bg-main)', border: '2px solid white', boxShadow: 'var(--shadow-sm)' }}>
+                                                <div style={{ width: '100%', height: '100%', borderRadius: '18px', overflow: 'hidden', background: 'var(--bg-main)', border: '2px solid var(--bg-elevated)', boxShadow: 'var(--shadow-sm)' }}>
                                                     {emp.profilePhoto ? (
                                                         <img src={`${API_URL}/uploads/${emp.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
@@ -459,7 +479,7 @@ const Employees = () => {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div style={{ position: 'absolute', bottom: -4, right: -4, width: '16px', height: '16px', borderRadius: '50%', border: '3px solid white', background: emp.isPunchedIn ? 'var(--success)' : 'var(--text-muted)' }} />
+                                                <div style={{ position: 'absolute', bottom: -4, right: -4, width: '16px', height: '16px', borderRadius: '50%', border: '3px solid var(--bg-elevated)', background: emp.isPunchedIn ? 'var(--success)' : 'var(--text-muted)' }} />
                                             </div>
 
                                             <div style={{ flex: 1 }}>
