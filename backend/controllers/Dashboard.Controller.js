@@ -17,75 +17,77 @@ export const getAdminStats = async (req, res) => {
         const adminId = req.user._id;
 
         // Basic Stats
-        const adminFilter = { 
-            role: { $ne: 'Admin' }, 
+        const adminFilter = {
+            role: { $ne: 'Admin' },
             adminId
         };
 
-        const totalUsers = await User.countDocuments(adminFilter); 
-        const activeUsersCount = await User.countDocuments({ ...adminFilter, status: 'Active' });
-        
+        const totalUsers = await User.countDocuments(adminFilter);
+        const activeEmployees = await User.find({ ...adminFilter, status: { $in: ['Active', 'Resigned'] } }).select('_id');
+        const activeEmpIds = activeEmployees.map(e => e._id);
+        const activeUsersCount = activeEmpIds.length;
+
         // Attendance Stats for Today
         const todayStr = getTodayStr();
-        const presentToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Present' });
-        const halfDayToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Half Day' });
-        const onLeaveToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'On Leave' });
-        const totalAttendanceToday = await Attendance.countDocuments({ adminId, date: todayStr });
+        const presentToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Present', employee: { $in: activeEmpIds } });
+        const halfDayToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Half Day', employee: { $in: activeEmpIds } });
+        const onLeaveToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'On Leave', employee: { $in: activeEmpIds } });
+        const totalAttendanceToday = await Attendance.countDocuments({ adminId, date: todayStr, employee: { $in: activeEmpIds } });
         const absentToday = Math.max(0, activeUsersCount - totalAttendanceToday);
 
         const totalDepartments = await Department.countDocuments({ adminId });
         const totalDesignations = await Designation.countDocuments({ adminId });
-        const activeOnboarding = await User.countDocuments({ 
-            ...adminFilter, 
-            status: 'Onboarding' 
+        const activeOnboarding = await User.countDocuments({
+            ...adminFilter,
+            status: 'Onboarding'
         });
         const activeOffboarding = await Offboarding.countDocuments({ status: { $ne: 'Completed' }, adminId });
-        
+
         // Request Stats
-        const pendingLeaveRequests = await Request.countDocuments({ 
-            adminId, 
-            requestType: 'Leave', 
-            status: 'Pending' 
+        const pendingLeaveRequests = await Request.countDocuments({
+            adminId,
+            requestType: 'Leave',
+            status: 'Pending'
         });
-        const pendingAttendanceRequests = await Request.countDocuments({ 
-            adminId, 
-            requestType: 'Attendance Correction', 
-            status: 'Pending' 
+        const pendingAttendanceRequests = await Request.countDocuments({
+            adminId,
+            requestType: 'Attendance Correction',
+            status: 'Pending'
         });
 
         // Department Distribution
         const departmentStats = await User.aggregate([
-            { 
-                $match: { 
-                    role: { $ne: 'Admin' }, 
+            {
+                $match: {
+                    role: { $ne: 'Admin' },
                     adminId
-                } 
+                }
             },
             { $group: { _id: "$department", count: { $sum: 1 } } },
             { $project: { name: "$_id", count: 1 } }
         ]);
-    
+
         // Role Distribution
         const roleStats = await User.aggregate([
-            { 
-                $match: { 
+            {
+                $match: {
                     adminId
-                } 
+                }
             },
             { $group: { _id: "$role", count: { $sum: 1 } } }
         ]);
-    
+
         // Gender Distribution
         const genderStats = await User.aggregate([
-            { 
-                $match: { 
-                    role: { $ne: 'Admin' }, 
+            {
+                $match: {
+                    role: { $ne: 'Admin' },
                     adminId
-                } 
+                }
             },
             { $group: { _id: "$gender", count: { $sum: 1 } } }
         ]);
-    
+
         // Recent Users
         const recentUsers = await User.find(adminFilter)
             .select("name email role status department createdAt")
@@ -116,5 +118,5 @@ export const getAdminStats = async (req, res) => {
     } catch (error) {
         console.error("Error in getAdminStats:", error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });
-        }
+    }
 };

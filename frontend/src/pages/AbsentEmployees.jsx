@@ -43,6 +43,152 @@ const AbsentEmployees = () => {
 
   useEffect(() => { fetchAbsentees(); }, [fetchAbsentees]);
 
+  const handleAction = async (employee) => {
+    const { value: formValues } = await Swal.fire({
+      title: `<span style="font-size: 20px; font-weight: 800; color: #1E293B">Correction for ${employee.name}</span>`,
+      html: `
+        <style>
+          .swal-custom-field:focus {
+            border-color: #2563EB !important;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+          }
+          .custom-select-option:hover {
+            background-color: #F8FAFC !important;
+          }
+        </style>
+        <div style="text-align: left; font-family: 'Inter', sans-serif; padding-top: 10px;">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Date</label>
+            <input id="swal-date" type="date" value="${date}" style="width: 100%; height: 44px; padding: 0 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #64748B; background-color: #F8FAFC; outline: none; box-sizing: border-box;" disabled />
+          </div>
+          <div style="margin-bottom: 16px; position: relative;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Status</label>
+            
+            <div id="custom-select-trigger" style="width: 100%; height: 44px; padding: 0 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #1E293B; background-color: #fff; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box; user-select: none;">
+              <span id="custom-select-label">Present</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            
+            <input type="hidden" id="swal-status" value="Present" />
+            
+            <div id="custom-select-menu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background-color: #fff; border: 1px solid #E2E8F0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05); z-index: 99999; overflow: hidden; padding: 6px 0; box-sizing: border-box;">
+              <div class="custom-select-option" data-value="Present" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #2563EB; background-color: #EFF6FF; cursor: pointer; transition: background 0.15s;">Present</div>
+              <div class="custom-select-option" data-value="On Leave" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">On Leave</div>
+              <div class="custom-select-option" data-value="Half Day" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">Half Day</div>
+              <div class="custom-select-option" data-value="Absent" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">Absent</div>
+            </div>
+          </div>
+          <div id="time-inputs" style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label style="display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">In Time</label>
+              <input id="swal-inTime" type="time" class="swal-custom-field" style="width: 100%; height: 44px; padding: 0 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #1E293B; background-color: #fff; outline: none; box-sizing: border-box; transition: all 0.2s;" />
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Out Time</label>
+              <input id="swal-outTime" type="time" class="swal-custom-field" style="width: 100%; height: 44px; padding: 0 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #1E293B; background-color: #fff; outline: none; box-sizing: border-box; transition: all 0.2s;" />
+            </div>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Remark / Reason</label>
+            <textarea id="swal-remark" class="swal-custom-field" style="width: 100%; height: 80px; padding: 12px 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 14px; font-weight: 600; color: #1E293B; background-color: #fff; outline: none; resize: none; box-sizing: border-box; transition: all 0.2s;" placeholder="Reason for manual update..."></textarea>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Submit Entry',
+      confirmButtonColor: '#2563EB',
+      cancelButtonColor: '#64748B',
+      didOpen: () => {
+        const trigger = document.getElementById('custom-select-trigger');
+        const menu = document.getElementById('custom-select-menu');
+        const label = document.getElementById('custom-select-label');
+        const statusInput = document.getElementById('swal-status');
+        const options = document.querySelectorAll('.custom-select-option');
+        const timeInputs = document.getElementById('time-inputs');
+
+        // Toggle open/close
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = menu.style.display === 'block';
+          menu.style.display = isOpen ? 'none' : 'block';
+          trigger.style.borderColor = isOpen ? '#E2E8F0' : '#2563EB';
+          trigger.style.boxShadow = isOpen ? '0 1px 2px rgba(0,0,0,0.05)' : '0 0 0 3px rgba(37, 99, 235, 0.15)';
+        });
+
+        // Close on click outside
+        document.addEventListener('click', () => {
+          menu.style.display = 'none';
+          trigger.style.borderColor = '#E2E8F0';
+          trigger.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+        });
+
+        // Option selection
+        options.forEach(opt => {
+          opt.addEventListener('click', (e) => {
+            const val = opt.getAttribute('data-value');
+            statusInput.value = val;
+            label.textContent = val;
+            
+            options.forEach(o => {
+              o.style.backgroundColor = '';
+              o.style.color = '#1E293B';
+            });
+            opt.style.backgroundColor = '#EFF6FF';
+            opt.style.color = '#2563EB';
+
+            if (val === 'On Leave' || val === 'Absent') {
+              timeInputs.style.display = 'none';
+            } else {
+              timeInputs.style.display = 'flex';
+            }
+          });
+        });
+      },
+      preConfirm: () => {
+        const selectedStatus = document.getElementById('swal-status').value;
+        return {
+          employeeId: employee._id,
+          date: date,
+          status: selectedStatus,
+          inTime: (selectedStatus === 'On Leave' || selectedStatus === 'Absent') ? '' : document.getElementById('swal-inTime').value,
+          outTime: (selectedStatus === 'On Leave' || selectedStatus === 'Absent') ? '' : document.getElementById('swal-outTime').value,
+          remark: document.getElementById('swal-remark').value
+        };
+      }
+    });
+
+    if (formValues) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await authenticatedFetch(`${API_URL}/api/attendance/admin/add-manual`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formValues)
+        });
+        const json = await res.json();
+        if (json.success) {
+          Swal.fire({
+            title: 'Success!',
+            text: 'Attendance manual log created successfully.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+          fetchAbsentees();
+        } else {
+          Swal.fire('Error', json.message || 'Failed to update attendance', 'error');
+        }
+      } catch (e) {
+        console.error(e);
+        Swal.fire('Error', 'An unexpected error occurred.', 'error');
+      }
+    }
+  };
+
   const filtered = absentees.filter(a => {
     const q = search.toLowerCase();
     const matchSearch = a.name?.toLowerCase().includes(q) || a.employeeId?.toLowerCase().includes(q);
@@ -200,19 +346,27 @@ const AbsentEmployees = () => {
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontWeight: '600' }}>Shift: {a.shiftName}</div>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                         <button 
-                          style={{ padding: '8px 16px', borderRadius: '10px', border: '1.5px solid #F1F5F9', background: '#fff', color: '#2563EB', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                          onClick={() => Swal.fire('Call Feature', `Connect with ${a.phone}`, 'info')}
-                         >
-                            Contact
-                         </button>
-                         <button 
-                          style={{ width: '36px', height: '36px', borderRadius: '10px', border: 'none', background: '#F8FAFC', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                         >
-                            <MoreVertical size={18} />
-                         </button>
-                      </div>
+                      <button 
+                        style={{ 
+                          width: '36px', 
+                          height: '36px', 
+                          borderRadius: '10px', 
+                          border: 'none', 
+                          background: '#F8FAFC', 
+                          color: 'var(--text-secondary)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          cursor: 'pointer',
+                          transition: 'background 0.2s'
+                        }}
+                        onClick={() => handleAction(a)}
+                        title="Resolve Attendance"
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))}

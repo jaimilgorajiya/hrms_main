@@ -837,7 +837,9 @@ export default function Dashboard() {
         earlyReason: effectiveEarlyReason, 
         lateReason: effectiveLateReason,
         workSummary: effectiveWorkSummary,
-        locationAddress: addr
+        locationAddress: addr,
+        isMocked: loc.mocked || loc.coords?.mocked || false,
+        clientTime: new Date().toISOString()
       });
     } catch (e) {
       console.error(e);
@@ -857,7 +859,9 @@ export default function Dashboard() {
         workSummary: reasons.workSummary,
         earlyReason: reasons.earlyReason,
         lateReason: reasons.lateReason,
-        locationAddress: reasons.locationAddress
+        locationAddress: reasons.locationAddress,
+        isMocked: reasons.isMocked || false,
+        clientTime: reasons.clientTime || new Date().toISOString()
       }) 
     });
     const json = await res.json();

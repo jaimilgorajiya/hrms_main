@@ -16,7 +16,10 @@ const minuteOptions = Array.from({ length: 60 }, (_, i) => {
 
 const getHour = (time) => (time || '').split(':')[0] || '';
 const getMinute = (time) => (time || '').split(':')[1] || '';
-const buildTime = (h, m) => (h && m ? `${h}:${m}` : '');
+const buildTime = (h, m) => {
+    if (!h && !m) return '';
+    return `${h || '00'}:${m || '00'}`;
+};
 
 const PenaltyRules = () => {
     const [shifts, setShifts] = useState([]);

@@ -26,27 +26,31 @@ export const initCronJobs = () => {
             const todayStr = getTodayStr();
             const dayName = getDayName(todayStr);
 
-            // 1. Get all active employees with their shifts populated
-            const employees = await User.find({ status: 'Active', role: 'Employee' })
-                .populate('workSetup.shift');
+            // 1. Get all active and resigned employees with their shifts populated
+            const employees = await User.find({
+                status: { $in: ['Active', 'Resigned'] },
+                role: 'Employee'
+            }).populate('workSetup.shift');
 
-            let markedCount = 0;
+            // 2. Fetch all attendance records for today in one query
+            const todayAttendance = await Attendance.find({ date: todayStr }).select('employee');
+            const presentEmpIds = new Set(todayAttendance.map(a => a.employee.toString()));
+
+            const absentRecordsToCreate = [];
             let skippedCount = 0;
 
             for (const emp of employees) {
-                // 2. Check if attendance record exists for today
-                // Attendance might already exist if they are Present, Half Day, or On Leave
-                const record = await Attendance.findOne({ employee: emp._id, date: todayStr });
-                
-                if (!record) {
+                const hasRecord = presentEmpIds.has(emp._id.toString());
+
+                if (!hasRecord) {
                     // 3. No record found. Check if today is their Week Off
                     const weekOffDays = emp.workSetup?.shift?.weekOffDays || [];
                     const isWeekOff = weekOffDays.includes(dayName);
-
                     if (!isWeekOff) {
-                        // 4. Mark as Absent
-                        await Attendance.create({
+                        // 4. Prepare Absent record
+                        absentRecordsToCreate.push({
                             employee: emp._id,
+                            adminId: emp.adminId || emp._id,
                             date: todayStr,
                             status: 'Absent',
                             approvalStatus: 'Approved',
@@ -55,7 +59,6 @@ export const initCronJobs = () => {
                             lateInPenalty: { amount: 0, isApplied: false, isLate: false },
                             earlyOutPenalty: { amount: 0, isApplied: false }
                         });
-                        markedCount++;
                     } else {
                         // It's a Week Off and no work was logged
                         skippedCount++;
@@ -66,6 +69,12 @@ export const initCronJobs = () => {
                 }
             }
 
+            // 5. Bulk insert absent records
+            if (absentRecordsToCreate.length > 0) {
+                await Attendance.insertMany(absentRecordsToCreate);
+            }
+
+            const markedCount = absentRecordsToCreate.length;
             console.log(`[CRON] Midnight Absence Marking finished for ${todayStr}. Marked Absent: ${markedCount}, Skipped: ${skippedCount}`);
         } catch (error) {
             console.error('[CRON] Error in Midnight Absence Marking:', error);

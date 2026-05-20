@@ -1,4 +1,4 @@
-wimport authenticatedFetch from '../utils/apiHandler';
+import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Save, X, Edit2, AlertCircle, Check, Search, Clock, Zap } from 'lucide-react';

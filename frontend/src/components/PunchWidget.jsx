@@ -141,8 +141,40 @@ const PunchWidget = () => {
 
     setActionLoading(true);
     try {
-      // First attempt — no reason
-      const res = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, { method: 'POST' });
+      // Query browser geolocation controls
+      let latitude = null;
+      let longitude = null;
+      let isMocked = false;
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+            enableHighAccuracy: true, 
+            timeout: 4000 
+          });
+        });
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+        // accuracy exactly 0 is a strong indicator of browser mock location extensions
+        if (pos.coords.accuracy === 0) {
+          isMocked = true;
+        }
+      } catch (e) {
+        console.log('Location acquisition failed or denied in web browser');
+      }
+
+      const payloadBase = {
+        latitude,
+        longitude,
+        isMocked,
+        clientTime: new Date().toISOString()
+      };
+
+      // First attempt — pass validation payload
+      const res = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadBase)
+      });
       const json = await res.json();
 
       if (json.success) {
@@ -168,7 +200,8 @@ const PunchWidget = () => {
 
         const res2 = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
           method: 'POST',
-          body: JSON.stringify({ lateReason: reason.trim() }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payloadBase, lateReason: reason.trim() }),
         });
         const json2 = await res2.json();
         if (json2.success) {
@@ -199,7 +232,8 @@ const PunchWidget = () => {
           // Retry with reason
           const res2 = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
             method: 'POST',
-            body: JSON.stringify({ reason: reason.trim() }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...payloadBase, reason: reason.trim() }),
           });
           const json2 = await res2.json();
           if (json2.success) {

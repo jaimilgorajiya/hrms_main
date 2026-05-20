@@ -73,10 +73,15 @@ const AddAttendance = () => {
         e.preventDefault();
         setFormLoading(true);
         try {
+            const payload = { ...formData };
+            if (payload.status === 'On Leave' || payload.status === 'Absent') {
+                payload.inTime = '';
+                payload.outTime = '';
+            }
             const res = await authenticatedFetch(`${API_URL}/api/attendance/admin/add-manual`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
             const json = await res.json();
             if (json.success) {
@@ -265,16 +270,18 @@ const AddAttendance = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div>
-                                        <label className="hrm-label">Punch In</label>
-                                        <input type="time" value={formData.inTime} onChange={e => setFormData({...formData, inTime: e.target.value})} className="hrm-input" />
+                                {formData.status !== 'On Leave' && formData.status !== 'Absent' && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div>
+                                            <label className="hrm-label">Punch In</label>
+                                            <input type="time" value={formData.inTime} onChange={e => setFormData({...formData, inTime: e.target.value})} className="hrm-input" />
+                                        </div>
+                                        <div>
+                                            <label className="hrm-label">Punch Out</label>
+                                            <input type="time" value={formData.outTime} onChange={e => setFormData({...formData, outTime: e.target.value})} className="hrm-input" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="hrm-label">Punch Out</label>
-                                        <input type="time" value={formData.outTime} onChange={e => setFormData({...formData, outTime: e.target.value})} className="hrm-input" />
-                                    </div>
-                                </div>
+                                )}
 
                                 <div>
                                     <label className="hrm-label">Administrative Remark</label>

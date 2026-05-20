@@ -207,7 +207,7 @@ export const updateRequestStatus = async (req, res) => {
                     await Attendance.findOneAndUpdate(
                         { _id: existing._id },
                         {
-                            $set: { status: "Present", approvalStatus: "Approved" },
+                            $set: { status: "Present", approvalStatus: "Approved", adminId: request.adminId },
                             $push: {
                                 punches: { 
                                     time: request.manualOut, 
@@ -224,6 +224,7 @@ export const updateRequestStatus = async (req, res) => {
                         { employee: request.employee, date: request.date },
                         {
                             $set: {
+                                adminId: request.adminId,
                                 status: "Present",
                                 approvalStatus: "Approved",
                                 punches: [
@@ -246,6 +247,7 @@ export const updateRequestStatus = async (req, res) => {
                         { employee: request.employee, date: dateStr },
                         {
                             $set: {
+                                adminId: request.adminId,
                                 status: "On Leave",
                                 approvalStatus: "Approved",
                                 leaveCategory: request.leaveCategory, // Pass Paid/Unpaid to attendance

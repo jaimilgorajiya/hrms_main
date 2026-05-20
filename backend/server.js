@@ -4,6 +4,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectDB from './config/db.js';
 import admin from 'firebase-admin';
+import { createServer } from 'http';
+import { initSocket } from './utils/socket.js';
 import fs from 'fs';
 import path from 'path';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -65,6 +67,9 @@ import clientRoutes from './routes/Client.Routes.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Create HTTP Server for Socket.io
+const httpServer = createServer(app);
+
 connectDB();
 
 // Initialize Automated Tasks (Cron Jobs)
@@ -81,22 +86,32 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 app.use(hpp());
+
+const corsOrigins = [
+    process.env.CLIENT_URL, 
+    'http://localhost:5173', 
+    'http://localhost:5174', 
+    'http://localhost:5175',
+    'http://localhost:8081',  // Expo web
+    'http://localhost:8082',  // Expo web (alternative)
+    'http://192.168.29.90:5173',
+    'http://192.168.29.90:5174',
+    'http://192.168.29.90:5175',
+    'http://192.168.29.90:8081',  // Expo web on LAN
+    'http://192.168.29.90:8082',  // Expo web on LAN (alternative)
+].filter(Boolean);
+
 app.use(cors({
-    origin: [
-        process.env.CLIENT_URL, 
-        'http://localhost:5173', 
-        'http://localhost:5174', 
-        'http://localhost:5175',
-        'http://localhost:8081',  // Expo web
-        'http://localhost:8082',  // Expo web (alternative)
-        'http://192.168.29.90:5173',
-        'http://192.168.29.90:5174',
-        'http://192.168.29.90:5175',
-        'http://192.168.29.90:8081',  // Expo web on LAN
-        'http://192.168.29.90:8082',  // Expo web on LAN (alternative)
-    ],
+    origin: corsOrigins,
     credentials: true,
 }));
+
+// Initialize Socket.io Server
+initSocket(httpServer, {
+    origin: corsOrigins,
+    credentials: true
+});
+
 app.use(cookieParser());
 app.use('/uploads', express.static('public/uploads'));
 
@@ -143,6 +158,6 @@ app.get('/', (req, res) => {
     res.send('Updated API is running...');
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 API: http://localhost:${PORT} | Client: ${process.env.CLIENT_URL || 'Not Set'}`);
 });

@@ -189,7 +189,7 @@ const createUser = async (req, res) => {
             password: hashedPassword,
             forcePasswordReset: true,
             adminId: req.user._id,
-            status: bodyContent.status || 'Onboarding'
+            status: bodyContent.status || 'Active'
         });
 
         await newUser.save();

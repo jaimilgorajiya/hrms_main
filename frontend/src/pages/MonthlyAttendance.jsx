@@ -326,7 +326,7 @@ const MonthlyAttendance = () => {
                                                             <div style={{ fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>{rec?.workingFormatted || '0h 0m'}</div>
                                                         </div>
                                                     </div>
-                                                    {rec?.approvalStatus && (
+                                                    {rec?.approvalStatus && status !== 'Absent' && (
                                                         <div style={{ padding: '16px', borderRadius: '16px', background: '#FFFBEB', border: '1.5px solid #FEF3C7', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <Coffee size={18} color="#D97706" />
                                                             <div>

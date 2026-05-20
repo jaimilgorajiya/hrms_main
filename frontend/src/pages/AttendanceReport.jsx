@@ -3,6 +3,9 @@ import { FileText, Download, Search, RefreshCw, TrendingUp, Users, Clock, AlertC
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const STATUS_STYLE = {
     'Present':  { color: '#10B981', bg: '#DCFCE7' },
@@ -80,6 +83,79 @@ const AttendanceReport = () => {
         URL.revokeObjectURL(url);
     };
 
+    const exportExcel = () => {
+        if (!rows.length) return;
+        const worksheetData = rows.map(r => ({
+            'Date': r.date,
+            'Employee ID': r.employeeId,
+            'Name': r.name,
+            'Department': r.department,
+            'Designation': r.designation,
+            'Status': r.status,
+            'Punch In': r.punchIn,
+            'Punch Out': r.punchOut,
+            'Work Hours': r.workHours,
+            'Late In': r.lateIn,
+            'Penalty (INR)': r.penalty,
+            'Approval Status': r.approvalStatus
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        
+        // Auto-fit column widths
+        const maxLens = {};
+        worksheetData.forEach(row => {
+            Object.keys(row).forEach(key => {
+                const valStr = String(row[key] || '');
+                maxLens[key] = Math.max(maxLens[key] || key.length, valStr.length);
+            });
+        });
+        worksheet['!cols'] = Object.keys(maxLens).map(key => ({ wch: maxLens[key] + 4 }));
+        
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
+        XLSX.writeFile(workbook, `attendance_report_${from}_to_${to}.xlsx`);
+    };
+
+    const exportPDF = () => {
+        if (!rows.length) return;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(22);
+        doc.setTextColor(15, 23, 42); // slate-900
+        doc.text('HRMS Attendance Report', 14, 20);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.text(`Period: ${from} to ${to}`, 14, 27);
+        
+        if (summary) {
+            const summaryText = `Total: ${summary.totalRecords} | Present: ${summary.present} | Absent: ${summary.absent} | Half Day: ${summary.halfDay} | On Leave: ${summary.onLeave} | Late In: ${summary.lateIn} | Penalty: INR ${summary.totalPenalty}`;
+            doc.text(summaryText, 14, 33);
+        }
+        
+        const tableHeaders = [['Date', 'Emp ID', 'Name', 'Department', 'Status', 'Punch In', 'Punch Out', 'Work Hours', 'Late In', 'Penalty', 'Approval']];
+        const tableData = rows.map(r => [
+            r.date, r.employeeId, r.name, r.department, r.status,
+            r.punchIn, r.punchOut, r.workHours, r.lateIn, `INR ${r.penalty}`, r.approvalStatus
+        ]);
+        
+        doc.autoTable({
+            startY: 38,
+            head: tableHeaders,
+            body: tableData,
+            theme: 'grid',
+            styles: { fontSize: 8.5, cellPadding: 3, font: 'helvetica' },
+            headStyles: { fillColor: [59, 100, 139], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            margin: { left: 14, right: 14 }
+        });
+        
+        doc.save(`attendance_report_${from}_to_${to}.pdf`);
+    };
+
     const filtered = rows.filter(r => {
         if (!search) return true;
         const q = search.toLowerCase();
@@ -132,15 +208,23 @@ const AttendanceReport = () => {
                                 onChange={setStatus}
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-                            <button className="btn-hrm btn-hrm-primary" style={{ flex: 1 }} onClick={fetchReport} disabled={loading}>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                            <button className="btn-hrm btn-hrm-primary" style={{ minWidth: 120 }} onClick={fetchReport} disabled={loading}>
                                 {loading ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={16} />}
                                 {loading ? 'Loading...' : 'Generate'}
                             </button>
                             {rows.length > 0 && (
-                                <button className="btn-hrm btn-hrm-secondary" onClick={exportCSV} title="Export CSV">
-                                    <Download size={16} />
-                                </button>
+                                <>
+                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportCSV} title="Export CSV" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Download size={14} /> CSV
+                                    </button>
+                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportExcel} title="Export Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46' }}>
+                                        <Download size={14} /> Excel
+                                    </button>
+                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportPDF} title="Export PDF" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+                                        <FileText size={14} /> PDF
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
@@ -222,11 +306,15 @@ const AttendanceReport = () => {
                                                         {r.penalty > 0 ? `₹${r.penalty}` : '—'}
                                                     </td>
                                                     <td>
-                                                        <span style={{
-                                                            fontSize: 12, fontWeight: 500, borderRadius: 6, padding: '3px 10px',
-                                                            background: r.approvalStatus === 'Approved' ? '#DCFCE7' : r.approvalStatus === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
-                                                            color: r.approvalStatus === 'Approved' ? '#10B981' : r.approvalStatus === 'Rejected' ? '#EF4444' : '#F59E0B',
-                                                        }}>{r.approvalStatus}</span>
+                                                        {r.status === 'Absent' ? (
+                                                            <span style={{ color: '#94a3b8' }}>—</span>
+                                                        ) : (
+                                                            <span style={{
+                                                                fontSize: 12, fontWeight: 500, borderRadius: 6, padding: '3px 10px',
+                                                                background: r.approvalStatus === 'Approved' ? '#DCFCE7' : r.approvalStatus === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
+                                                                color: r.approvalStatus === 'Approved' ? '#10B981' : r.approvalStatus === 'Rejected' ? '#EF4444' : '#F59E0B',
+                                                            }}>{r.approvalStatus}</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );

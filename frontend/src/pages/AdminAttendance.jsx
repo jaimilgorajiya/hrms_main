@@ -284,9 +284,13 @@ const AdminAttendance = () => {
                         <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary-blue)' }}>{displayHours}</div>
                       </td>
                       <td>
-                        <span className={`hrm-badge ${r.approvalStatus === 'Approved' ? 'hrm-badge-success' : r.approvalStatus === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
-                           {r.approvalStatus || 'Pending'}
-                        </span>
+                        {r.status === 'Absent' ? (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        ) : (
+                          <span className={`hrm-badge ${r.approvalStatus === 'Approved' ? 'hrm-badge-success' : r.approvalStatus === 'Rejected' ? 'hrm-badge-danger' : 'hrm-badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
+                             {r.approvalStatus || 'Pending'}
+                          </span>
+                        )}
                       </td>
                       <td style={{ textAlign: 'center', paddingRight: '24px' }}>
                         <button className="icon-btn" style={{ margin: '0 auto' }}>

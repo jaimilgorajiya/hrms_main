@@ -58,7 +58,7 @@ const getEmployeeShiftToday = async (userId) => {
         const user = await User.findById(userId).populate('workSetup.shift').select('workSetup');
         const shift = user?.workSetup?.shift;
         if (!shift) return { shift: null, daySchedule: null, dayName: null, isWeekOff: false };
-        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
         const dayName = days[istNow.getUTCDay()];
         let daySchedule = shift.schedule?.[dayName] || null;
@@ -131,7 +131,7 @@ export const getTodayAttendance = async (req, res) => {
         let liveLatePenalty = record.lateInPenalty || { amount: 0, isApplied: false };
         if (record.lateInPenalty?.isLate || (record.lateInPenalty?.amount > 0)) {
             const { shift: empShift, daySchedule: empDaySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id);
-            
+
             // Skip if it's a week off and settings say don't apply
             if (empShift && empDaySchedule?.shiftStart && !(isWeekOff && !empShift.lateEarlyApplyOnExtraDay)) {
                 const firstIn = record.punches.find(p => p.type === 'IN');
@@ -157,7 +157,7 @@ export const getTodayAttendance = async (req, res) => {
                 // Force penalty to 0 if policy changed after punch-in
                 liveLatePenalty = { amount: 0, isApplied: false, isLate: true };
                 if (record.lateInPenalty?.amount > 0) {
-                     await Attendance.updateOne(
+                    await Attendance.updateOne(
                         { _id: record._id },
                         { $set: { 'lateInPenalty.amount': 0, 'lateInPenalty.isApplied': false } }
                     );
@@ -190,7 +190,29 @@ export const getTodayAttendance = async (req, res) => {
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-    const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress } = req.body;
+        const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress, isMocked, mocked, clientTime } = req.body;
+        
+        // Anti-GPS Spoofing Check
+        if (isMocked || mocked) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "GPS spoofing or mock location detected. Attendance logging blocked." 
+            });
+        }
+
+        // Anti-Clock Tampering Check (Max 60 seconds drift allowed)
+        if (clientTime) {
+            const clientEpoch = new Date(clientTime).getTime();
+            const serverEpoch = Date.now();
+            const diffSeconds = Math.abs(clientEpoch - serverEpoch) / 1000;
+            if (diffSeconds > 60) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Clock tampering detected. Please synchronize your device clock with network time." 
+                });
+            }
+        }
+
         const date = getTodayStr();
         const now = new Date();
 
@@ -235,7 +257,7 @@ export const togglePunch = async (req, res) => {
                     const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
                     const lateByMinsLocal = nowMins - shiftStartMins;
                     lateByMins = lateByMinsLocal;
-                    
+
                     const { isWeekOff } = await getEmployeeShiftToday(req.user._id);
                     const skipOnExtra = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
@@ -249,10 +271,10 @@ export const togglePunch = async (req, res) => {
                     }
 
                     if (!skipOnExtra && lateByMins > maxAllowed && shift.requireLateReason && !lateReason) {
-                        return res.status(400).json({ 
-                            success: false, 
-                            requireLateReason: true, 
-                            message: `You are punching in ${lateByMins}m late. Please provide a reason.` 
+                        return res.status(400).json({
+                            success: false,
+                            requireLateReason: true,
+                            message: `You are punching in ${lateByMins}m late. Please provide a reason.`
                         });
                     }
 
@@ -267,7 +289,7 @@ export const togglePunch = async (req, res) => {
                         if (startMins !== null && endMins !== null) {
                             const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
                             const midpointMins = (startMins + (duration / 2)) % 1440;
-                            
+
                             // Check if current time is past midpoint (handling overnight shifts)
                             let isPastMidpoint = false;
                             if (endMins > startMins) {
@@ -334,6 +356,23 @@ export const togglePunch = async (req, res) => {
             }
 
             await record.save();
+
+            // Auto-activate employee on first successful punch in
+            if (emp && emp.status === 'Onboarding') {
+                emp.status = 'Active';
+                await emp.save();
+                try {
+                    const Onboarding = (await import('../models/Onboarding.Model.js')).default;
+                    await Onboarding.findOneAndUpdate(
+                        { userId: emp._id },
+                        { status: 'Completed' },
+                        { upsert: true }
+                    );
+                } catch (onboardingErr) {
+                    console.error("Failed to update onboarding status on punch in:", onboardingErr);
+                }
+            }
+
             notifyAdminPunch(req.user._id, 'IN', date, record.status);
 
             return res.status(200).json({
@@ -353,9 +392,9 @@ export const togglePunch = async (req, res) => {
 
         // RULE: If last punch was OUT, they cannot punch in again today.
         if (lastPunch.type === 'OUT') {
-            return res.status(400).json({ 
-                success: false, 
-                message: "You have already completed your punch for today. You cannot punch again until tomorrow." 
+            return res.status(400).json({
+                success: false,
+                message: "You have already completed your punch for today. You cannot punch again until tomorrow."
             });
         }
 
@@ -374,7 +413,7 @@ export const togglePunch = async (req, res) => {
             if (earlyByMins > 0) {
                 const providedReason = req.body.earlyReason || req.body.reason;
                 let maxAllowed = shift.maxEarlyOutMinutes ?? 0;
-                
+
                 // If Combined, maxAllowed is (maxLateInMinutes - lateMins)
                 if (shift.lateEarlyType === 'Combined') {
                     const firstIn = record.punches.find(p => p.type === 'IN');
@@ -421,7 +460,7 @@ export const togglePunch = async (req, res) => {
                     if (startMins !== null && endMins !== null) {
                         const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
                         const midpointMins = (startMins + (duration / 2)) % 1440;
-                        
+
                         let isBeforeMidpoint = false;
                         if (endMins > startMins) {
                             isBeforeMidpoint = nowMins < midpointMins;
@@ -533,18 +572,18 @@ export const toggleBreak = async (req, res) => {
                     const nowMins = now.getHours() * 60 + now.getMinutes();
                     const startMins = parseTimeToMinutes(startStr);
                     const endMins = parseTimeToMinutes(endStr);
-                    
+
                     if (nowMins < startMins || nowMins > endMins) {
-                        return res.status(400).json({ 
-                            success: false, 
-                            message: `You can only take ${breakType} between ${startStr} and ${endStr}` 
+                        return res.status(400).json({
+                            success: false,
+                            message: `You can only take ${breakType} between ${startStr} and ${endStr}`
                         });
                     }
                 } else if (typeLower.includes('lunch') || typeLower.includes('tea')) {
                     // It's a standard break but NO range is set in the shift
-                   return res.status(400).json({ 
-                        success: false, 
-                        message: `No time range defined for ${breakType} in your shift configuration.` 
+                    return res.status(400).json({
+                        success: false,
+                        message: `No time range defined for ${breakType} in your shift configuration.`
                     });
                 }
                 // For other breaks (like Personal), we allow them if not explicitly scheduled 
@@ -574,7 +613,7 @@ export const getAttendanceHistory = async (req, res) => {
         }
 
         const records = await Attendance.find(filter).sort({ date: -1 });
-        
+
         // Fetch user's shift and leaveGroup
         const user = await User.findById(req.user._id).populate('workSetup.shift').populate('leaveGroup');
         const weekOffDays = user?.workSetup?.shift?.weekOffDays || [];
@@ -604,7 +643,7 @@ export const getAttendanceHistory = async (req, res) => {
 
         const formatted = records.map(r => {
             const workingMinutes = computeWorkingMinutes(r.punches, r.breaks);
-            
+
             // Total break time
             let totalBreakMs = 0;
             (r.breaks || []).forEach(b => {
@@ -614,7 +653,7 @@ export const getAttendanceHistory = async (req, res) => {
 
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
-            
+
             let status = r.status || "Present";
             if (firstIn && !lastOut && r.status !== 'On Leave') {
                 status = (r.date === todayStr) ? 'Clocked In' : 'Incomplete';
@@ -642,14 +681,14 @@ export const getAttendanceHistory = async (req, res) => {
 
         const totalPenalty = records.reduce((acc, r) => acc + (r.lateInPenalty?.amount || 0), 0);
 
-        res.status(200).json({ 
-            success: true, 
-            records: formatted, 
+        res.status(200).json({
+            success: true,
+            records: formatted,
             requests: rqMap,
             totalPenalty,
             weekOffDays,
             leavePolicy,
-            joiningDate: req.user?.dateJoined ? new Date(req.user.dateJoined).toISOString().split('T')[0] : null 
+            joiningDate: req.user?.dateJoined ? new Date(req.user.dateJoined).toISOString().split('T')[0] : null
         });
     } catch (error) {
         console.error("getAttendanceHistory error:", error);
@@ -663,12 +702,12 @@ export const getAdminAttendance = async (req, res) => {
     try {
         const { date, department, branch, status } = req.query;
         const targetDate = date || getTodayStr();
-        
-        // 1. Get all active employees first
-        let userQuery = { role: 'Employee', status: { $ne: 'Ex-Employee' }, adminId: req.user._id };
+
+        // 1. Get all active & resigned employees first
+        let userQuery = { role: 'Employee', status: { $in: ['Active', 'Resigned'] }, adminId: req.user._id };
         if (department) userQuery.department = department;
         if (branch) userQuery['workSetup.location'] = branch;
-        
+
         const allEmployees = await User.find(userQuery)
             .select('name employeeId department branch workSetup.location profilePhoto')
             .sort({ name: 1 });
@@ -788,7 +827,7 @@ export const deleteAttendance = async (req, res) => {
         record.earlyOutPenalty = { amount: 0, isApplied: false };
         record.approvalStatus = "Approved"; // Mark as final
         record.remark = "Marked as Absent by Admin";
-        
+
         await record.save();
 
         // Also delete any pending 'Attendance Correction' requests for this date
@@ -817,7 +856,7 @@ export const deleteAttendance = async (req, res) => {
 export const addManualAttendance = async (req, res) => {
     try {
         const { employeeId, date, status, inTime, outTime, remark } = req.body;
-        
+
         if (!employeeId || !date || !status) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
         }
@@ -831,24 +870,24 @@ export const addManualAttendance = async (req, res) => {
             // Create a Date object that represents the moment in IST
             // We subtract 5.5 hours to get the UTC equivalent
             const d = new Date(Date.UTC(year, month - 1, day, hour, minute));
-            d.setMinutes(d.getMinutes() - 330); 
+            d.setMinutes(d.getMinutes() - 330);
             return d;
         };
 
         // Prepare punches
         let punches = [];
         if (inTime) {
-            punches.push({ 
-                time: createISTDate(date, inTime), 
-                type: "IN", 
+            punches.push({
+                time: createISTDate(date, inTime),
+                type: "IN",
                 locationAddress: "Admin Manual Entry",
                 lateReason: remark
             });
         }
         if (outTime) {
-            punches.push({ 
-                time: createISTDate(date, outTime), 
-                type: "OUT", 
+            punches.push({
+                time: createISTDate(date, outTime),
+                type: "OUT",
                 locationAddress: "Admin Manual Entry",
                 earlyReason: remark,
                 workSummary: "Manual entry by admin"
@@ -894,16 +933,16 @@ export const addManualAttendance = async (req, res) => {
 
         const record = await Attendance.findOneAndUpdate(
             { employee: employeeId, date },
-            { 
-                $set: { 
-                    status, 
-                    punches, 
+            {
+                $set: {
+                    status,
+                    punches,
                     lateInPenalty,
                     earlyOutPenalty,
                     approvalStatus: "Approved",
                     remark: remark || "Manual entry by admin",
                     adminId: req.user._id
-                } 
+                }
             },
             { upsert: true, new: true }
         );
@@ -945,10 +984,10 @@ export const getMissingAttendance = async (req, res) => {
 
         const missingRecords = records.filter(r => {
             if (r.status === "Absent" || r.approvalStatus === "Rejected") return true;
-            
+
             const hasIn = r.punches.some(p => p.type === 'IN');
             const hasOut = r.punches.some(p => p.type === 'OUT');
-            
+
             if (hasIn && !hasOut && r.date !== todayStr) {
                 return true;
             }
@@ -958,7 +997,7 @@ export const getMissingAttendance = async (req, res) => {
         const formatted = missingRecords.map(r => {
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
-            
+
             let missingReason = r.status;
             if (r.approvalStatus === 'Rejected') missingReason = 'Rejected';
             else if (r.punches.some(p => p.type === 'IN') && !r.punches.some(p => p.type === 'OUT')) missingReason = 'Missing Punch Out';
@@ -988,20 +1027,32 @@ export const getAbsentEmployees = async (req, res) => {
         const { date = getTodayStr() } = req.query;
 
         // 1. Get all attendance records for this date
-        const presentRecords = await Attendance.find({ date, adminId: req.user._id }).select('employee status');
-        const presentEmployeeIds = presentRecords.map(r => r.employee.toString());
+        const attendanceRecords = await Attendance.find({ date, adminId: req.user._id }).select('employee status');
 
-        // 2. Get all active employees
-        const employees = await User.find({ 
-            role: 'Employee', 
-            status: 'Active',
+        // Filter those who are actually present
+        const presentEmployeeIds = attendanceRecords
+            .filter(r => ['Present', 'Clocked In', 'Half Day'].includes(r.status))
+            .map(r => r.employee.toString());
+
+        // Filter those who are excused (On Leave, Holiday)
+        const excusedEmployeeIds = attendanceRecords
+            .filter(r => ['On Leave', 'Holiday'].includes(r.status))
+            .map(r => r.employee.toString());
+
+        // 2. Get all active & resigned employees
+        const employees = await User.find({
+            role: 'Employee',
+            status: { $in: ['Active', 'Resigned'] },
             adminId: req.user._id
         })
-        .select('name employeeId department designation profilePhoto workSetup phone branch')
-        .populate('workSetup.shift', 'weekOffDays');
+            .select('name employeeId department designation profilePhoto workSetup phone branch')
+            .populate('workSetup.shift', 'weekOffDays');
 
-        // 3. Identify who is NOT present
-        const absentees = employees.filter(emp => !presentEmployeeIds.includes(emp._id.toString()));
+        // 3. Identify who is NOT present and NOT excused
+        const absentees = employees.filter(emp =>
+            !presentEmployeeIds.includes(emp._id.toString()) &&
+            !excusedEmployeeIds.includes(emp._id.toString())
+        );
 
         // 4. Categorize by shift/week-off
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1011,7 +1062,7 @@ export const getAbsentEmployees = async (req, res) => {
         const formatted = absentees.map(emp => {
             const weekOffDays = emp.workSetup?.shift?.weekOffDays || [];
             const isWeekOff = weekOffDays.includes(dayName);
-            
+
             return {
                 _id: emp._id,
                 name: emp.name,
@@ -1026,8 +1077,8 @@ export const getAbsentEmployees = async (req, res) => {
             };
         });
 
-        res.status(200).json({ 
-            success: true, 
+        res.status(200).json({
+            success: true,
             absentees: formatted,
             date,
             dayName,
@@ -1062,7 +1113,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         const [year, monthNum] = month.split('-').map(Number);
         const daysInMonth = new Date(year, monthNum, 0).getDate();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        
+
         let workingDaysCount = 0;
         let weekOffCount = 0;
         let totalExpectedMins = 0;
@@ -1071,7 +1122,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             const dateObj = new Date(year, monthNum - 1, d);
             const dayName = days[dateObj.getDay()];
             const isWeekOff = weekOffDays.includes(dayName);
-            
+
             if (isWeekOff) {
                 weekOffCount++;
             } else {
@@ -1084,7 +1135,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
                         const dur = end > start ? end - start : (end + 1440 - start);
                         totalExpectedMins += dur;
                     } else {
-                        totalExpectedMins += 480; 
+                        totalExpectedMins += 480;
                     }
                 } else {
                     totalExpectedMins += 480;
@@ -1097,7 +1148,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         const absentDays = records.filter(r => r.status === 'Absent').length;
         const leaveDays = records.filter(r => r.status === 'On Leave').length;
         const totalWorkedMins = records.reduce((acc, r) => acc + (computeWorkingMinutes(r.punches, r.breaks) || 0), 0);
-        
+
         const stats = {
             workingDays: workingDaysCount,
             presentDays: presentDays + (halfDays * 0.5),
@@ -1150,12 +1201,12 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             };
         });
 
-        res.status(200).json({ 
-            success: true, 
-            stats, 
+        res.status(200).json({
+            success: true,
+            stats,
             records: formattedRecords,
             requests,
-            weekOffDays 
+            weekOffDays
         });
     } catch (error) {
         console.error("getMonthlyAttendanceStats error:", error);

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { menuItems } from '../config/menuItems';
 import { Bell, Sun, Moon } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 const buildSearchableItems = () => {
   const items = [];
@@ -74,6 +75,52 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
     const interval = setInterval(fetchNotifications, 30000); // poll every 30s
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Connect to Socket.io server
+    const socket = io(API_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Connected to real-time notification socket');
+      socket.emit('join', user._id);
+    });
+
+    socket.on('new_notification', (newNotif) => {
+      console.log('📡 Real-time notification received:', newNotif);
+      setNotifications(prev => [newNotif, ...prev]);
+      setUnreadCount(prev => prev + 1);
+
+      // Sleek, premium, auto-dismissing SweetAlert2 toast notification
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: newNotif.type === 'Attendance' ? 'success' : newNotif.type === 'Leave' ? 'info' : 'warning',
+        title: newNotif.title,
+        html: `<div style="font-size: 13px; font-weight: 500; color: #475569;">${newNotif.message}</div>`,
+        showConfirmButton: false,
+        timer: 5000,
+        timerProgressBar: true,
+        background: '#ffffff',
+        color: '#1e293b',
+        customClass: {
+          popup: 'premium-toast-popup'
+        },
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer);
+          toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id]);
 
   const handleMarkAllRead = async () => {
     await authenticatedFetch(`${API_URL}/api/notifications/read-all`, { method: 'PUT' });
@@ -263,7 +310,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
       <div className="header-right">
       
         {/* Sleek Premium Theme Toggler */}
-        <button 
+        {/* <button 
           className="icon-btn theme-toggle-btn" 
           onClick={toggleTheme}
           title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
@@ -284,7 +331,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
           ) : (
             <Sun size={20} style={{ color: '#F59E0B', transition: 'transform 0.5s ease' }} />
           )}
-        </button>
+        </button> */}
 
         <div style={{ position: 'relative' }} ref={notifRef}>
           <button className="icon-btn notification-btn" onClick={() => { setShowNotifs(o => !o); if (!showNotifs) fetchNotifications(); }}>
