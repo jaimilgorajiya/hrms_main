@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Modal, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -107,7 +107,9 @@ export default function ResignationScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.bgMain }]}>
-      <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.borderLight }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: colors.bgMain }]}>
           <Ionicons name="arrow-back" size={24} color={colors.textDark} />
         </TouchableOpacity>
@@ -246,6 +248,8 @@ export default function ResignationScreen() {
           </View>
         </View>
       </Modal>
+        </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

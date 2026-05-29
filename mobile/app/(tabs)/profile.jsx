@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Image, TouchableOpacity,
-  ActivityIndicator, Animated, RefreshControl, Linking, Dimensions, StatusBar, Easing
+  ActivityIndicator, Animated, RefreshControl, Linking, Dimensions, StatusBar, Easing, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,11 +75,24 @@ export default function ProfileScreen() {
   const { theme, colors, toggleTheme } = useTheme();
 
   const handleLogout = () => {
-    logout().then(() => {
-      Toast.show({ type: 'success', text1: 'Logged out successfully' });
-    }).catch(e => {
-      Toast.show({ type: 'error', text1: 'Logout failed' });
-    });
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Logout', 
+          style: 'destructive',
+          onPress: () => {
+            logout().then(() => {
+              Toast.show({ type: 'success', text1: 'Logged out successfully' });
+            }).catch(e => {
+              Toast.show({ type: 'error', text1: 'Logout failed' });
+            });
+          }
+        }
+      ]
+    );
   };
 
   const loadData = async () => {

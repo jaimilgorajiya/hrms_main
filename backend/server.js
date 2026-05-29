@@ -117,7 +117,6 @@ const corsOrigins = [
     'http://192.168.29.43:8081',  // Expo web on LAN
     'http://192.168.29.43:8082',  // Expo web on LAN (alternative)
 ].filter(Boolean);
-
 app.use(cors({
     origin: corsOrigins,
     credentials: true,

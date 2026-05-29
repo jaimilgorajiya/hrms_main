@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, TextInput, Modal, 
+  ActivityIndicator, TextInput, Modal, Keyboard, TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -136,7 +136,9 @@ export default function PunchMissingScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bgMain }]}>
-      <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.borderLight }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.header, { backgroundColor: colors.bgCard, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: colors.bgMain }]}>
           <Ionicons name="arrow-back" size={24} color={colors.textDark} />
         </TouchableOpacity>
@@ -319,6 +321,8 @@ export default function PunchMissingScreen() {
         onSelect={(v) => { setManualOut(v); setShowOutPicker(false); }} 
         onCancel={() => setShowOutPicker(false)} 
       />
+        </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

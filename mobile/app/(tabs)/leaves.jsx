@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  ActivityIndicator, RefreshControl, Modal, TouchableOpacity, TextInput
+  ActivityIndicator, RefreshControl, Modal, TouchableOpacity, TextInput, Pressable, Keyboard
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { format, addDays, isBefore, isSameDay } from 'date-fns';
@@ -348,6 +348,7 @@ export default function LeavesScreen() {
       {/* New Request Modal */}
       <Modal visible={showApply} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.borderLight }]}>
               <Text style={[styles.modalTitle, { color: colors.textDark }]}>Apply for Leave</Text>

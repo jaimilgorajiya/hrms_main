@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
-  ActivityIndicator, Keyboard, KeyboardAvoidingView,
+  ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable,
 } from 'react-native';
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop, Path, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1175,6 +1175,7 @@ export default function Dashboard() {
       {/* Today's Work Summary Modal (Punch OUT) */}
       <Modal visible={showWorkSummaryModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.alertCircle, { backgroundColor: colors.successLight }]}>
@@ -1219,6 +1220,7 @@ export default function Dashboard() {
       {/* Late Punch In Modal */}
       <Modal visible={showLateReasonModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
@@ -1269,6 +1271,7 @@ export default function Dashboard() {
       {/* Early Punch Out Modal */}
       <Modal visible={showEarlyReasonModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
@@ -1319,6 +1322,7 @@ export default function Dashboard() {
       {/* Geofence Alert Modal (Out of Range) */}
       <Modal visible={showGeofenceModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
