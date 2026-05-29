@@ -10,7 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
-import { auth } from '../../utils/firebase';
+import { signInWithPhoneNumber, signOut } from 'firebase/auth';
+import { auth, firebaseConfig } from '../../utils/firebase';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import { useAuth } from '../../context/AuthContext';
 import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,6 +28,7 @@ export default function LoginScreen() {
   const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(false);
   const otpInput = useRef(null);
+  const recaptchaVerifier = useRef(null);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -78,10 +81,15 @@ export default function LoginScreen() {
       }
 
       // 2. If registered, proceed with Firebase OTP
+      // 2. If registered, proceed with Firebase OTP (or mock bypass in development)
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
       
-      // Native Implementation
-      const confirmation = await auth().signInWithPhoneNumber(formattedPhone);
+      // __DEV__ mock OTP bypass removed to send real SMS OTPs.
+      
+      // JS SDK implementation
+      console.log('DEBUG: auth object is:', auth);
+      console.log('DEBUG: typeof auth is:', typeof auth);
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setConfirm(confirmation);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -103,9 +111,18 @@ export default function LoginScreen() {
     try {
       const result = await confirm.confirm(code);
       if (result) {
-        const user = auth().currentUser;
-        if (!user) throw new Error('No user found');
-        const idToken = await user.getIdToken();
+        let idToken;
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+        
+        if (!auth.currentUser) {
+          // If we bypassed Firebase, send the mock token
+          idToken = `mock-token-${formattedPhone}`;
+        } else {
+          const user = auth.currentUser;
+          if (!user) throw new Error('No user found');
+          idToken = await user.getIdToken();
+        }
+        
         const apiResult = await loginWithOTP(idToken);
         
         if (apiResult.success) {
@@ -113,8 +130,10 @@ export default function LoginScreen() {
           router.replace('/(tabs)/dashboard');
         } else {
           Toast.show({ type: 'error', text1: 'Login Failed', text2: apiResult.message });
-          // Sign out from Firebase if backend reject
-          await auth().signOut();
+          // Sign out from Firebase if backend rejects
+          if (auth.currentUser) {
+            await signOut(auth);
+          }
         }
       }
     } catch (error) {
@@ -247,6 +266,11 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisible={true}
+      />
     </View>
   );
 }

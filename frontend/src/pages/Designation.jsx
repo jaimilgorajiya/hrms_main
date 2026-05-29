@@ -181,10 +181,7 @@ const Designation = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Designations</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Define roles and responsibilities within your organization
-                    </p>
-                </div>
+                    </div>
                 <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ designationName: '', designationAlias: '', jobDescription: '' }); setIsModalOpen(true); }}>
                         <Plus size={18} /> ADD NEW

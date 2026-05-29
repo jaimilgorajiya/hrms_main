@@ -162,12 +162,8 @@ const AdminPackages = () => {
         <div className="profile-container-premium">
             <div className="profile-header-section flex-between-start">
                 <div>
-                    <h1 className="profile-title-premium">Package Management</h1>
-                    <p className="profile-subtitle-premium">
-                        <Shield size={14} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> 
-                        Super Admin Command — Configure core subscription tiers and utility add-ons.
-                    </p>
-                </div>
+                    <h1 className="hrm-title">Package Management</h1>
+                    </div>
                 <button className="btn-update-premium" onClick={() => handleOpenModal()}>
                     <Plus size={18} /> Add New Package
                 </button>

@@ -113,7 +113,9 @@ const AdminAttendance = () => {
       r.employee?.department?.toLowerCase().includes(q)
     );
     const matchesStatus = statusFilter === 'All' || 
-      (statusFilter === 'Present' ? (r.status === 'Present' || r.status === 'Clocked In') : r.status === statusFilter);
+      (statusFilter === 'Present' ? ['Present', 'Clocked In', 'Half Day', 'HALF DAY'].includes(r.status) : 
+       statusFilter === 'Half Day' ? ['Half Day', 'HALF DAY'].includes(r.status) : 
+       r.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -129,8 +131,7 @@ const AdminAttendance = () => {
       <div className="hrm-header">
         <div>
           <h1 className="hrm-title">Attendance Monitoring</h1>
-          <p className="hrm-subtitle">Real-time employee punch logs and approval workflow</p>
-        </div>
+          </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div style={{ display: 'flex', background: 'var(--bg-main)', borderRadius: '12px', padding: '4px', border: '1px solid var(--border)', height: '44px' }}>
             {['day', 'month'].map(v => (
@@ -169,7 +170,7 @@ const AdminAttendance = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', marginBottom: '32px' }}>
         {[
           { label: 'Total Logs', count: records.length, color: 'var(--primary-blue)', icon: <Users size={24} /> },
-          { label: 'Present Today', count: counts['Present'] || 0, color: 'var(--success)', icon: <CheckCircle size={24} /> },
+          { label: 'Present Today', count: (counts['Present'] || 0) + (counts['Half Day'] || 0) + (counts['HALF DAY'] || 0), color: 'var(--success)', icon: <CheckCircle size={24} /> },
           { label: 'Absent Today', count: counts['Absent'] || 0, color: 'var(--danger)', icon: <XCircle size={24} /> },
           { label: 'Pending Approval', count: counts.pending, color: '#6366F1', icon: <Clock size={24} /> },
         ].map((s, i) => (

@@ -13,8 +13,7 @@ const Dashboard = () => {
 
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "Poppins, sans-serif" }}>
-      <h1>Welcome, {user.name || "User"}!</h1>
-      <p>Role: <strong>{user.role || "Not specified"}</strong></p>
+      <h1 className="hrm-title">Welcome, {user.name || "User"}!</h1>
       <div style={{ marginTop: "20px" }}>
         <p>This is your {user.role} dashboard.</p>
       </div>

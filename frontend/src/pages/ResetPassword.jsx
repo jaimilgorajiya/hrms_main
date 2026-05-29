@@ -239,9 +239,8 @@ const ResetPassword = () => {
                     <div className="banner-logo" style={{ marginBottom: '32px' }}>
                         <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" style={{ width: '260px', height: 'auto', objectFit: 'contain' }} />
                     </div>
-                    <h1 className="banner-title">Reset your access.</h1>
-                    <p className="banner-text">Create a new secure password to regain control of your HR command center.</p>
-                </div>
+                    <h1 className="hrm-title">Reset your access.</h1>
+                    </div>
                 <div className="banner-footer">
                     © {new Date().getFullYear()} Iflora Info Pvt. Ltd. All rights reserved.
                 </div>

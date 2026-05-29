@@ -114,8 +114,7 @@ const MonthlyAttendance = () => {
             <div className="hrm-header" style={{ marginBottom: '32px' }}>
                 <div>
                     <h1 className="hrm-title" style={{ fontSize: '28px', marginBottom: '4px' }}>Monthly Attendance</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: 500 }}>Track and analyze individual attendance performance</p>
-                </div>
+                    </div>
             </div>
 
             {/* Filter Section */}

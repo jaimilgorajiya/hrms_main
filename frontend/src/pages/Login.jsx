@@ -503,7 +503,7 @@ const Login = () => {
           </div>
           <h1 className="banner-title">Welcome to your HR Ecosystem.</h1>
           <p className="banner-text">Seamlessly manage your workforce, automate payroll, and drive productivity from one unified command center.</p>
-        </div>
+          </div>
         <div className="banner-footer">
           © {new Date().getFullYear()} Iflora Info Pvt. Ltd. All rights reserved.
         </div>

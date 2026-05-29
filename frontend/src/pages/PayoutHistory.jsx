@@ -56,8 +56,7 @@ const PayoutHistory = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Payroll Archive</h1>
-                    <p className="hrm-subtitle">Audit and record-keeping for all processed salary statements</p>
-                </div>
+                    </div>
                 
                 <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="hrm-search-container">

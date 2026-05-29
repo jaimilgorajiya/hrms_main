@@ -77,9 +77,8 @@ const LeaveBalance = () => {
         <div style={{ padding: '35px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
             {/* Header */}
             <div style={{ marginBottom: '40px' }}>
-                <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Individual Leave Portfolio</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: '600' }}>Comprehensive entitlement tracking and history for specific staff members.</p>
-            </div>
+                <h1 className="hrm-title" style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Individual Leave Portfolio</h1>
+                </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '35px', alignItems: 'start' }}>
                 

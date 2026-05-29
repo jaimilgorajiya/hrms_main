@@ -198,10 +198,7 @@ const AdminResignation = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Resignation Requests</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>
-                        Review and manage employee exit workflows
-                    </p>
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button className="btn-hrm btn-hrm-secondary" onClick={fetchResignations} disabled={loading}>
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />

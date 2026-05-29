@@ -46,9 +46,8 @@ const AssignBulkLeave = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
-                    <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 6px' }}>Assign Leaves</h1>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px', fontWeight: '600' }}>Manage annual leave allotments and bulk credits for the roster</p>
-                </div>
+                    <h1 className="hrm-title" style={{ fontSize: '26px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 6px' }}>Assign Leaves</h1>
+                    </div>
                 <div style={{ position: 'relative', width: '100%', maxWidth: '350px' }}>
                     <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input 

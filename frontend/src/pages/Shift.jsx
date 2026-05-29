@@ -147,8 +147,7 @@ const Shift = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Shift Management</h1>
-                    <p className="hrm-subtitle">Configure working hours and weekly off patterns</p>
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button 
                         className="btn-hrm btn-hrm-secondary"

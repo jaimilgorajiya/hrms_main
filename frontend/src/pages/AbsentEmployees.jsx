@@ -206,9 +206,8 @@ const AbsentEmployees = () => {
       {/* Header & Stats Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Absent Employees</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: '500', margin: 0 }}>Tracking employees who haven't clocked in for the selected date.</p>
-        </div>
+          <h1 className="hrm-title" style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Absent Employees</h1>
+          </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '0 12px' }}>

@@ -24,7 +24,9 @@ const attendanceSchema = new mongoose.Schema({
         workSummary: String,
         earlyReason: String,
         lateReason: String,
-        locationAddress: String
+        locationAddress: String,
+        syncedOffline: { type: Boolean, default: false },  // true if this punch was saved offline and synced later
+        syncedAt: { type: Date, default: null }             // when the sync actually reached the server
     }],
     breaks: [{
         start: { type: Date },

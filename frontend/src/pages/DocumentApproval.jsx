@@ -236,10 +236,7 @@ const DocumentApproval = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Document Verification</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Review, approve, and manage uploaded employee documents and ID proofs
-                    </p>
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     <div style={{ position: 'relative', width: '280px' }}>
                         <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />

@@ -122,10 +122,7 @@ const ChangeBranch = () => {
                     </button>
                     <div>
                         <h1 className="hrm-title">Change Branch</h1>
-                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            Securely transfer employees between organizational branches and departments
-                        </p>
-                    </div>
+                        </div>
                 </div>
             </div>
 

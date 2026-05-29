@@ -6,7 +6,7 @@ export const getDistance = (lat1, lon1, lat2, lon2) => {
 
   const R = 6371e3; // Earth radius in meters
   const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;         
   const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
   const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
 

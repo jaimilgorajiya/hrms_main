@@ -81,8 +81,7 @@ const GenerateSalarySlip = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Generate Salary Slips</h1>
-                    <p className="hrm-subtitle">Prepare officially generated slips for initiated payouts</p>
-                </div>
+                    </div>
                 
                 <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="hrm-search-container">

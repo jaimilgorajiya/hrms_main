@@ -310,7 +310,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
       <div className="header-right">
       
         {/* Sleek Premium Theme Toggler */}
-        {/* <button 
+        <button 
           className="icon-btn theme-toggle-btn" 
           onClick={toggleTheme}
           title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
@@ -331,7 +331,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
           ) : (
             <Sun size={20} style={{ color: '#F59E0B', transition: 'transform 0.5s ease' }} />
           )}
-        </button> */}
+        </button>
 
         <div style={{ position: 'relative' }} ref={notifRef}>
           <button className="icon-btn notification-btn" onClick={() => { setShowNotifs(o => !o); if (!showNotifs) fetchNotifications(); }}>

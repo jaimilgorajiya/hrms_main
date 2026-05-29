@@ -2,18 +2,20 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
-  ActivityIndicator,
+  ActivityIndicator, Keyboard, KeyboardAvoidingView,
 } from 'react-native';
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop, Path, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiFetch, getImageUrl } from '../../utils/api';
+import { apiFetch, getImageUrl, isNetworkAvailable } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 import { SIZES, RADIUS, SHADOW, COLORS, GRADIENTS } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useNetwork } from '../../context/NetworkContext';
+import { addToQueue, getPendingCount } from '../../utils/offlineQueue';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
@@ -179,7 +181,7 @@ const StatCard = ({ icon, label, value, sub, color, bg, onPress, delay }) => {
 //   );
 // };
 
-const PunchSystem = ({ punchData, onPunch, onBreak }) => {
+const PunchSystem = ({ punchData, onPunch, onBreak, pendingCount, isOnline }) => {
   const { colors, gradients, isDarkMode, theme } = useTheme();
   const styles = createStyles(colors, gradients, isDarkMode);
   const router = useRouter();
@@ -467,6 +469,37 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
         </View>
       </Animated.View>
 
+      {/* Offline Banner */}
+      {!isOnline && (
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: '#FEF3C7', borderColor: '#F59E0B', borderWidth: 1,
+          borderRadius: 12, paddingVertical: 8, paddingHorizontal: 14,
+          marginBottom: 4,
+        }}>
+          <Ionicons name="cloud-offline-outline" size={16} color="#D97706" />
+          <Text style={{ fontSize: 12, color: '#92400E', fontWeight: '600', flex: 1 }}>
+            You're offline — punches will sync when connected
+          </Text>
+        </View>
+      )}
+
+      {/* Pending Sync Badge */}
+      {pendingCount > 0 && (
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 8,
+          backgroundColor: '#EFF6FF', borderColor: '#3B82F6', borderWidth: 1,
+          borderRadius: 12, paddingVertical: 8, paddingHorizontal: 14,
+          marginBottom: 4,
+        }}>
+          <Ionicons name="time-outline" size={16} color="#2563EB" />
+          <Text style={{ fontSize: 12, color: '#1E3A8A', fontWeight: '600', flex: 1 }}>
+            {pendingCount} punch{pendingCount > 1 ? 'es' : ''} pending sync
+            {isOnline ? ' — syncing...' : ' — waiting for connection'}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.actionBtnRow}>
         <TouchableOpacity 
           style={[styles.pillBtn, punchData?.isDoneForToday && { opacity: 0.5 }]} 
@@ -486,9 +519,14 @@ const PunchSystem = ({ punchData, onPunch, onBreak }) => {
               color={colors.white} 
               style={{marginRight: 6}} 
             />
-            <Text style={[styles.pillBtnText, { color: colors.white }]}>
-              {punchData?.isDoneForToday ? 'Punch In' : (punchData?.punchedIn ? 'Punch Out' : 'Punch In')}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.pillBtnText, { color: colors.white }]}>
+                {punchData?.isDoneForToday ? 'Done for Today' : (punchData?.punchedIn ? 'Punch Out' : 'Punch In')}
+              </Text>
+              {!isOnline && !punchData?.isDoneForToday && (
+                <Ionicons name="cloud-offline-outline" size={13} color="rgba(255,255,255,0.8)" style={{ marginLeft: 5 }} />
+              )}
+            </View>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -528,6 +566,7 @@ export default function Dashboard() {
   const { colors, gradients, theme, isDarkMode } = useTheme();
   const styles = createStyles(colors, gradients, isDarkMode);
   const router = useRouter();
+  const { isOnline, pendingCount, refreshPendingCount } = useNetwork();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -831,25 +870,67 @@ export default function Dashboard() {
         }
       }
 
-      // 3. Call API with all reasons collected
-      await submitPunch(latitude, longitude, { 
+      // 3. Check network and either submit online or queue offline
+      const punchPayload = {
+        latitude,
+        longitude,
         geofenceReason: effectiveGeofenceReason, 
         earlyReason: effectiveEarlyReason, 
         lateReason: effectiveLateReason,
         workSummary: effectiveWorkSummary,
         locationAddress: addr,
         isMocked: loc.mocked || loc.coords?.mocked || false,
-        clientTime: new Date().toISOString()
-      });
+        clientTime: new Date().toISOString(),
+      };
+
+      const online = await isNetworkAvailable();
+
+      if (online) {
+        // Normal online flow
+        await submitPunch(latitude, longitude, punchPayload);
+      } else {
+        // ─── Offline: queue locally and update UI optimistically ───
+        await addToQueue(punchPayload);
+        await refreshPendingCount();
+
+        const isPunchingIn = !punchData.punchedIn;
+        // Optimistic UI update — flip the punch state immediately
+        setPunchData(prev => ({
+          ...prev,
+          punchedIn: isPunchingIn,
+          isDoneForToday: !isPunchingIn,
+          startTime: isPunchingIn ? new Date().toISOString() : prev.startTime,
+        }));
+
+        // Reset modal state
+        setShowGeofenceModal(false);
+        setShowWorkSummaryModal(false);
+        setShowEarlyReasonModal(false);
+        setShowLateReasonModal(false);
+        setGeofenceReason('');
+        setWorkSummary('');
+        setEarlyReason('');
+        setLateReason('');
+
+        Toast.show({
+          type: 'info',
+          text1: '📴 Saved Offline',
+          text2: 'Your punch is saved. It will auto-sync when you reconnect.',
+          visibilityTime: 4000,
+        });
+
+        setLoading(false);
+      }
     } catch (e) {
       console.error(e);
-      Toast.show({ type: 'error', text1: 'Connection error' });
+      Toast.show({ type: 'error', text1: 'Connection error', text2: 'Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   const submitPunch = async (latitude, longitude, reasons = {}) => {
+    Keyboard.dismiss();
     const res = await apiFetch(ENDPOINTS.togglePunch, { 
       method: 'POST', 
       body: JSON.stringify({ 
@@ -883,6 +964,7 @@ export default function Dashboard() {
   };
 
   const submitWithReason = async () => {
+    Keyboard.dismiss();
     setShowGeofenceModal(false);
     handlePunch({ geofenceReason });
   };
@@ -1016,7 +1098,7 @@ export default function Dashboard() {
         </LinearGradient>
 
         <View style={styles.body}>
-          <PunchSystem punchData={punchData} onPunch={handlePunch} onBreak={handleBreak} />
+          <PunchSystem punchData={punchData} onPunch={handlePunch} onBreak={handleBreak} pendingCount={pendingCount} isOnline={isOnline} />
           <Text style={[styles.sectionTitle, { color: colors.textDark }]}>Monthly Overview</Text>
           <View style={{ position: 'relative' }}>
             {/* Elegant Premium Nocturnal Background Vector Trace Element Behind the Grid */}
@@ -1091,10 +1173,8 @@ export default function Dashboard() {
       </ScrollView>
 
       {/* Today's Work Summary Modal (Punch OUT) */}
-      {/* Today's Work Summary Modal (Punch OUT) */}
-      {/* Work Summary Modal */}
       <Modal visible={showWorkSummaryModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.alertCircle, { backgroundColor: colors.successLight }]}>
@@ -1119,10 +1199,11 @@ export default function Dashboard() {
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowWorkSummaryModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowWorkSummaryModal(false); }}>
                 <Text style={[styles.cancelBtnText, { color: colors.textLight }]}>Later</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                Keyboard.dismiss();
                 setShowWorkSummaryModal(false);
                 handlePunch({ workSummary });
               }}>
@@ -1132,16 +1213,16 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Late Punch In Modal */}
       <Modal visible={showLateReasonModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
-              onPress={() => { setShowLateReasonModal(false); setLateReason(''); }}
+              onPress={() => { Keyboard.dismiss(); setShowLateReasonModal(false); setLateReason(''); }}
             >
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
@@ -1168,10 +1249,11 @@ export default function Dashboard() {
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowLateReasonModal(false); setLateReason(''); }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowLateReasonModal(false); setLateReason(''); }}>
                 <Text style={[styles.cancelBtnText, { color: colors.textLight }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                Keyboard.dismiss();
                 setShowLateReasonModal(false);
                 handlePunch({ lateReason });
               }}>
@@ -1181,16 +1263,16 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Early Punch Out Modal */}
       <Modal visible={showEarlyReasonModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
-              onPress={() => { setShowEarlyReasonModal(false); setEarlyReason(''); }}
+              onPress={() => { Keyboard.dismiss(); setShowEarlyReasonModal(false); setEarlyReason(''); }}
             >
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
@@ -1217,10 +1299,11 @@ export default function Dashboard() {
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowEarlyReasonModal(false); setEarlyReason(''); }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowEarlyReasonModal(false); setEarlyReason(''); }}>
                 <Text style={[styles.cancelBtnText, { color: colors.textLight }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={() => {
+                Keyboard.dismiss();
                 setShowEarlyReasonModal(false);
                 handlePunch({ earlyReason });
               }}>
@@ -1230,16 +1313,16 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Geofence Alert Modal (Out of Range) */}
       <Modal visible={showGeofenceModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <TouchableOpacity 
               style={styles.modalCloseBtn} 
-              onPress={() => setShowGeofenceModal(false)}
+              onPress={() => { Keyboard.dismiss(); setShowGeofenceModal(false); }}
             >
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
@@ -1281,7 +1364,7 @@ export default function Dashboard() {
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowGeofenceModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowGeofenceModal(false); }}>
                 <Text style={[styles.cancelBtnText, { color: colors.textLight }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.submitBtn} onPress={submitWithReason}>
@@ -1291,7 +1374,7 @@ export default function Dashboard() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       {/* Verified: In Range Modal (SweetAlert Style) */}
       <Modal 

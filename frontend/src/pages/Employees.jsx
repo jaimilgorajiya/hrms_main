@@ -339,10 +339,7 @@ const Employees = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Directory</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Manage your global workforce across {branches.length} branches
-                    </p>
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                     <div style={{ position: 'relative', width: '300px' }}>
                         <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />

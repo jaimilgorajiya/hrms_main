@@ -195,7 +195,7 @@ const AddShift = () => {
     return (
         <div className="add-shift-container">
             <div className="shift-header">
-                <h1 className="profile-title">Add Shift</h1>
+                <h1 className="hrm-title">Add Shift</h1>
             </div>
 
             <form onSubmit={handleSubmit}>

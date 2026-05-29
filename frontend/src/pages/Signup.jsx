@@ -464,9 +464,8 @@ const Signup = () => {
                     <div className="banner-logo" style={{ marginBottom: '32px' }}>
                         <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" style={{ width: '260px', height: 'auto', objectFit: 'contain' }} />
                     </div>
-                    <h1 className="banner-title">Build a stronger workforce.</h1>
-                    <p className="banner-text">Deploy your own enterprise HRMS instance instantly. Manage attendance, payroll, and team metrics globally.</p>
-                </div>
+                    <h1 className="hrm-title">Build a stronger workforce.</h1>
+                    </div>
                 <div className="banner-footer">
                     © {new Date().getFullYear()} Iflora Info Pvt. Ltd. All rights reserved.
                 </div>

@@ -227,7 +227,7 @@ const EditShift = () => {
     return (
         <div className="add-shift-container">
             <div className="shift-header">
-                <h1 className="profile-title">Edit Shift</h1>
+                <h1 className="hrm-title">Edit Shift</h1>
             </div>
 
             <form onSubmit={handleSubmit}>

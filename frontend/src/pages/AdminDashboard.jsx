@@ -124,7 +124,7 @@ const AdminDashboard = () => {
 
   const statCards = [
     { title: 'Total Workforce', value: stats.totalUsers || 0, icon: <Users size={22} />, color: 'blue', link: '/admin/employees/list', trend: '+2.4%', up: true },
-    { title: 'Present Today', value: stats.presentToday || 0, icon: <UserPlus size={22} />, color: 'green', link: '/admin/attendance/records?status=Present', trend: 'Stable', up: true },
+    { title: 'Present Today', value: (stats.presentToday || 0) + (stats.halfDayToday || 0), icon: <UserPlus size={22} />, color: 'green', link: '/admin/attendance/records?status=Present', trend: 'Stable', up: true },
     { title: 'Absent Today', value: stats.absentToday || 0, icon: <UserMinus size={22} />, color: 'red', link: '/admin/attendance/absent', trend: '-1.2%', up: false },
     { title: 'On Leave', value: stats.onLeaveToday || 0, icon: <Calendar size={22} />, color: 'purple', link: '/admin/attendance/records?status=On Leave', trend: 'Normal', up: true },
   ];
@@ -138,9 +138,8 @@ const AdminDashboard = () => {
     <div className="dashboard-container">
       <div className="dashboard-header-premium">
         <div className="header-info">
-          <h1>Admin Dashboard</h1>
-          <p>Unified workforce intelligence and operational overview</p>
-        </div>
+          <h1 className="hrm-title">Admin Dashboard</h1>
+          </div>
         <div className="header-actions">
            <button className="btn-primary-prem" onClick={() => navigate('/admin/employees/list')}>
              <UserPlus size={18} /> NEW EMPLOYEE
@@ -229,7 +228,7 @@ const AdminDashboard = () => {
                     </PieChart>
                 </ResponsiveContainer>
                 <div className="chart-center-text">
-                   <div className="chart-center-val">{stats.presentToday || 0}</div>
+                   <div className="chart-center-val">{(stats.presentToday || 0) + (stats.halfDayToday || 0)}</div>
                    <div className="chart-center-label">Active</div>
                 </div>
               </div>

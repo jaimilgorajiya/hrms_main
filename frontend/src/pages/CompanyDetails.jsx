@@ -197,11 +197,8 @@ const CompanyDetails = () => {
     <div className="designation-container">
       <header className="designation-header">
         <div>
-          <h1 className="profile-title">Company Profile</h1>
-          <p className="text-light" style={{ fontSize: '14px', marginTop: '4px', color: 'var(--text-light)' }}>
-            Manage your organization's core contact information and branding.
-          </p>
-        </div>
+          <h1 className="hrm-title">Company Profile</h1>
+          </div>
       </header>
 
       <form onSubmit={handleUpdate} className="details-form">

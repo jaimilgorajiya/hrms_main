@@ -13,24 +13,20 @@ const MonthlyPayout = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedEmp, setSelectedEmp] = useState(null);
     const [adjustments, setAdjustments] = useState({
-        bonus: 0,
-        bonusReason: '',
-        deduction: 0,
-        deductionReason: ''
+        amount: '',
+        reason: ''
     });
 
     useEffect(() => {
         if (selectedEmp) {
             setAdjustments({
-                bonus: 0,
-                bonusReason: '',
-                deduction: 0,
-                deductionReason: ''
+                amount: '',
+                reason: ''
             });
         }
     }, [selectedEmp]);
 
-    const finalNet = selectedEmp ? (selectedEmp.salary.accruedNet + Number(adjustments.bonus) - Number(adjustments.deduction)) : 0;
+    const finalNet = selectedEmp ? Math.round((selectedEmp.salary.accruedNet + Number(adjustments.amount || 0)) * 100) / 100 : 0;
 
     const fetchSummary = async () => {
         try {
@@ -75,8 +71,8 @@ const MonthlyPayout = () => {
                     systemAccrued: empData.salary.accruedGross, // Use accruedGross for base scaling
                     penalties: empData.penalties,
                     adjustments: {
-                        bonus: { amount: Number(adjustments.bonus), reason: adjustments.bonusReason },
-                        deduction: { amount: Number(adjustments.deduction), reason: adjustments.deductionReason }
+                        bonus: { amount: Number(adjustments.amount) > 0 ? Number(adjustments.amount) : 0, reason: adjustments.reason },
+                        deduction: { amount: Number(adjustments.amount) < 0 ? Math.abs(Number(adjustments.amount)) : 0, reason: adjustments.reason }
                     },
                     extraDayBenefit: {
                         days: empData.extraBenefits?.extraDaysWorked || 0,
@@ -256,8 +252,7 @@ const MonthlyPayout = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Monthly Payout Summary</h1>
-                    <p className="hrm-subtitle">Audit and initiate monthly salaries for employees</p>
-                </div>
+                    </div>
                 
                 <div className="payout-header-actions">
                     <button 
@@ -452,12 +447,8 @@ const MonthlyPayout = () => {
                                                 type="number" 
                                                 className="hrm-input" 
                                                 style={{ width: '100px', height: '30px', textAlign: 'right', fontWeight: 700 }}
-                                                value={adjustments.bonus - adjustments.deduction}
-                                                onChange={(e) => {
-                                                    const val = Number(e.target.value);
-                                                    if (val >= 0) setAdjustments({...adjustments, bonus: val, deduction: 0});
-                                                    else setAdjustments({...adjustments, bonus: 0, deduction: Math.abs(val)});
-                                                }}
+                                                value={adjustments.amount}
+                                                onChange={(e) => setAdjustments({...adjustments, amount: e.target.value})}
                                             />
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -466,8 +457,8 @@ const MonthlyPayout = () => {
                                                 type="text" 
                                                 className="hrm-input" 
                                                 style={{ width: '160px', height: '26px', fontSize: '11px' }}
-                                                value={adjustments.bonusReason || adjustments.deductionReason}
-                                                onChange={(e) => setAdjustments({...adjustments, bonusReason: e.target.value, deductionReason: e.target.value})}
+                                                value={adjustments.reason}
+                                                onChange={(e) => setAdjustments({...adjustments, reason: e.target.value})}
                                                 placeholder="e.g. Special Bonus"
                                              />
                                         </div>
@@ -483,8 +474,7 @@ const MonthlyPayout = () => {
                                                 onChange={(e) => {
                                                     const newTotal = Number(e.target.value);
                                                     const diff = newTotal - selectedEmp.salary.accruedNet;
-                                                    if (diff >= 0) setAdjustments({...adjustments, bonus: diff, deduction: 0});
-                                                    else setAdjustments({...adjustments, bonus: 0, deduction: Math.abs(diff)});
+                                                    setAdjustments({...adjustments, amount: diff});
                                                 }}
                                             />
                                         </div>

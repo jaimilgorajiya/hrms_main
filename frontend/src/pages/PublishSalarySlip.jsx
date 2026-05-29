@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
-import { Search, Calendar, CheckSquare, Square, Send, Eye } from 'lucide-react';
+import { Search, Calendar, CheckSquare, Square, Send, Eye, Download, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 
@@ -12,6 +12,7 @@ const PublishSalarySlip = () => {
     const [loading, setLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [previewUrl, setPreviewUrl] = useState(null);
 
 
     const fetchGeneratedPayouts = async () => {
@@ -84,10 +85,13 @@ const PublishSalarySlip = () => {
         }
     };
 
-    const handleDownload = (payoutId) => {
+    const getPdfUrl = (payoutId, download = false) => {
         const token = localStorage.getItem('token');
-        const url = `${API_URL}/api/payroll/download-slip/${payoutId}?token=${token}`;
-        window.open(url, '_blank');
+        return `${API_URL}/api/payroll/download-slip/${payoutId}?token=${token}${download ? '&download=true' : ''}`;
+    };
+
+    const handleDownload = (payoutId) => {
+        window.open(getPdfUrl(payoutId, true), '_blank');
     };
 
     const filteredPayouts = payouts.filter(p => 
@@ -100,8 +104,7 @@ const PublishSalarySlip = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Publish Salary Slips</h1>
-                    <p className="hrm-subtitle">Finalize and release salary slips to employee mobile app</p>
-                </div>
+                    </div>
                 
                 <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="hrm-search-container">
@@ -153,7 +156,7 @@ const PublishSalarySlip = () => {
                                 <th>Employee Details</th>
                                 <th>Generated Period</th>
                                 <th>Final Net</th>
-                                <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,13 +182,21 @@ const PublishSalarySlip = () => {
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <span className="status-badge status-approved" style={{ fontSize: '10px', background: '#ecfdf5', color: '#059669' }}>Generated</span>
+                                            <button 
+                                                className="btn-hrm-icon" 
+                                                onClick={(e) => { e.stopPropagation(); setPreviewUrl(getPdfUrl(p._id)); }}
+                                                title="Quick View Payslip"
+                                                style={{ padding: '6px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
+                                            >
+                                                <Eye size={16} />
+                                            </button>
                                             <button 
                                                 className="btn-hrm-icon" 
                                                 onClick={(e) => { e.stopPropagation(); handleDownload(p._id); }}
-                                                title="View Payslip PDF"
+                                                title="Download Payslip"
+                                                style={{ padding: '6px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}
                                             >
-                                                <Eye size={16} color="#059669" />
+                                                <Download size={16} />
                                             </button>
                                         </div>
                                     </td>
@@ -195,6 +206,27 @@ const PublishSalarySlip = () => {
                     </table>
                 </div>
             </div>
+
+            {previewUrl && (
+                <div className="hrm-modal-overlay" onClick={() => setPreviewUrl(null)}>
+                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%', height: '85vh', display: 'flex', flexDirection: 'column', padding: '15px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Payslip Quick View</h2>
+                            <button 
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} 
+                                onClick={() => setPreviewUrl(null)}
+                            >
+                                <X size={20}/>
+                            </button>
+                        </div>
+                        <iframe 
+                            src={previewUrl} 
+                            style={{ flex: 1, width: '100%', border: '1px solid #e2e8f0', borderRadius: '8px' }} 
+                            title="Payslip Preview" 
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -149,8 +149,7 @@ const EmployeePromotion = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Career Progression</h1>
-                    <p className="hrm-subtitle">Manage employee promotions, title changes, and organizational growth</p>
-                </div>
+                    </div>
                 <button className="btn-hrm btn-hrm-primary" onClick={openAdd}>
                     <Plus size={18} /> NEW PROMOTION
                 </button>

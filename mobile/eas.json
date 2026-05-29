@@ -12,12 +12,21 @@
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": true
+      },
       "distribution": "internal"
     },
-    "production": {
+    "preview-device": {
       "android": {
         "buildType": "apk"
       },
+      "ios": {
+        "simulator": false
+      },
+      "distribution": "internal"
+    },
+    "production": {
       "autoIncrement": true
     }
   },

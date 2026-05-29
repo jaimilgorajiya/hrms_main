@@ -159,8 +159,7 @@ const BreakType = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Shift Break Types</h1>
-                    <p className="hrm-subtitle">Manage default break durations and categories available during shifts</p>
-                </div>
+                    </div>
                 <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsEditing(false); setFormData({ name: '', minutes: '' }); setIsModalOpen(true); }}>
                     <Plus size={18} /> ADD NEW BREAK
                 </button>

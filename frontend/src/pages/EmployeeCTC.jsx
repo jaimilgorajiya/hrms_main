@@ -221,8 +221,7 @@ const EmployeeCTC = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Employee CTC</h1>
-                    <p className="hrm-subtitle">Manage individual salary structures and compensation breakdowns</p>
-                </div>
+                    </div>
                 
                 <div className="search-wrapper" style={{ width: '350px' }}>
                     <Search size={18} color="var(--text-secondary)" />

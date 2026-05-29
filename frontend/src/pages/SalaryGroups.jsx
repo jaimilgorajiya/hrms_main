@@ -146,8 +146,7 @@ const SalaryGroups = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Salary Groups</h1>
-                    <p className="hrm-subtitle">Core payroll configuration and working days policy</p>
-                </div>
+                    </div>
                 <button className="btn-hrm btn-hrm-primary" onClick={() => setShowForm(true)}>
                     <Plus size={18} /> ADD SALARY GROUP
                 </button>

@@ -390,9 +390,8 @@ const MyProfile = () => {
   return (
     <div className="profile-container-premium">
       <div className="profile-header-section">
-        <h1 className="profile-title-premium">User Profile</h1>
-        <p className="profile-subtitle-premium">Manage your identity, account security, and subscription preferences.</p>
-      </div>
+        <h1 className="hrm-title">User Profile</h1>
+        </div>
 
       <div className="profile-grid-premium">
         <div className="profile-left-col">

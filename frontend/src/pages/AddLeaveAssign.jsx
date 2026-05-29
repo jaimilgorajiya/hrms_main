@@ -168,8 +168,7 @@ const AddLeaveAssign = () => {
                     </button>
                     <div>
                         <h1 className="hrm-title" style={{ fontSize: '24px' }}>Leave Assign to Employee</h1>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>Configure individual leave quotas and groups</p>
-                    </div>
+                        </div>
                 </div>
             </div>
 

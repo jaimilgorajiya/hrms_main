@@ -17,15 +17,18 @@ export const getMonthlyPayoutSummary = async (req, res) => {
         const startDate = `${month}-01`;
         const endDate = new Date(year, monthNum, 0).toISOString().split('T')[0];
         const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const adminId = req.user._id;
 
         const employees = await User.find({ 
+            adminId,
             status: { $in: ['Active', 'Resigned'] } 
         })
             .populate('workSetup.shift')
             .populate('workSetup.salaryGroup')
             .select('name employeeId department designation workSetup role status');
 
-        const existingPayouts = await Payout.find({ month });
+        const employeeIds = employees.map(emp => emp._id);
+        const existingPayouts = await Payout.find({ month, employeeId: { $in: employeeIds } });
         const initiatedMap = {};
         existingPayouts.forEach(p => {
             initiatedMap[p.employeeId.toString()] = p;
@@ -510,22 +513,30 @@ export const downloadPayslip = async (req, res) => {
             function inWords (num) {
                 if ((num = num.toString()).length > 9) return 'overflow';
                 const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-                if (!n) return; let str = '';
+                if (!n) return ''; let str = '';
                 str += (Number(n[1]) != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
                 str += (Number(n[2]) != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
                 str += (Number(n[3]) != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
                 str += (Number(n[4]) != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
                 str += (Number(n[5]) != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
-                return str;
+                return str.trim();
             }
-            return inWords(amount);
+            
+            const parts = Number(amount).toFixed(2).split('.');
+            let rupeesPart = inWords(parts[0]);
+            if (!rupeesPart || rupeesPart === '') rupeesPart = 'Zero';
+            
+            let paisePart = Number(parts[1]) > 0 ? ' and ' + inWords(parts[1]) + ' Paise' : '';
+            
+            return rupeesPart + paisePart;
         }
 
         const pdfDoc = await pdfmake.createPdf(docDefinition);
         const buffer = await pdfDoc.getBuffer();
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=payslip-${payout.month}.pdf`);
+        const disposition = req.query.download === 'true' ? 'attachment' : 'inline';
+        res.setHeader('Content-Disposition', `${disposition}; filename=payslip-${payout.month}.pdf`);
         
         res.send(Buffer.from(buffer));
 
@@ -557,9 +568,18 @@ export const deletePayout = async (req, res) => {
 export const getPayoutHistory = async (req, res) => {
     try {
         const { month, employeeId } = req.query;
+        const adminId = req.user._id;
+        
         let query = {};
         if (month) query.month = month;
-        if (employeeId) query.employeeId = employeeId;
+        
+        if (employeeId) {
+            query.employeeId = employeeId;
+        } else {
+            const employees = await User.find({ adminId }).select('_id');
+            const employeeIds = employees.map(emp => emp._id);
+            query.employeeId = { $in: employeeIds };
+        }
 
         const history = await Payout.find(query)
             .populate('employeeId', 'name employeeId department designation')

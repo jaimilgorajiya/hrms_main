@@ -133,9 +133,8 @@ const AdminDeleteAttendance = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}> Delete Attendance</h1>
-          <p style={{ color: 'var(--text-secondary)', fontWeight: '500', margin: 0 }}>Permanently remove erroneous logs. Deleting records marks the employee as "Absent" to maintain history.</p>
-        </div>
+          <h1 className="hrm-title" style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}> Delete Attendance</h1>
+          </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '14px', padding: '0 12px' }}>

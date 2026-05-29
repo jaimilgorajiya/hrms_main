@@ -6,6 +6,22 @@ import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
 
+// Convert "10:03 am" / "10:03 PM" / "10:03" → "10:03" (24-hr HH:MM for <input type="time">)
+const to24hr = (timeStr) => {
+    if (!timeStr) return '';
+    const s = timeStr.trim();
+    const match = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    if (!match) return s; // already HH:MM or unknown format – return as-is
+    let [, h, m, , period] = match;
+    h = parseInt(h, 10);
+    if (period) {
+        const p = period.toLowerCase();
+        if (p === 'am' && h === 12) h = 0;
+        if (p === 'pm' && h !== 12) h += 12;
+    }
+    return `${String(h).padStart(2, '0')}:${m}`;
+};
+
 const AddAttendance = () => {
     const navigate = useNavigate();
     const today = new Date().toISOString().split('T')[0];
@@ -16,8 +32,11 @@ const AddAttendance = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [search, setSearch] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     
     const [selectedEmployeeName, setSelectedEmployeeName] = useState('');
+    const [punchInLocked, setPunchInLocked] = useState(false);
     
     const [formData, setFormData] = useState({
         employeeId: '',
@@ -47,15 +66,20 @@ const AddAttendance = () => {
     const handleOpenModal = (record = null) => {
         if (record) {
             setSelectedEmployeeName(record.employee.name);
+            // Lock punch-in if employee already punched in but forgot to punch out
+            const hasPunchIn = !!record.punchIn;
+            const hasPunchOut = !!record.punchOut;
+            setPunchInLocked(hasPunchIn && !hasPunchOut);
             setFormData({
                 employeeId: record.employee._id,
                 date: record.date,
-                status: 'Present',
-                inTime: '09:00',
-                outTime: '18:00',
+                status: record.punchIn ? 'Present' : 'Present',
+                inTime: record.punchIn ? to24hr(record.punchIn) : '09:00',
+                outTime: record.punchOut ? to24hr(record.punchOut) : '18:00',
                 remark: `Correction for ${record.status} on ${record.date}`
             });
         } else {
+            setPunchInLocked(false);
             setSelectedEmployeeName('');
             setFormData({
                 employeeId: '',
@@ -101,10 +125,15 @@ const AddAttendance = () => {
         finally { setFormLoading(false); }
     };
 
-    const filtered = records.filter(r => 
-        r.employee?.name?.toLowerCase().includes(search.toLowerCase()) || 
-        r.employee?.employeeId?.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = records.filter(r => {
+        const matchesSearch =
+            r.employee?.name?.toLowerCase().includes(search.toLowerCase()) ||
+            r.employee?.employeeId?.toLowerCase().includes(search.toLowerCase());
+        const recordDate = r.date ? r.date.split('T')[0] : '';
+        const matchesFrom = !dateFrom || recordDate >= dateFrom;
+        const matchesTo   = !dateTo   || recordDate <= dateTo;
+        return matchesSearch && matchesFrom && matchesTo;
+    });
 
     return (
         <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -125,14 +154,55 @@ const AddAttendance = () => {
                 </button>
             </div>
 
-            {/* Filter */}
-            <div style={{ position: 'relative', marginBottom: '20px', maxWidth: '400px' }}>
-                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input 
-                    type="text" placeholder="Search missing records..." 
-                    value={search} onChange={e => setSearch(e.target.value)}
-                    style={{ width: '100%', padding: '12px 12px 12px 42px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none' }}
-                />
+            {/* Filters Row */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+                {/* Search */}
+                <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '360px' }}>
+                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input
+                        type="text" placeholder="Search by name or ID..."
+                        value={search} onChange={e => setSearch(e.target.value)}
+                        style={{ width: '100%', padding: '11px 12px 11px 42px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }}
+                    />
+                </div>
+
+                {/* From Date */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>From</label>
+                    <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={e => setDateFrom(e.target.value)}
+                        style={{ padding: '10px 12px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                    />
+                </div>
+
+                {/* To Date */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>To</label>
+                    <input
+                        type="date"
+                        value={dateTo}
+                        min={dateFrom || undefined}
+                        onChange={e => setDateTo(e.target.value)}
+                        style={{ padding: '10px 12px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                    />
+                </div>
+
+                {/* Clear filters */}
+                {(dateFrom || dateTo || search) && (
+                    <button
+                        onClick={() => { setDateFrom(''); setDateTo(''); setSearch(''); }}
+                        style={{ padding: '10px 16px', borderRadius: '12px', background: '#FEF2F2', border: '1.5px solid #FECACA', color: '#EF4444', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        <XCircle size={14} /> Clear Filters
+                    </button>
+                )}
+
+                {/* Result count */}
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                    {filtered.length} record{filtered.length !== 1 ? 's' : ''} found
+                </span>
             </div>
 
             {/* Table */}
@@ -272,10 +342,32 @@ const AddAttendance = () => {
 
                                 {formData.status !== 'On Leave' && formData.status !== 'Absent' && (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        {/* Punch In */}
                                         <div>
-                                            <label className="hrm-label">Punch In</label>
-                                            <input type="time" value={formData.inTime} onChange={e => setFormData({...formData, inTime: e.target.value})} className="hrm-input" />
+                                            <label className="hrm-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                Punch In
+                                                {punchInLocked && (
+                                                    <span style={{ fontSize: '11px', background: '#FEF9C3', color: '#854D0E', padding: '2px 8px', borderRadius: '999px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                        🔒 Locked
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={formData.inTime}
+                                                onChange={e => !punchInLocked && setFormData({...formData, inTime: e.target.value})}
+                                                readOnly={punchInLocked}
+                                                className="hrm-input"
+                                                style={punchInLocked ? {
+                                                    background: '#F8FAFC',
+                                                    color: '#94A3B8',
+                                                    cursor: 'not-allowed',
+                                                    border: '1.5px solid #E2E8F0'
+                                                } : {}}
+                                                title={punchInLocked ? 'Punch-in is already recorded. Only punch-out can be updated.' : ''}
+                                            />
                                         </div>
+                                        {/* Punch Out */}
                                         <div>
                                             <label className="hrm-label">Punch Out</label>
                                             <input type="time" value={formData.outTime} onChange={e => setFormData({...formData, outTime: e.target.value})} className="hrm-input" />

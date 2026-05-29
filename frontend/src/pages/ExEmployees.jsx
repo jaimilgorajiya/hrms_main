@@ -165,10 +165,7 @@ const ExEmployees = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Alumni Directory</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px', fontWeight: 500 }}>
-                        Viewing records of {employees.length} former employees
-                    </p>
-                </div>
+                    </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                     <div style={{ position: 'relative', width: '300px' }}>
                         <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />

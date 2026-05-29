@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Modal, TextInput,
+  ActivityIndicator, RefreshControl, Modal, TextInput, Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -286,6 +286,7 @@ export default function AttendanceScreen() {
   }, []);
 
   const handleSubmit = async () => {
+    Keyboard.dismiss();
     if (reqType === 'Leave' && !selectedLeaveType) return Toast.show({ type: 'info', text1: 'Highlight', text2: 'Please select a leave type' });
     if (reqType === 'Leave' && leaveCategory === 'Paid' && leaveStats.max > 0 && leaveStats.used >= leaveStats.max) {
       return Toast.show({ type: 'error', text1: 'Limit Reached', text2: `You have already used your ${leaveStats.max} paid leaves for this month.` });
@@ -621,7 +622,7 @@ export default function AttendanceScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textDark }]}>New Request</Text>
-              <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
+              <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowApply(false); }}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
               <Text style={[styles.inputLabel, { color: colors.textDark }]}><Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>

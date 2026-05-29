@@ -1,5 +1,19 @@
 import { API_URL } from '../constants/api';
 import { storage } from './storage';
+import NetInfo from '@react-native-community/netinfo';
+
+/**
+ * One-shot check: is there an active internet connection right now?
+ * Returns true if connected, false otherwise.
+ */
+export const isNetworkAvailable = async () => {
+  try {
+    const state = await NetInfo.fetch();
+    return state.isConnected === true && state.isInternetReachable !== false;
+  } catch {
+    return true; // Default to true so we don't wrongly block requests
+  }
+};
 
 export const apiFetch = async (endpoint, options = {}) => {
   const token = await storage.get('token');

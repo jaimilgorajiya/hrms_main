@@ -170,8 +170,7 @@ const GraceTime = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Grace Time Configuration</h1>
-                    <p className="hrm-subtitle">Define next-day grace time based on extra working minutes</p>
-                </div>
+                    </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

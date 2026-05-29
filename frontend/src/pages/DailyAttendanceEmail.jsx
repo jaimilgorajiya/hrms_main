@@ -47,8 +47,7 @@ const DailyAttendanceEmail = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Daily Attendance Email</h1>
-                    <p className="hrm-subtitle">Configure and manage automated daily attendance reports for administrators.</p>
-                </div>
+                    </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>

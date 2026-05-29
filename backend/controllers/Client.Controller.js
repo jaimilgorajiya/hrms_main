@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { generateEmployeeId } from "../utils/employeeId.js";
 import Package from "../models/Package.Model.js";
+import { sendClientCredentialsMail } from "../utils/mailer.js";
 
 // Get All Clients
 export const getAllClients = async (req, res) => {
@@ -132,6 +133,18 @@ export const createClient = async (req, res) => {
             }]
         });
         await newClient.save();
+
+        // Send credentials email to the client
+        try {
+            await sendClientCredentialsMail({
+                ownerName,
+                businessName,
+                email: email.trim().toLowerCase(),
+                password: finalPassword,
+            });
+        } catch (mailError) {
+            console.error("Failed to send credentials email:", mailError.message);
+        }
 
         res.status(201).json({
             success: true,

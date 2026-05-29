@@ -247,8 +247,7 @@ const DocumentType = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Employee Document Types</h1>
-                    <p className="hrm-subtitle">Manage KYC and compliance documents required for employees</p>
-                </div>
+                    </div>
                 <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     <button onClick={() => { resetForm(); setIsModalOpen(true); }} className="btn-hrm btn-hrm-primary">
                         <Plus size={18} /> ADD DOCUMENT TYPE

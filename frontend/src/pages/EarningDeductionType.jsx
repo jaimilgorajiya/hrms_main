@@ -242,8 +242,7 @@ const EarningDeductionType = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Payroll Components</h1>
-                    <p className="hrm-subtitle">Manage earning types and deduction categories for salary structures</p>
-                </div>
+                    </div>
                 <button className="btn-hrm btn-hrm-primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
                     <Plus size={18} /> ADD COMPONENT
                 </button>

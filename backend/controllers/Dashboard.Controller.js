@@ -29,8 +29,8 @@ export const getAdminStats = async (req, res) => {
 
         // Attendance Stats for Today
         const todayStr = getTodayStr();
-        const presentToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Present', employee: { $in: activeEmpIds } });
-        const halfDayToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'Half Day', employee: { $in: activeEmpIds } });
+        const presentToday = await Attendance.countDocuments({ adminId, date: todayStr, status: { $in: ['Present', 'Clocked In'] }, employee: { $in: activeEmpIds } });
+        const halfDayToday = await Attendance.countDocuments({ adminId, date: todayStr, status: { $in: ['Half Day', 'HALF DAY'] }, employee: { $in: activeEmpIds } });
         const onLeaveToday = await Attendance.countDocuments({ adminId, date: todayStr, status: 'On Leave', employee: { $in: activeEmpIds } });
         const totalAttendanceToday = await Attendance.countDocuments({ adminId, date: todayStr, employee: { $in: activeEmpIds } });
         const absentToday = Math.max(0, activeUsersCount - totalAttendanceToday);

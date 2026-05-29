@@ -193,10 +193,7 @@ const Branch = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Branches</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Manage your physical locations and geofencing settings
-                    </p>
-                </div>
+                    </div>
                 <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     {isReordering ? (
                         <>

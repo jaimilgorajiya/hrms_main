@@ -189,8 +189,7 @@ const PenaltyRules = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Attendance Penalty Rules</h1>
-                    <p className="hrm-subtitle">Configure late-in and early-out deductions per shift</p>
-                </div>
+                    </div>
             </div>
 
             <div className="hrm-card" style={{ overflow: 'visible' }}>

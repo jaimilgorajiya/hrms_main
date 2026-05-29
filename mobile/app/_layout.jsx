@@ -1,7 +1,4 @@
 import { Platform, View } from 'react-native';
-if (Platform.OS !== 'web') {
-  require('@react-native-firebase/app');
-}
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { NetworkProvider } from '../context/NetworkContext';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -49,8 +47,10 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <RootLayoutNav />
-            <Toast />
+            <NetworkProvider>
+              <RootLayoutNav />
+              <Toast />
+            </NetworkProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

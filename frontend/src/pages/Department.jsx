@@ -192,10 +192,7 @@ const Department = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Departments</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Structure your organization by managing departments across branches
-                    </p>
-                </div>
+                    </div>
                 <div className="hrm-header-actions">
                     <button className="btn-hrm btn-hrm-primary" onClick={() => { setIsBulkModalOpen(true); setFormData({ ...formData, branchId: branches[0]?._id }); }}>
                         <Plus size={18} /> ADD MULTIPLE

@@ -171,7 +171,7 @@ const PendingAttendance = () => {
       {/* Header section with Stats */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>
+          <h1 className="hrm-title" style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>
             Pending Approvals
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

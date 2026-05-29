@@ -212,8 +212,7 @@ const AdminRequests = () => {
       <div className="hrm-header">
         <div>
           <h1 className="hrm-title">Employee Requests</h1>
-          <p className="hrm-subtitle">Review and approve leave or attendance correction requests</p>
-        </div>
+          </div>
         <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests} disabled={loading}>
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> REFRESH
         </button>

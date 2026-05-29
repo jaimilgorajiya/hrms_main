@@ -190,7 +190,7 @@ export const getTodayAttendance = async (req, res) => {
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-        const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress, isMocked, mocked, clientTime } = req.body;
+        const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress, isMocked, mocked, clientTime, isOfflineSync } = req.body;
         
         // Anti-GPS Spoofing Check
         if (isMocked || mocked) {
@@ -200,21 +200,37 @@ export const togglePunch = async (req, res) => {
             });
         }
 
-        // Anti-Clock Tampering Check (Max 60 seconds drift allowed)
+        // Anti-Clock Tampering Check
+        // Offline syncs are exempt from the 60-second drift rule (they are intentionally delayed).
+        // For offline syncs: only reject if clientTime is in the FUTURE (impossible for a real punch).
+        // For online punches: reject if drift > 60 seconds (original rule).
         if (clientTime) {
             const clientEpoch = new Date(clientTime).getTime();
             const serverEpoch = Date.now();
-            const diffSeconds = Math.abs(clientEpoch - serverEpoch) / 1000;
-            if (diffSeconds > 60) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Clock tampering detected. Please synchronize your device clock with network time." 
-                });
+            if (isOfflineSync) {
+                // Offline sync: clientTime must not be in the future
+                if (clientEpoch > serverEpoch + 60000) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "Invalid punch time: punch time is in the future." 
+                    });
+                }
+            } else {
+                // Online punch: must be within 60 seconds of server time
+                const diffSeconds = Math.abs(clientEpoch - serverEpoch) / 1000;
+                if (diffSeconds > 60) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: "Clock tampering detected. Please synchronize your device clock with network time." 
+                    });
+                }
             }
         }
 
-        const date = getTodayStr();
-        const now = new Date();
+        const date = isOfflineSync && clientTime
+            ? new Date(clientTime).toISOString().slice(0, 10)  // Use the real punch date for offline syncs
+            : getTodayStr();
+        const now = isOfflineSync && clientTime ? new Date(clientTime) : new Date();
 
         // Server-side Geofence Validation
         const emp = await User.findById(req.user._id);
@@ -330,7 +346,8 @@ export const togglePunch = async (req, res) => {
                 geofenceReason,
                 workSummary,
                 lateReason,
-                locationAddress
+                locationAddress,
+                ...(isOfflineSync ? { syncedOffline: true, syncedAt: new Date() } : {})
             };
 
             const lateInPenalty = {
@@ -508,7 +525,8 @@ export const togglePunch = async (req, res) => {
             geofenceReason,
             workSummary,
             earlyReason: earlyReason || reason,
-            locationAddress
+            locationAddress,
+            ...(isOfflineSync ? { syncedOffline: true, syncedAt: new Date() } : {})
         });
         await record.save();
         notifyAdminPunch(req.user._id, 'OUT', date, record.status);

@@ -843,7 +843,7 @@ const EmployeeProfile = () => {
                     <button className="icon-btn" onClick={() => navigate('/admin/employees/list')} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
                         <ArrowLeft size={20} color="var(--text-secondary)" />
                     </button>
-                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <h1 className="hrm-title" style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         {['Ex-Employee', 'Terminated', 'Absconding', 'Retired'].includes(formData.status) ? 'Ex-Employee Profile' : 'Employee Profile'}
                     </h1>
                 </div>

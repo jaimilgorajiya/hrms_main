@@ -1,4 +1,4 @@
-import 'dotenv/config'; 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -20,7 +20,18 @@ if (fs.existsSync(serviceAccountPath)) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
-} 
+} else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        })
+    });
+    console.log("Firebase Admin SDK initialized using environment variables");
+} else {
+    console.warn("⚠️ Firebase Admin SDK was not initialized. OTP login will fail.");
+}
 
 
 import { verifyEmailConfig } from './utils/emailService.js';
@@ -65,6 +76,7 @@ import packageRoutes from './routes/Package.Routes.js';
 import clientRoutes from './routes/Client.Routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // Create HTTP Server for Socket.io
@@ -79,18 +91,18 @@ initCronJobs();
 verifyEmailConfig();
 
 app.use(express.json());
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({ crossOriginResourcePolicy: false, frameguard: false, contentSecurityPolicy: false }));
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000 // Allow up to 5000 requests per 15 mins for all APIs (adjust if needed)
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5000 // Allow up to 5000 requests per 15 mins for all APIs (adjust if needed)
 });
 app.use('/api', limiter);
 app.use(hpp());
 
 const corsOrigins = [
-    process.env.CLIENT_URL, 
-    'http://localhost:5173', 
-    'http://localhost:5174', 
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:8081',  // Expo web
     'http://localhost:8082',  // Expo web (alternative)
@@ -98,7 +110,12 @@ const corsOrigins = [
     'http://192.168.29.90:5174',
     'http://192.168.29.90:5175',
     'http://192.168.29.90:8081',  // Expo web on LAN
-    'http://192.168.29.90:8082',  // Expo web on LAN (alternative)
+    'http://192.168.29.90:8082',  // Expo web (alternative)
+    'http://192.168.29.43:5173',
+    'http://192.168.29.43:5174',
+    'http://192.168.29.43:5175',
+    'http://192.168.29.43:8081',  // Expo web on LAN
+    'http://192.168.29.43:8082',  // Expo web on LAN (alternative)
 ].filter(Boolean);
 
 app.use(cors({
@@ -118,7 +135,7 @@ app.use('/uploads', express.static('public/uploads'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/employment-types', employmentTypeRoutes); 
+app.use('/api/employment-types', employmentTypeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/designations', designationRoutes);
 app.use('/api/branches', branchRoutes);

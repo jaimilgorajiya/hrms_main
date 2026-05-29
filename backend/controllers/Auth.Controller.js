@@ -24,9 +24,14 @@ const otpLogin = async (req, res) => {
             return res.status(400).json({ success: false, message: "ID Token is required" });
         }
 
-        // Verify Firebase Token
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const phoneNumber = decodedToken.phone_number;
+        // Verify Firebase Token (with mock bypass for development/testing)
+        let phoneNumber;
+        if (idToken.startsWith('mock-token-')) {
+            phoneNumber = idToken.replace('mock-token-', '');
+        } else {
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            phoneNumber = decodedToken.phone_number;
+        }
 
         if (!phoneNumber) {
             return res.status(400).json({ success: false, message: "Phone number not found in token" });

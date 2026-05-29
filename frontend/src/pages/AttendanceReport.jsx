@@ -4,8 +4,7 @@ import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import autoTable from 'jspdf-autotable';
 
 const STATUS_STYLE = {
     'Present':  { color: '#10B981', bg: '#DCFCE7' },
@@ -83,40 +82,6 @@ const AttendanceReport = () => {
         URL.revokeObjectURL(url);
     };
 
-    const exportExcel = () => {
-        if (!rows.length) return;
-        const worksheetData = rows.map(r => ({
-            'Date': r.date,
-            'Employee ID': r.employeeId,
-            'Name': r.name,
-            'Department': r.department,
-            'Designation': r.designation,
-            'Status': r.status,
-            'Punch In': r.punchIn,
-            'Punch Out': r.punchOut,
-            'Work Hours': r.workHours,
-            'Late In': r.lateIn,
-            'Penalty (INR)': r.penalty,
-            'Approval Status': r.approvalStatus
-        }));
-        
-        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-        
-        // Auto-fit column widths
-        const maxLens = {};
-        worksheetData.forEach(row => {
-            Object.keys(row).forEach(key => {
-                const valStr = String(row[key] || '');
-                maxLens[key] = Math.max(maxLens[key] || key.length, valStr.length);
-            });
-        });
-        worksheet['!cols'] = Object.keys(maxLens).map(key => ({ wch: maxLens[key] + 4 }));
-        
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Report');
-        XLSX.writeFile(workbook, `attendance_report_${from}_to_${to}.xlsx`);
-    };
-
     const exportPDF = () => {
         if (!rows.length) return;
         const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
@@ -142,7 +107,7 @@ const AttendanceReport = () => {
             r.punchIn, r.punchOut, r.workHours, r.lateIn, `INR ${r.penalty}`, r.approvalStatus
         ]);
         
-        doc.autoTable({
+        autoTable(doc, {
             startY: 38,
             head: tableHeaders,
             body: tableData,
@@ -217,9 +182,6 @@ const AttendanceReport = () => {
                                 <>
                                     <button className="btn-hrm btn-hrm-secondary" onClick={exportCSV} title="Export CSV" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <Download size={14} /> CSV
-                                    </button>
-                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportExcel} title="Export Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46' }}>
-                                        <Download size={14} /> Excel
                                     </button>
                                     <button className="btn-hrm btn-hrm-secondary" onClick={exportPDF} title="Export PDF" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
                                         <FileText size={14} /> PDF

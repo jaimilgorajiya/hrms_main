@@ -469,3 +469,90 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+
+/* Dark Mode Overrides */
+body.dark-mode .dashboard-container {
+  background-color: #111111 !important;
+  background-image: none !important;
+}
+
+body.dark-mode .card-prem,
+body.dark-mode .stat-card-premium {
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .dashboard-header-premium .header-info h1 {
+  background: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+body.dark-mode .icon-btn-prem {
+  background: #2a2a2a !important;
+  border-color: #333333 !important;
+  color: #9ca3af !important;
+}
+
+body.dark-mode .icon-btn-prem:hover {
+  background: #333333 !important;
+  color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+body.dark-mode .btn-primary-prem {
+  background: #2563EB !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.4) !important;
+}
+
+body.dark-mode .btn-primary-prem:hover {
+  background: #1D4ED8 !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6) !important;
+}
+
+body.dark-mode .icon-box-prem.blue { background: rgba(59, 130, 246, 0.1) !important; color: #60a5fa !important; }
+body.dark-mode .icon-box-prem.green { background: rgba(16, 185, 129, 0.1) !important; color: #34d399 !important; }
+body.dark-mode .icon-box-prem.purple { background: rgba(139, 92, 246, 0.1) !important; color: #a78bfa !important; }
+body.dark-mode .icon-box-prem.red { background: rgba(244, 63, 94, 0.1) !important; color: #fb7185 !important; }
+
+body.dark-mode .user-avatar-prem {
+  background: #2a2a2a !important;
+  color: #60a5fa !important;
+}
+
+body.dark-mode .activity-item-prem:hover {
+  background: #2a2a2a !important;
+  border-color: #333333 !important;
+}
+
+body.dark-mode .view-all-prem {
+  color: #3b82f6 !important;
+}
+
+body.dark-mode .card-footer-prem {
+  background: #111111 !important;
+  border-top-color: #2a2a2a !important;
+}
+
+body.dark-mode .card-header-prem {
+  border-bottom-color: #2a2a2a !important;
+}
+
+body.dark-mode .chart-center-val,
+body.dark-mode .card-header-prem h2,
+body.dark-mode .value-prem,
+body.dark-mode .dist-info-prem span:first-child,
+body.dark-mode .user-name-prem {
+  color: #FFFFFF !important;
+}
+
+body.dark-mode .header-info p,
+body.dark-mode .stat-content-prem h3,
+body.dark-mode .chart-center-label,
+body.dark-mode .role-chip-prem,
+body.dark-mode .dist-info-prem span:last-child {
+  color: #9ca3af !important;
+}

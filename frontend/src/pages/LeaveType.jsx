@@ -256,10 +256,7 @@ const LeaveType = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Leave Types</h1>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Configure different types of leave available to your employees
-                    </p>
-                </div>
+                    </div>
                 <div className="hrm-header-actions" style={{ gap: '12px' }}>
                     <button className="btn-hrm btn-hrm-primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
                         <Plus size={18} /> ADD TYPE
