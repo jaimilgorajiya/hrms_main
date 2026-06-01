@@ -25,6 +25,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.hrms.employee",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "HRMS needs your location to verify attendance and geofence compliance.",

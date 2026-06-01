@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Calendar, Clock, MessageSquare, Save, RefreshCw, CheckCircle, ArrowLeft, Plus, XCircle, Search, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -24,6 +24,7 @@ const to24hr = (timeStr) => {
 
 const AddAttendance = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const today = new Date().toISOString().split('T')[0];
     
     const [records, setRecords] = useState([]);
@@ -93,6 +94,14 @@ const AddAttendance = () => {
         setModalOpen(true);
     };
 
+    useEffect(() => {
+        if (location.state?.openModal) {
+            handleOpenModal();
+            // Clear location state to prevent reopening on page refresh or navigation
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate, location.pathname]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormLoading(true);
@@ -144,10 +153,10 @@ const AddAttendance = () => {
                 </div>
                 <button 
                     onClick={() => handleOpenModal()}
+                    className="btn-primary-hrm"
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
-                        background: '#2563EB', color: 'white', border: 'none', borderRadius: '12px',
-                        fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
+                        borderRadius: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer'
                     }}
                 >
                     <Plus size={18} /> Add Manual Log
@@ -162,7 +171,8 @@ const AddAttendance = () => {
                     <input
                         type="text" placeholder="Search by name or ID..."
                         value={search} onChange={e => setSearch(e.target.value)}
-                        style={{ width: '100%', padding: '11px 12px 11px 42px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }}
+                        className="hrm-input"
+                        style={{ width: '100%', padding: '11px 12px 11px 42px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)', borderRadius: '12px', outline: 'none', fontSize: '14px', boxSizing: 'border-box' }}
                     />
                 </div>
 
@@ -173,7 +183,7 @@ const AddAttendance = () => {
                         type="date"
                         value={dateFrom}
                         onChange={e => setDateFrom(e.target.value)}
-                        style={{ padding: '10px 12px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                        style={{ padding: '10px 12px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
                     />
                 </div>
 
@@ -185,7 +195,7 @@ const AddAttendance = () => {
                         value={dateTo}
                         min={dateFrom || undefined}
                         onChange={e => setDateTo(e.target.value)}
-                        style={{ padding: '10px 12px', border: '1.5px solid #E2E8F0', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                        style={{ padding: '10px 12px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', borderRadius: '12px', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', cursor: 'pointer' }}
                     />
                 </div>
 
@@ -193,7 +203,7 @@ const AddAttendance = () => {
                 {(dateFrom || dateTo || search) && (
                     <button
                         onClick={() => { setDateFrom(''); setDateTo(''); setSearch(''); }}
-                        style={{ padding: '10px 16px', borderRadius: '12px', background: '#FEF2F2', border: '1.5px solid #FECACA', color: '#EF4444', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ padding: '10px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1.5px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', fontWeight: '700', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
                         <XCircle size={14} /> Clear Filters
                     </button>
@@ -206,10 +216,10 @@ const AddAttendance = () => {
             </div>
 
             {/* Table */}
-            <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: '20px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 {loading ? (
                     <div style={{ padding: '100px', textAlign: 'center' }}>
-                        <RefreshCw className="animate-spin" size={32} color="#2563EB" />
+                        <RefreshCw className="animate-spin" size={32} color="var(--primary-blue)" />
                         <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontWeight: '600' }}>Fetching queue...</p>
                     </div>
                 ) : filtered.length === 0 ? (
@@ -221,7 +231,7 @@ const AddAttendance = () => {
                 ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
-                            <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                            <tr style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
                                 {['Employee', 'Date', 'Previous Status', 'Current Logs', 'Action'].map(h => (
                                     <th key={h} style={{ padding: '16px', textAlign: 'left', fontSize: '13px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{h}</th>
                                 ))}
@@ -229,10 +239,10 @@ const AddAttendance = () => {
                         </thead>
                         <tbody>
                             {filtered.map(r => (
-                                <tr key={r._id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                <tr key={r._id} style={{ borderBottom: '1px solid var(--border)' }}>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: '#2563EB' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-base)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: 'var(--primary-blue)' }}>
                                                 {r.employee?.name?.charAt(0)}
                                             </div>
                                             <div>
@@ -247,8 +257,8 @@ const AddAttendance = () => {
                                     <td style={{ padding: '16px' }}>
                                         <span style={{ 
                                             padding: '4px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '800',
-                                            background: r.approvalStatus === 'Rejected' ? '#FEF2F2' : '#F1F5F9',
-                                            color: r.approvalStatus === 'Rejected' ? '#EF4444' : '#64748B',
+                                            background: r.approvalStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-base)',
+                                            color: r.approvalStatus === 'Rejected' ? '#EF4444' : 'var(--text-secondary)',
                                             display: 'inline-flex', alignItems: 'center', gap: '4px'
                                         }}>
                                             {r.approvalStatus === 'Rejected' ? <XCircle size={12} /> : <AlertCircle size={12} />}
@@ -262,11 +272,11 @@ const AddAttendance = () => {
                                         <button 
                                             onClick={() => handleOpenModal(r)}
                                             style={{ 
-                                                padding: '8px 16px', borderRadius: '8px', background: '#F0F9FF', border: '1.5px solid #0EA5E9', 
-                                                color: '#0EA5E9', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s'
+                                                padding: '8px 16px', borderRadius: '8px', background: 'var(--primary-light)', border: '1.5px solid var(--primary-blue)', 
+                                                color: 'var(--primary-blue)', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s'
                                             }}
-                                            onMouseEnter={e => { e.target.style.background = '#0EA5E9'; e.target.style.color = '#fff'; }}
-                                            onMouseLeave={e => { e.target.style.background = '#F0F9FF'; e.target.style.color = '#0EA5E9'; }}
+                                            onMouseEnter={e => { e.target.style.background = 'var(--primary-blue)'; e.target.style.color = '#fff'; }}
+                                            onMouseLeave={e => { e.target.style.background = 'var(--primary-light)'; e.target.style.color = 'var(--primary-blue)'; }}
                                         >
                                             Fix / Add
                                         </button>
@@ -281,24 +291,24 @@ const AddAttendance = () => {
             {/* Modal */}
             {modalOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-                    <div onClick={() => setModalOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)' }} />
-                    <div style={{ position: 'relative', background: '#fff', borderRadius: '28px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                        <div style={{ padding: '24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>{formData.remark.startsWith('Correction') ? 'Correct Attendance' : 'Add Attendance'}</h3>
+                    <div onClick={() => setModalOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }} />
+                    <div style={{ position: 'relative', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '28px', width: '100%', maxWidth: '520px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+                        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>{formData.remark.startsWith('Correction') ? 'Correct Attendance' : 'Add Attendance'}</h3>
                             <button onClick={() => setModalOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><XCircle size={22} /></button>
                         </div>
                         
                         <form onSubmit={handleSubmit} style={{ padding: '32px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 {formData.remark.startsWith('Correction') ? (
-                                    <div style={{ background: '#F0F9FF', padding: '16px', borderRadius: '16px', border: '1px solid #BAE6FD', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ background: 'var(--primary-light)', padding: '16px', borderRadius: '16px', border: '1px solid var(--primary-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontSize: '11px', fontWeight: '800', color: '#0369A1', textTransform: 'uppercase', marginBottom: '4px' }}>Correcting For</div>
-                                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#0c4a6e' }}>{selectedEmployeeName}</div>
+                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '4px' }}>Correcting For</div>
+                                            <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>{selectedEmployeeName}</div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '800', color: '#0369A1', textTransform: 'uppercase', marginBottom: '4px' }}>Log Date</div>
-                                            <div style={{ fontSize: '16px', fontWeight: '800', color: '#0c4a6e' }}>{new Date(formData.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--primary-blue)', textTransform: 'uppercase', marginBottom: '4px' }}>Log Date</div>
+                                            <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>{new Date(formData.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                                         </div>
                                     </div>
                                 ) : (
@@ -347,7 +357,7 @@ const AddAttendance = () => {
                                             <label className="hrm-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 Punch In
                                                 {punchInLocked && (
-                                                    <span style={{ fontSize: '11px', background: '#FEF9C3', color: '#854D0E', padding: '2px 8px', borderRadius: '999px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                    <span style={{ fontSize: '11px', background: 'rgba(234, 179, 8, 0.15)', color: '#EAB308', padding: '2px 8px', borderRadius: '999px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                                                         🔒 Locked
                                                     </span>
                                                 )}
@@ -359,10 +369,10 @@ const AddAttendance = () => {
                                                 readOnly={punchInLocked}
                                                 className="hrm-input"
                                                 style={punchInLocked ? {
-                                                    background: '#F8FAFC',
-                                                    color: '#94A3B8',
+                                                    background: 'var(--bg-base)',
+                                                    color: 'var(--text-muted)',
                                                     cursor: 'not-allowed',
-                                                    border: '1.5px solid #E2E8F0'
+                                                    border: '1.5px solid var(--border)'
                                                 } : {}}
                                                 title={punchInLocked ? 'Punch-in is already recorded. Only punch-out can be updated.' : ''}
                                             />
@@ -384,7 +394,7 @@ const AddAttendance = () => {
 
                                 <button type="submit" disabled={formLoading}
                                     style={{ 
-                                        marginTop: '10px', padding: '16px', borderRadius: '16px', background: '#2563EB', color: 'white', 
+                                        marginTop: '10px', padding: '16px', borderRadius: '16px', background: 'var(--primary-blue)', color: 'white', 
                                         border: 'none', fontWeight: '800', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
                                     }}
                                 >

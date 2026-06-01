@@ -39,19 +39,19 @@ const AdminResignation = () => {
 
         if (status === 'Approved') {
             const { value: formValues } = await Swal.fire({
-                title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Approve Resignation</span>',
+                title: '<span style="font-size: 24px; font-weight: 800; color: var(--text-primary);">Approve Resignation</span>',
                 html: `
                     <div style="padding: 10px 5px; text-align: left;">
-                        <p style="color: #64748B; font-size: 14px; margin-bottom: 24px; line-height: 1.5;">Please set the notice period duration and add any official remarks for the employee.</p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">Please set the notice period duration and add any official remarks for the employee.</p>
                         
                         <div style="margin-bottom: 20px;">
-                            <label style="display: block; font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Notice Period (Days)</label>
-                            <input id="notice-days" type="number" style="width: 100%; padding: 12px 15px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #1E293B; outline: none;" placeholder="e.g. 30" value="30">
+                            <label style="display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Notice Period (Days)</label>
+                            <input id="notice-days" type="number" style="width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--bg-base); outline: none;" placeholder="e.g. 30" value="30">
                         </div>
 
                         <div>
-                            <label style="display: block; font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Admin Remarks</label>
-                            <textarea id="admin-comments" style="width: 100%; height: 100px; padding: 12px 15px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #1E293B; outline: none; resize: none; font-family: inherit;" placeholder="Type your comments here..."></textarea>
+                            <label style="display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Admin Remarks</label>
+                            <textarea id="admin-comments" style="width: 100%; height: 100px; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--bg-base); outline: none; resize: none; font-family: inherit;" placeholder="Type your comments here..."></textarea>
                         </div>
                     </div>
                 `,
@@ -62,7 +62,7 @@ const AdminResignation = () => {
                 confirmButtonText: 'Approve & Process',
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#10B981',
-                cancelButtonColor: '#F1F5F9',
+                cancelButtonColor: 'var(--bg-base)',
                 customClass: {
                     confirmButton: 'swal-confirm-btn',
                     cancelButton: 'swal-cancel-btn',
@@ -85,8 +85,8 @@ const AdminResignation = () => {
                 style.id = 'swal-resignation-styles';
                 style.innerHTML = `
                     .swal-confirm-btn { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
-                    .swal-cancel-btn { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
-                    .swal-custom-popup { border-radius: 24px !important; }
+                    .swal-cancel-btn { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: var(--text-secondary) !important; background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; }
+                    .swal-custom-popup { border-radius: 24px !important; background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; color: var(--text-primary) !important; }
                 `;
                 document.head.appendChild(style);
             }
@@ -135,15 +135,15 @@ const AdminResignation = () => {
 
     const handleReactivate = async (empId) => {
         const result = await Swal.fire({
-            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Withdraw Resignation?</span>',
-            html: '<p style="color: #64748B; font-size: 15px; line-height: 1.6; margin-top: 10px;">This will restore the employee to <b>Active</b> status and remove this resignation record.</p>',
+            title: '<span style="font-size: 24px; font-weight: 800; color: var(--text-primary);">Withdraw Resignation?</span>',
+            html: '<p style="color: var(--text-secondary); font-size: 15px; line-height: 1.6; margin-top: 10px;">This will restore the employee to <b>Active</b> status and remove this resignation record.</p>',
             icon: 'question',
-            iconColor: '#3B648B',
+            iconColor: 'var(--primary-blue)',
             showCancelButton: true,
             confirmButtonText: 'Yes, Restore Active',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#3B648B',
-            cancelButtonColor: '#F1F5F9',
+            confirmButtonColor: 'var(--primary-blue)',
+            cancelButtonColor: 'var(--bg-base)',
             customClass: {
                 popup: 'premium-swal-popup',
                 confirmButton: 'premium-swal-confirm',
@@ -155,9 +155,9 @@ const AdminResignation = () => {
             const style = document.createElement('style');
             style.id = 'premium-swal-styles';
             style.innerHTML = `
-                .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; }
+                .premium-swal-popup { border-radius: 24px !important; padding: 2.5rem !important; background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; color: var(--text-primary) !important; }
                 .premium-swal-confirm { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; }
-                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
+                .premium-swal-cancel { padding: 12px 28px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: var(--text-secondary) !important; background: var(--bg-base) !important; border: 1px solid var(--border) !important; }
             `;
             document.head.appendChild(style);
         }
@@ -181,9 +181,9 @@ const AdminResignation = () => {
     };
 
     const statusStyles = {
-        Approved: { color: '#10B981', bg: '#DCFCE7', icon: <CheckCircle size={14} /> },
-        Rejected: { color: '#EF4444', bg: '#FEE2E2', icon: <XCircle size={14} /> },
-        Pending: { color: '#F59E0B', bg: '#FEF3C7', icon: <Clock size={14} /> },
+        Approved: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', icon: <CheckCircle size={14} /> },
+        Rejected: { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)', icon: <XCircle size={14} /> },
+        Pending: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', icon: <Clock size={14} /> },
     };
 
     const filtered = resignations.filter(r => {
@@ -253,7 +253,7 @@ const AdminResignation = () => {
                         <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--primary-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 8px 16px -4px rgba(0,0,0,0.05)' }}>
                             <ClipboardList size={40} />
                         </div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', margin: '0 0 8px' }}>No Requests Found</h3>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 8px' }}>No Requests Found</h3>
                         <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', fontSize: '14px', lineHeight: 1.6 }}>
                             There are no resignation requests matching your current filters. 
                             Try adjusting your search or status selection.
@@ -278,34 +278,34 @@ const AdminResignation = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                                 <div style={{ 
                                                     width: '44px', height: '44px', borderRadius: '12px', 
-                                                    background: '#F1F5F9', overflow: 'hidden', 
+                                                    background: 'var(--bg-base)', overflow: 'hidden', 
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    border: '1.5px solid #E2E8F0'
+                                                    border: '1.5px solid var(--border)'
                                                 }}>
                                                     {r.employeeId?.profilePhoto ? (
                                                         <img src={`${API_URL}/uploads/${r.employeeId.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : <User size={20} style={{ color: '#94A3B8' }} />}
+                                                    ) : <User size={20} style={{ color: 'var(--text-muted)' }} />}
                                                 </div>
                                                 <div>
-                                                    <div style={{ fontWeight: '800', fontSize: '14px', color: '#1E293B' }}>{r.employeeId?.name || 'Unknown'}</div>
-                                                    <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>{r.employeeId?.employeeId || 'ID N/A'}</div>
+                                                    <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-dark)' }}>{r.employeeId?.name || 'Unknown'}</div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>{r.employeeId?.employeeId || 'ID N/A'}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#1E293B', fontWeight: 600 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-dark)', fontWeight: 600 }}>
                                                     <Calendar size={14} color="var(--primary-blue)" />
                                                     LWD: {new Date(r.lastWorkingDay).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#64748B', fontWeight: 500 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
                                                     <Clock size={12} />
                                                     Applied: {new Date(r.createdAt).toLocaleDateString()}
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <div style={{ maxWidth: '350px', fontSize: '13px', color: '#475569', lineHeight: 1.5, fontWeight: 500 }}>
+                                            <div style={{ maxWidth: '350px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5, fontWeight: 500 }}>
                                                 {r.reason}
                                             </div>
                                         </td>
@@ -313,8 +313,8 @@ const AdminResignation = () => {
                                             <div style={{ 
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                                 padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
-                                                background: statusStyles[r.status]?.bg || '#F1F5F9',
-                                                color: statusStyles[r.status]?.color || '#64748B',
+                                                background: statusStyles[r.status]?.bg || 'var(--bg-base)',
+                                                color: statusStyles[r.status]?.color || 'var(--text-secondary)',
                                                 border: `1.5px solid ${statusStyles[r.status]?.color}20`
                                             }}>
                                                 {statusStyles[r.status]?.icon}
@@ -334,14 +334,14 @@ const AdminResignation = () => {
                                                     <button 
                                                         onClick={() => handleAction(r._id, 'Rejected')} 
                                                         className="btn-hrm" 
-                                                        style={{ padding: '8px 16px', fontSize: '12px', background: '#FEF2F2', color: '#EF4444', border: '1.5px solid #FEE2E2' }}
+                                                        style={{ padding: '8px 16px', fontSize: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: '1.5px solid rgba(239, 68, 68, 0.2)' }}
                                                     >
                                                         REJECT
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px', justifyContent: 'flex-end' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '12px', fontWeight: 700 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700 }}>
                                                         <Check size={16} color="var(--success)" />
                                                         PROCESSED
                                                     </div>
@@ -352,17 +352,17 @@ const AdminResignation = () => {
                                                             padding: '6px 12px', 
                                                             fontSize: '11px', 
                                                             height: '32px',
-                                                            background: 'rgba(59, 100, 139, 0.05)',
-                                                            border: '1px solid rgba(59, 100, 139, 0.1)',
-                                                            color: '#3B648B'
+                                                            background: 'var(--primary-light)',
+                                                            border: '1px solid var(--primary-light)',
+                                                            color: 'var(--primary-blue)'
                                                         }}
                                                         onMouseOver={(e) => {
-                                                            e.currentTarget.style.background = '#3B648B';
+                                                            e.currentTarget.style.background = 'var(--primary-blue)';
                                                             e.currentTarget.style.color = 'white';
                                                         }}
                                                         onMouseOut={(e) => {
-                                                            e.currentTarget.style.background = 'rgba(59, 100, 139, 0.05)';
-                                                            e.currentTarget.style.color = '#3B648B';
+                                                            e.currentTarget.style.background = 'var(--primary-light)';
+                                                            e.currentTarget.style.color = 'var(--primary-blue)';
                                                         }}
                                                     >
                                                         <RotateCcw size={12} style={{ marginRight: '6px' }} /> REACTIVATE

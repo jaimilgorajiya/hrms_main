@@ -2102,3 +2102,181 @@
   to { transform: rotate(360deg); }
 }
 
+/* ─── WEB CURRENT SHIFT MODAL ────────────────────────────── */
+.ep-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ep-shift-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #1c1b29;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: epModalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #ffffff;
+}
+
+@keyframes epModalIn {
+  from { transform: scale(0.9) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.ep-shift-modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ep-shift-modal-title {
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 20px;
+  font-family: 'Sora', sans-serif;
+}
+
+.ep-shift-modal-subtitle {
+  color: #8c8a9e;
+  font-size: 13px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.ep-shift-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  color: #a09ebb;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ep-shift-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.ep-shift-modal-body {
+  padding: 20px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ep-shift-detail-card {
+  background: #14131f;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.2s ease;
+}
+
+.ep-shift-detail-card:hover {
+  transform: translateY(-2px);
+}
+
+.ep-shift-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ep-shift-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a09ebb;
+}
+
+.ep-shift-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ep-shift-card-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #8c8a9e;
+  text-transform: uppercase;
+}
+
+.ep-shift-card-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.ep-shift-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 100px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ep-shift-badge.inbound {
+  background: #251e3d;
+  color: #a78bfa;
+}
+
+.ep-shift-badge.outbound {
+  background: #3c1a22;
+  color: #fca5a5;
+}
+
+.ep-shift-badge.lunch {
+  background: #3d2612;
+  color: #f59e0b;
+}
+
+.ep-shift-badge.off-policy {
+  background: #23222e;
+  color: #94a3b8;
+}
+
+.ep-shift-week-off-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ep-shift-week-off-pill {
+  background: #251e3d;
+  color: #a78bfa;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+

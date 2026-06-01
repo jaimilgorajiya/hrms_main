@@ -56,24 +56,24 @@ const EmployeeOffboarding = () => {
 
     const handleMarkExEmployee = async (empId) => {
         const { value: formValues } = await Swal.fire({
-            title: '<span style="font-size: 24px; font-weight: 800; color: #1E293B;">Employee Separation</span>',
+            title: '<span style="font-size: 24px; font-weight: 800; color: var(--text-primary);">Employee Separation</span>',
             html: `
                 <div style="padding: 10px 5px; text-align: left;">
-                    <p style="color: #64748B; font-size: 14px; margin-bottom: 30px; line-height: 1.5; text-align: center;">Please provide the official separation details below to move this employee to the Ex-Employee records.</p>
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 30px; line-height: 1.5; text-align: center;">Please provide the official separation details below to move this employee to the Ex-Employee records.</p>
                     
                     <div style="margin-bottom: 22px;">
-                        <label style="display: block; font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Resignation Date</label>
-                        <input id="swal-resignation-date" type="date" style="width: 100%; padding: 12px 15px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #1E293B; outline: none; transition: border-color 0.2s;" value="${new Date().toISOString().split('T')[0]}">
+                        <label style="display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Resignation Date</label>
+                        <input id="swal-resignation-date" type="date" style="width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--bg-base); outline: none; transition: border-color 0.2s;" value="${new Date().toISOString().split('T')[0]}">
                     </div>
-
+ 
                     <div style="margin-bottom: 22px;">
-                        <label style="display: block; font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Exit Date</label>
-                        <input id="swal-exit-date" type="date" style="width: 100%; padding: 12px 15px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #1E293B; outline: none; transition: border-color 0.2s;" value="${new Date().toISOString().split('T')[0]}">
+                        <label style="display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Exit Date</label>
+                        <input id="swal-exit-date" type="date" style="width: 100%; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--bg-base); outline: none; transition: border-color 0.2s;" value="${new Date().toISOString().split('T')[0]}">
                     </div>
-
+ 
                     <div>
-                        <label style="display: block; font-weight: 700; font-size: 12px; color: #475569; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Reason for Exit</label>
-                        <textarea id="swal-exit-reason" style="width: 100%; height: 100px; padding: 12px 15px; border: 1.5px solid #E2E8F0; border-radius: 12px; font-size: 15px; color: #1E293B; outline: none; resize: none; font-family: inherit;" placeholder="Enter specific reasons or remarks..."></textarea>
+                        <label style="display: block; font-weight: 700; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Reason for Exit</label>
+                        <textarea id="swal-exit-reason" style="width: 100%; height: 100px; padding: 12px 15px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; color: var(--text-primary); background: var(--bg-base); outline: none; resize: none; font-family: inherit;" placeholder="Enter specific reasons or remarks..."></textarea>
                     </div>
                 </div>
             `,
@@ -84,7 +84,7 @@ const EmployeeOffboarding = () => {
             confirmButtonText: 'Confirm Separation',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#EF4444',
-            cancelButtonColor: '#F1F5F9',
+            cancelButtonColor: 'var(--bg-base)',
             customClass: {
                 confirmButton: 'swal-confirm-separation',
                 cancelButton: 'swal-cancel-separation',
@@ -101,14 +101,14 @@ const EmployeeOffboarding = () => {
                 return { resignationDate, exitDate, exitReason };
             }
         });
-
+ 
         // Add some style to the confirm/cancel buttons via CSS injection
         const style = document.createElement('style');
         style.innerHTML = `
             .swal-confirm-separation { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; margin-right: 10px !important; }
-            .swal-cancel-separation { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: #64748B !important; }
-            #swal-resignation-date:focus, #swal-exit-date:focus, #swal-exit-reason:focus { border-color: #3B648B !important; box-shadow: 0 0 0 4px rgba(59, 100, 139, 0.1); }
-            .swal-custom-popup { border-radius: 24px !important; }
+            .swal-cancel-separation { padding: 12px 30px !important; border-radius: 12px !important; font-weight: 700 !important; font-size: 14px !important; height: 48px !important; color: var(--text-secondary) !important; background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; }
+            #swal-resignation-date:focus, #swal-exit-date:focus, #swal-exit-reason:focus { border-color: var(--primary-blue) !important; box-shadow: 0 0 0 4px var(--accent-primary-glow, rgba(59, 100, 139, 0.1)) !important; }
+            .swal-custom-popup { border-radius: 24px !important; background: var(--bg-elevated) !important; border: 1px solid var(--border) !important; color: var(--text-primary) !important; }
         `;
         document.head.appendChild(style);
 
@@ -218,7 +218,7 @@ const EmployeeOffboarding = () => {
                     <button 
                         className="btn-hrm" 
                         onClick={handleReset}
-                        style={{ height: '48px', padding: '0 25px', background: '#475569', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
+                        style={{ height: '48px', padding: '0 25px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
                     >
                         RESET
                     </button>
@@ -248,37 +248,10 @@ const EmployeeOffboarding = () => {
                         <button 
                             key={branch._id} 
                             onClick={() => setActiveBranchId(branch._id)}
-                            style={{
-                                padding: '10px 24px',
-                                borderRadius: '14px',
-                                border: 'none',
-                                background: isActive ? '#3B648B' : 'white',
-                                color: isActive ? 'white' : '#64748B',
-                                fontWeight: '700',
-                                fontSize: '13.5px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                cursor: 'pointer',
-                                boxShadow: isActive ? '0 10px 20px -5px rgba(59, 100, 139, 0.3)' : '0 4px 6px -1px rgba(0,0,0,0.05)',
-                                whiteSpace: 'nowrap',
-                                minWidth: 'fit-content'
-                            }}
+                            className={`branch-tab ${isActive ? 'active' : ''}`}
                         >
                             <span>{branch.branchShortName || branch.branchName}</span>
-                            <span style={{ 
-                                background: isActive ? 'rgba(255, 255, 255, 0.15)' : '#F1F5F9', 
-                                color: isActive ? 'white' : '#3B648B', 
-                                padding: '2px 10px', 
-                                borderRadius: '8px', 
-                                fontSize: '11px',
-                                fontWeight: '800',
-                                minWidth: '24px',
-                                textAlign: 'center'
-                            }}>
-                                {count}
-                            </span>
+                            <span className="branch-count">{count}</span>
                         </button>
                     );
                 })}
@@ -291,9 +264,9 @@ const EmployeeOffboarding = () => {
                         textAlign: 'center', 
                         padding: '100px 0', 
                         color: 'var(--text-muted)', 
-                        background: 'white', 
+                        background: 'var(--bg-elevated)', 
                         borderRadius: '24px',
-                        border: '2px dashed #E2E8F0'
+                        border: '2px dashed var(--border)'
                     }}>
                         <User size={48} style={{ marginBottom: '15px', opacity: 0.3 }} />
                         <p style={{ fontSize: '16px', fontWeight: '500' }}>No active employees found in this branch.</p>
@@ -311,13 +284,13 @@ const EmployeeOffboarding = () => {
                                         key={emp._id} 
                                         className="offboarding-row"
                                         style={{ 
-                                            background: '#fff', 
+                                            background: 'var(--bg-elevated)', 
                                             borderRadius: '100px', 
                                             padding: '8px 8px 8px 15px', 
                                             display: 'flex', 
                                             alignItems: 'center', 
                                             justifyContent: 'space-between',
-                                            border: '1.5px solid #F1F5F9',
+                                            border: '1.5px solid var(--border)',
                                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)',
                                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                             cursor: 'default'
@@ -330,8 +303,8 @@ const EmployeeOffboarding = () => {
                                                 height: '45px', 
                                                 borderRadius: '50%', 
                                                 overflow: 'hidden', 
-                                                background: '#F1F5F9',
-                                                border: '2px solid #fff',
+                                                background: 'var(--bg-base)',
+                                                border: '2px solid var(--bg-elevated)',
                                                 boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -340,7 +313,7 @@ const EmployeeOffboarding = () => {
                                                 {emp.profilePhoto ? (
                                                     <img src={`${API_URL}/uploads/${emp.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <span style={{ fontSize: '14px', fontWeight: '800', color: '#3B648B' }}>{getInitials(emp.name)}</span>
+                                                    <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--primary-blue)' }}>{getInitials(emp.name)}</span>
                                                 )}
                                             </div>
 
@@ -351,7 +324,7 @@ const EmployeeOffboarding = () => {
                                                         <span style={{ 
                                                             fontSize: '9.5px', 
                                                             fontWeight: '800', 
-                                                            background: '#FEF2F2', 
+                                                            background: 'rgba(239, 68, 68, 0.1)', 
                                                             color: '#EF4444', 
                                                             padding: '2px 10px', 
                                                             borderRadius: '50px',
@@ -363,7 +336,7 @@ const EmployeeOffboarding = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#3B648B', opacity: 0.8 }}>{emp.employeeId || 'IIPL-000'}</div>
+                                                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--primary-blue)', opacity: 0.8 }}>{emp.employeeId || 'IIPL-000'}</div>
                                             </div>
                                         </div>
 

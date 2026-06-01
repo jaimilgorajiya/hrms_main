@@ -438,7 +438,7 @@ const EmployeeOnboarding = () => {
         <div className="hrm-container">
             <div className="hrm-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                         <ArrowLeft size={20} />
                     </button>
                     <h1 className="hrm-title">Employee Onboarding</h1>
@@ -486,8 +486,8 @@ const EmployeeOnboarding = () => {
                                         width: '130px', 
                                         height: '130px', 
                                         borderRadius: '50%', 
-                                        border: '4px solid #F1F5F9',
-                                        background: '#F8FAFC',
+                                        border: '4px solid var(--border)',
+                                        background: 'var(--bg-elevated)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -497,14 +497,14 @@ const EmployeeOnboarding = () => {
                                         {previewUrl ? (
                                             <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <User size={60} color="#CBD5E1" />
+                                            <User size={60} style={{ color: 'var(--text-muted)' }} />
                                         )}
                                     </div>
                                     <label style={{ 
                                         position: 'absolute', 
                                         bottom: '5px', 
                                         right: '5px', 
-                                        background: '#3B648B', 
+                                        background: 'var(--primary-blue)', 
                                         color: 'white', 
                                         width: '36px', 
                                         height: '36px', 
@@ -513,7 +513,7 @@ const EmployeeOnboarding = () => {
                                         alignItems: 'center', 
                                         justifyContent: 'center',
                                         cursor: 'pointer',
-                                        border: '3px solid white',
+                                        border: '3px solid var(--bg-base)',
                                         boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                                     }}>
                                         <Camera size={18} />
@@ -563,10 +563,10 @@ const EmployeeOnboarding = () => {
                                 <div className="hrm-form-group">
                                     <label className="hrm-label">Gender</label>
                                     <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#64748B' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)' }}>
                                             <input type="radio" name="gender" value="Male" checked={formData.gender === 'Male'} onChange={handleInputChange} /> Male
                                         </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#64748B' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)' }}>
                                             <input type="radio" name="gender" value="Female" checked={formData.gender === 'Female'} onChange={handleInputChange} /> Female
                                         </label>
                                     </div>
@@ -583,10 +583,10 @@ const EmployeeOnboarding = () => {
                                     <div style={{ 
                                         display: 'flex', 
                                         gap: '15px', 
-                                        background: '#F8FAFC', 
+                                        background: 'var(--bg-base)', 
                                         padding: '20px', 
                                         borderRadius: '12px', 
-                                        border: '1.5px dashed #E2E8F0',
+                                        border: '1.5px dashed var(--border)',
                                         marginBottom: '20px',
                                         alignItems: 'flex-end'
                                     }}>
@@ -627,7 +627,7 @@ const EmployeeOnboarding = () => {
                                             style={{ 
                                                 height: '48px', 
                                                 padding: '0 20px', 
-                                                background: '#3B648B', 
+                                                background: 'var(--primary-blue)', 
                                                 color: 'white', 
                                                 border: 'none', 
                                                 borderRadius: '10px', 
@@ -651,24 +651,24 @@ const EmployeeOnboarding = () => {
                                                     alignItems: 'center', 
                                                     justifyContent: 'space-between', 
                                                     padding: '12px 18px', 
-                                                    background: 'white', 
-                                                    border: '1px solid #E2E8F0', 
+                                                    background: 'var(--bg-elevated)', 
+                                                    border: '1px solid var(--border)', 
                                                     borderRadius: '10px' 
                                                 }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(59, 100, 139, 0.1)', display: 'flex', alignItems: 'center', justifyCenter: 'center', color: '#3B648B' }}>
+                                                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)' }}>
                                                             <FileText size={18} style={{ margin: 'auto' }} />
                                                         </div>
                                                         <div>
-                                                            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: '#1E293B' }}>{doc.typeLabel}</p>
-                                                            <p style={{ margin: 0, fontSize: '12px', color: '#64748B' }}>{doc.file.name}</p>
+                                                            <p style={{ margin: 0, fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>{doc.typeLabel}</p>
+                                                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>{doc.file.name}</p>
                                                         </div>
                                                     </div>
                                                     <button 
                                                         type="button" 
                                                         onClick={() => setIdDocuments(idDocuments.filter((_, i) => i !== index))}
                                                         style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}
-                                                        onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
                                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}
                                                     >
                                                         <Trash2 size={18} />
@@ -919,14 +919,14 @@ const EmployeeOnboarding = () => {
                     )}
 
                     {/* Form Actions */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '50px', borderTop: '1px solid #f1f5f9', paddingTop: '25px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '50px', borderTop: '1px solid var(--border)', paddingTop: '25px' }}>
                         {activeStep > 0 && (
-                            <button type="button" onClick={handlePrev} style={{ padding: '12px 30px', borderRadius: '8px', background: 'white', color: '#64748b', border: '1px solid #e2e8f0', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'white'}>
+                            <button type="button" onClick={handlePrev} style={{ padding: '12px 30px', borderRadius: '8px', background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-base)'}>
                                 Previous
                             </button>
                         )}
                         {activeStep < steps.length - 1 ? (
-                            <button type="button" onClick={handleNext} disabled={isSubmitting} style={{ padding: '12px 30px', borderRadius: '8px', background: '#3B648B', color: 'white', border: 'none', fontWeight: '700', cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isSubmitting ? 0.6 : 1 }}>
+                            <button type="button" onClick={handleNext} className="btn-primary-hrm" disabled={isSubmitting} style={{ padding: '12px 30px', borderRadius: '8px', fontWeight: '700', cursor: isSubmitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isSubmitting ? 0.6 : 1 }}>
                                 Next Step
                             </button>
                         ) : (
@@ -946,22 +946,22 @@ const EmployeeOnboarding = () => {
                 .phone-input-group { 
                     display: flex; 
                     height: 48px; 
-                    border: 1.5px solid #E2E8F0; 
+                    border: 1.5px solid var(--border); 
                     border-radius: 12px; 
                     overflow: visible; 
-                    background: #fff;
+                    background: var(--bg-base);
                     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                 }
                 .phone-input-group:focus-within { 
-                    border-color: #3B648B; 
-                    box-shadow: 0 0 0 4px rgba(59, 100, 139, 0.08); 
+                    border-color: var(--primary-blue); 
+                    box-shadow: 0 0 0 4px var(--accent-primary-glow, rgba(0, 114, 255, 0.08)); 
                 }
                 .phone-input-group .select-wrapper {
                     position: relative;
                     width: 90px;
-                    border-right: 1.5px solid #E2E8F0;
-                    background: #F8FAFC;
+                    border-right: 1.5px solid var(--border);
+                    background: var(--bg-elevated);
                     border-radius: 10.5px 0 0 10.5px;
                 }
                 .custom-select-trigger {
@@ -973,26 +973,26 @@ const EmployeeOnboarding = () => {
                     padding: 0 12px;
                     cursor: pointer;
                     font-size: 14.5px;
-                    color: #1e293b;
+                    color: var(--text-primary);
                     font-weight: 700;
                     border-radius: 10.5px 0 0 10.5px;
                     transition: all 0.2s;
                 }
                 .custom-select-trigger:hover {
-                    background: #F1F5F9;
+                    background: var(--bg-base);
                 }
                 .custom-select-trigger.active {
-                    background: #fff;
+                    background: var(--bg-elevated);
                 }
                 .custom-dropdown-list {
                     position: absolute;
                     top: calc(100% + 8px);
                     left: 0;
                     width: 280px;
-                    background: #fff;
-                    border: 1.5px solid #E2E8F0;
+                    background: var(--bg-elevated);
+                    border: 1.5px solid var(--border);
                     border-radius: 16px;
-                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
                     z-index: 1000;
                     overflow: hidden;
                     animation: dropdownIn 0.2s ease-out;
@@ -1002,8 +1002,8 @@ const EmployeeOnboarding = () => {
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                    border-bottom: 1px solid #F1F5F9;
-                    background: #F8FAFC;
+                    border-bottom: 1px solid var(--border);
+                    background: var(--bg-base);
                 }
                 .dropdown-search input {
                     border: none !important;
@@ -1014,7 +1014,7 @@ const EmployeeOnboarding = () => {
                     font-weight: 500 !important;
                     outline: none !important;
                     width: 100%;
-                    color: #1e293b;
+                    color: var(--text-primary);
                 }
                 .dropdown-options {
                     max-height: 250px;
@@ -1032,29 +1032,29 @@ const EmployeeOnboarding = () => {
                     margin-bottom: 2px;
                 }
                 .dropdown-option:hover {
-                    background: #F8FAFC;
+                    background: var(--bg-base);
                 }
                 .dropdown-option.selected {
-                    background: rgba(59, 100, 139, 0.08);
-                    color: #3B648B;
+                    background: var(--primary-light);
+                    color: var(--primary-blue);
                 }
                 .country-name {
                     font-size: 14px;
                     font-weight: 600;
-                    color: #475569;
+                    color: var(--text-primary);
                 }
                 .country-code {
                     font-size: 12.5px;
-                    color: #94a3b8;
+                    color: var(--text-muted);
                     font-weight: 700;
                 }
-                .dropdown-option.selected .country-name { color: #3B648B; }
-                .dropdown-option.selected .country-code { color: #3B648B; opacity: 0.8; }
+                .dropdown-option.selected .country-name { color: var(--primary-blue); }
+                .dropdown-option.selected .country-code { color: var(--primary-blue); opacity: 0.8; }
                 
                 .no-results {
                     padding: 24px;
                     text-align: center;
-                    color: #94a3b8;
+                    color: var(--text-muted);
                     font-size: 13.5px;
                     font-weight: 500;
                 }
@@ -1065,7 +1065,7 @@ const EmployeeOnboarding = () => {
                     outline: none; 
                     font-size: 15.5px; 
                     font-weight: 500;
-                    color: #1e293b; 
+                    color: var(--text-primary); 
                     background: transparent;
                 }
 
@@ -1074,11 +1074,11 @@ const EmployeeOnboarding = () => {
                     line-height: normal;
                 }
                 .file-input-styled::file-selector-button {
-                    background: #F8FAFC;
-                    border: 1px solid #E2E8F0;
+                    background: var(--bg-elevated);
+                    border: 1px solid var(--border);
                     border-radius: 8px;
                     padding: 8px 16px;
-                    color: #475569;
+                    color: var(--text-primary);
                     font-weight: 600;
                     font-size: 13px;
                     cursor: pointer;
@@ -1087,9 +1087,9 @@ const EmployeeOnboarding = () => {
                     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
                 }
                 .file-input-styled::file-selector-button:hover {
-                    background: #F1F5F9;
-                    color: #3B648B;
-                    border-color: #cbd5e1;
+                    background: var(--bg-base);
+                    color: var(--primary-blue);
+                    border-color: var(--primary-blue);
                 }
             `}</style>
         </div>

@@ -7,5 +7,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react-timekeeper'],
   },
+  server: {
+    allowedHosts: ['local.hrms.com']
+  }
 })
-          
+

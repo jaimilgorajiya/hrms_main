@@ -76,8 +76,27 @@ import EmployeeResignation from './pages/employee/EmployeeResignation';
 import ResetPassword from './pages/ResetPassword';
 import AdminPackages from './pages/AdminPackages';
 
+// ─── Mobile-first Web App ───────────────────────────────────
+import { MobileAuthProvider } from './pages/mobile/context/MobileAuthContext';
+import { MobileThemeProvider } from './pages/mobile/context/MobileThemeContext';
+import MobileLayout from './pages/mobile/MobileLayout';
+import MobileLogin from './pages/mobile/MobileLogin';
+import MobileDashboard from './pages/mobile/MobileDashboard';
+import MobileAttendance from './pages/mobile/MobileAttendance';
+import MobileLeaves from './pages/mobile/MobileLeaves';
+import MobilePayslips from './pages/mobile/MobilePayslips';
+import MobileProfile from './pages/mobile/MobileProfile';
+import MobileShift from './pages/mobile/MobileShift';
+import MobileNotifications from './pages/mobile/MobileNotifications';
+import MobilePunchMissing from './pages/mobile/MobilePunchMissing';
+import MobilePenalties from './pages/mobile/MobilePenalties';
+import MobileResignation from './pages/mobile/MobileResignation';
+import MobileDocuments from './pages/mobile/MobileDocuments';
+
 function App() {
   return (
+    <MobileAuthProvider>
+      <MobileThemeProvider>
     <Router>
       <div className="App">
         <Routes>
@@ -191,11 +210,30 @@ function App() {
             <Route path="/employee-dashboard" element={<Navigate to="/employee/dashboard" replace />} />
           </Route>
 
+          {/* Mobile-first employee web app */}
+          <Route path="/employee/login" element={<MobileLogin />} />
+          <Route path="/mobile" element={<MobileLayout />}>
+            <Route index element={<Navigate to="/mobile/dashboard" replace />} />
+            <Route path="dashboard" element={<MobileDashboard />} />
+            <Route path="attendance" element={<MobileAttendance />} />
+            <Route path="leaves" element={<MobileLeaves />} />
+            <Route path="payslips" element={<MobilePayslips />} />
+            <Route path="profile" element={<MobileProfile />} />
+            <Route path="documents" element={<MobileDocuments />} />
+            <Route path="shift" element={<MobileShift />} />
+            <Route path="notifications" element={<MobileNotifications />} />
+            <Route path="punch-missing" element={<MobilePunchMissing />} />
+            <Route path="penalties" element={<MobilePenalties />} />
+            <Route path="resignation" element={<MobileResignation />} />
+          </Route>
+
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>
+      </MobileThemeProvider>
+    </MobileAuthProvider>
   );
 }
 

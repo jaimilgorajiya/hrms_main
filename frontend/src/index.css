@@ -5070,12 +5070,12 @@ body.dark-mode .submenu li a:hover,
 body.dark-mode .submenu li a.active, 
 body.dark-mode .submenu-label:hover, 
 body.dark-mode .submenu-label.expanded {
-  color: #c3c0ff !important;
+  color: #00c6ff !important;
 }
 
 body.dark-mode .submenu li a.active .sub-icon, 
 body.dark-mode .submenu-label.expanded .sub-icon {
-  color: #c3c0ff !important;
+  color: #00c6ff !important;
 }
 
 body.dark-mode .nested-submenu {
@@ -5087,8 +5087,8 @@ body.dark-mode .nested-dot {
 }
 
 body.dark-mode .nested-submenu li a.active .nested-dot {
-  background: #c3c0ff !important;
-  box-shadow: 0 0 0 3px rgba(195, 192, 255, 0.15) !important;
+  background: #00c6ff !important;
+  box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15) !important;
 }
 
 body.dark-mode .sidebar-footer {
@@ -5117,8 +5117,8 @@ body.dark-mode .search-wrapper {
 
 body.dark-mode .search-wrapper:focus-within {
   background: #1b1b23 !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: none !important;
+  border-color: #0072ff !important;
+  box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.15) !important;
 }
 
 body.dark-mode .header-search .search-wrapper input[type="text"] {
@@ -5465,6 +5465,17 @@ body.dark-mode .admin-header .icon-btn:hover {
 
 body.dark-mode .search-wrapper input {
   color: #e4e1ed !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.dark-mode .search-wrapper input:focus {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 body.dark-mode .search-wrapper input::placeholder {
@@ -6361,8 +6372,8 @@ body.dark-mode .hrm-input:focus,
 body.dark-mode input:focus, 
 body.dark-mode select:focus, 
 body.dark-mode textarea:focus {
-  border-color: #F59E0B !important;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+  border-color: #0072ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2) !important;
 }
 
 body.dark-mode .hrm-label {
@@ -6388,11 +6399,11 @@ body.dark-mode .sidebar {
 
 body.dark-mode .menu-item.active {
   background: #1a1a1a !important;
-  color: #F59E0B !important;
+  color: #00c6ff !important;
 }
 
 body.dark-mode .menu-item.active::before {
-  background: #F59E0B !important;
+  background: #00c6ff !important;
 }
 
 body.dark-mode .menu-item:hover {
@@ -6406,8 +6417,8 @@ body.dark-mode .hrm-card {
 }
 
 body.dark-mode .btn-hrm-primary {
-  background: #F59E0B !important;
-  color: #111111 !important;
+  background: #0072ff !important;
+  color: #ffffff !important;
 }
 
 body.dark-mode .company-info-sidebar {
@@ -6418,3 +6429,82 @@ body.dark-mode .company-info-sidebar {
 body.dark-mode .company-name-display {
   color: #ffffff !important;
 }
+
+/* Branch Selector Tabs */
+.branch-tab {
+  padding: 10px 24px;
+  border-radius: 12px;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.branch-tab:hover {
+  border-color: var(--primary-blue);
+  color: var(--text-dark);
+}
+
+.branch-tab.active {
+  border-color: var(--primary-blue);
+  background: var(--primary-blue);
+  color: white;
+  box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.25);
+}
+
+.branch-count {
+  background: var(--bg-main);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  transition: all 0.2s;
+}
+
+.branch-tab.active .branch-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+body.dark-mode .branch-tab {
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
+  color: #aeb9d0 !important;
+}
+
+body.dark-mode .branch-tab:hover {
+  border-color: #0072ff !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .branch-tab.active {
+  border-color: #0072ff !important;
+  background: #0072ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 16px -4px rgba(0, 114, 255, 0.25) !important;
+}
+
+body.dark-mode .branch-count {
+  background: #111111 !important;
+  color: #9ca3af !important;
+}
+
+body.dark-mode .branch-tab.active .branch-count {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode input::-webkit-calendar-picker-indicator {
+  filter: invert(1) !important;
+  cursor: pointer;
+}
+
+

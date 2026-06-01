@@ -89,7 +89,7 @@ const EmployeeProfile = () => {
         { id: 'Contact Detail', label: 'Contact Detail', icon: <Phone size={16} /> },
         { id: 'Personal Info', label: 'Personal Info', icon: <User size={16} /> },
         { id: 'Experience', label: 'Experience', icon: <History size={16} /> },
-        { id: 'Documents', label: 'Documents', icon: <FileText size={16} /> }
+        { id: 'Docs', label: 'Docs', icon: <FileText size={16} /> }
     ];
     
     // Experience specific states
@@ -836,11 +836,11 @@ const EmployeeProfile = () => {
     if (!employee) return <div className="loading-container">Employee not found.</div>;
 
     return (
-        <div className="hrm-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '30px', overflowY: 'auto' }}>
+        <div className="hrm-container" style={{ background: 'var(--bg-main)', minHeight: '100vh', padding: '30px', overflowY: 'auto' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <button className="icon-btn" onClick={() => navigate('/admin/employees/list')} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
+                    <button className="icon-btn" onClick={() => navigate('/admin/employees/list')} style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}>
                         <ArrowLeft size={20} color="var(--text-secondary)" />
                     </button>
                     <h1 className="hrm-title" style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -851,18 +851,18 @@ const EmployeeProfile = () => {
 
             {/* Tenure Insight (Top Banner Style) */}
             <div style={{ 
-                background: 'white', 
+                background: 'var(--bg-base)', 
                 padding: '12px 24px', 
                 borderRadius: '12px', 
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border)',
                 marginBottom: '25px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '15px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
             }}>
-                <div style={{ background: 'rgba(59, 100, 139, 0.1)', padding: '8px', borderRadius: '8px' }}>
-                    <Clock size={20} color="#3B648B" />
+                <div style={{ background: 'var(--accent-light)', padding: '8px', borderRadius: '8px' }}>
+                    <Clock size={20} color="var(--primary-blue)" />
                 </div>
                 <div>
                     <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', display: 'block' }}>Employee joined since:</span>
@@ -873,9 +873,9 @@ const EmployeeProfile = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px' }}>
                 {/* Sidebar (Left) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '30px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <div style={{ background: 'var(--bg-base)', borderRadius: '16px', border: '1px solid var(--border)', padding: '30px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <div style={{ position: 'relative', width: '140px', height: '140px', margin: '0 auto 20px' }}>
-                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#f8fafc', overflow: 'hidden', border: '4px solid #fff', boxShadow: '0 0 0 1px #e2e8f0' }}>
+                            <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'var(--bg-main)', overflow: 'hidden', border: '4px solid var(--bg-base)', boxShadow: '0 0 0 1px var(--border)' }}>
                                 {previewUrl ? (
                                     <img src={previewUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : formData.profilePhoto ? (
@@ -890,7 +890,7 @@ const EmployeeProfile = () => {
                                 <button 
                                     onClick={handleRemovePhoto}
                                     style={{ 
-                                        position: 'absolute', bottom: '5px', left: '5px', background: '#fee2e2', border: '3px solid #fff', 
+                                        position: 'absolute', bottom: '5px', left: '5px', background: '#fee2e2', border: '3px solid var(--bg-base)', 
                                         borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', 
                                         justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
                                         color: '#ef4444'
@@ -900,7 +900,7 @@ const EmployeeProfile = () => {
                                 </button>
                             )}
                             <label style={{ 
-                                position: 'absolute', bottom: '5px', right: '5px', background: '#3B648B', border: '3px solid #fff', 
+                                position: 'absolute', bottom: '5px', right: '5px', background: 'var(--primary-blue)', border: '3px solid var(--bg-base)', 
                                 borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', 
                                 justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' 
                             }}>
@@ -947,21 +947,21 @@ const EmployeeProfile = () => {
                         </h2>
                         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600', margin: '0 0 20px' }}>{formData.designation || 'Web Developer'}</p>
                         
-                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
+                        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Phone size={14} color="var(--text-secondary)" />
                                 </div>
                                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>{formData.countryCode} {formData.phone}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Mail size={14} color="var(--text-secondary)" />
                                 </div>
                                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formData.email}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ minWidth: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <User size={14} color="var(--text-secondary)" />
                                 </div>
                                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>{formData.gender}</span>
@@ -1001,7 +1001,7 @@ const EmployeeProfile = () => {
                                 <X size={16} /> Mark as Ex-Emp
                             </button>
                         ) : (
-                            <div style={{ marginTop: '25px', borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ marginTop: '25px', borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '800' }}>Resignation Date:</span>
                                     <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '700' }}>
@@ -1029,9 +1029,9 @@ const EmployeeProfile = () => {
                                             marginTop: '15px',
                                             width: '100%',
                                             padding: '12px 20px',
-                                            background: 'rgba(59, 100, 139, 0.08)',
-                                            color: '#3B648B',
-                                            border: '1.5px solid rgba(59, 100, 139, 0.2)',
+                                            background: 'var(--accent-light)',
+                                            color: 'var(--primary-blue)',
+                                            border: '1.5px solid var(--border)',
                                             borderRadius: '12px',
                                             fontSize: '12.5px',
                                             fontWeight: '800',
@@ -1046,14 +1046,14 @@ const EmployeeProfile = () => {
                                             boxShadow: '0 4px 12px rgba(59, 100, 139, 0.05)'
                                         }}
                                         onMouseOver={(e) => {
-                                            e.currentTarget.style.background = '#3B648B';
+                                            e.currentTarget.style.background = 'var(--primary-blue)';
                                             e.currentTarget.style.color = 'white';
                                             e.currentTarget.style.transform = 'translateY(-2px)';
                                             e.currentTarget.style.boxShadow = '0 8px 20px rgba(59, 100, 139, 0.2)';
                                         }}
                                         onMouseOut={(e) => {
-                                            e.currentTarget.style.background = 'rgba(59, 100, 139, 0.08)';
-                                            e.currentTarget.style.color = '#3B648B';
+                                            e.currentTarget.style.background = 'var(--accent-light)';
+                                            e.currentTarget.style.color = 'var(--primary-blue)';
                                             e.currentTarget.style.transform = 'translateY(0)';
                                             e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 100, 139, 0.05)';
                                         }}
@@ -1067,9 +1067,9 @@ const EmployeeProfile = () => {
                 </div>
 
                 {/* Content Area (Right) */}
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'visible', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                <div style={{ background: 'var(--bg-base)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'visible', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                     {/* Tabs Navigation */}
-                    <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', padding: '0 10px', background: '#fcfcfd' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 10px', background: 'var(--bg-elevated)', borderTopLeftRadius: '15px', borderTopRightRadius: '15px', overflow: 'hidden' }}>
                         {tabs.map(tab => (
                             <button 
                                 key={tab.id}
@@ -1078,7 +1078,7 @@ const EmployeeProfile = () => {
                                     padding: '20px 20px',
                                     fontSize: '13px',
                                     fontWeight: '700',
-                                    color: activeTab === tab.id ? '#3B648B' : '#94a3b8',
+                                    color: activeTab === tab.id ? 'var(--primary-blue)' : '#94a3b8',
                                     border: 'none',
                                     background: 'none',
                                     cursor: 'pointer',
@@ -1094,7 +1094,7 @@ const EmployeeProfile = () => {
                                 {tab.icon}
                                 {tab.label}
                                 {activeTab === tab.id && (
-                                    <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', background: '#3B648B', borderRadius: '3px 3px 0 0' }} />
+                                    <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-blue)', borderRadius: '3px 3px 0 0' }} />
                                 )}
                             </button>
                         ))}
@@ -1303,7 +1303,7 @@ const EmployeeProfile = () => {
                                         <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Past Experience</h3>
                                         <button onClick={() => setIsExpModalOpen(true)} style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textTransform: 'uppercase' }}><Plus size={16} /> ADD PAST EXPERIENCE</button>
                                     </div>
-                                    <div className="hrm-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
+                                    <div className="hrm-table-wrapper" style={{ border: '1px solid var(--border)', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
                                         <table className="hrm-table" style={{ border: 'none', width: '100%', minWidth: '750px', tableLayout: 'auto' }}>
                                             <thead>
                                                 <tr>
@@ -1329,7 +1329,7 @@ const EmployeeProfile = () => {
                                                         <td style={{ padding: '10px 5px' }}>{exp.location}</td>
                                                         <td style={{ textAlign: 'center', padding: '10px 5px' }}>
                                                             <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                                                <button onClick={() => handleEditExperience(idx)} style={{ border: 'none', background: 'transparent', color: '#3B648B', cursor: 'pointer', padding: '5px' }} title="Edit">
+                                                                <button onClick={() => handleEditExperience(idx)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-blue)', cursor: 'pointer', padding: '5px' }} title="Edit">
                                                                     <Edit2 size={16} />
                                                                 </button>
                                                                 <button onClick={() => handleDeleteExperience(idx)} style={{ border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', padding: '5px' }} title="Delete">
@@ -1351,13 +1351,13 @@ const EmployeeProfile = () => {
                                 </div>
                             )}
 
-                            {activeTab === 'Documents' && (
+                            {activeTab === 'Docs' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', gridColumn: 'span 2' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Employee Documents</h3>
                                         <button onClick={() => setIsDocModalOpen(true)} style={{ background: '#f43f5e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', textTransform: 'uppercase' }}><Plus size={16} /> ADD DOCUMENT</button>
                                     </div>
-                                    <div className="hrm-table-wrapper" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
+                                    <div className="hrm-table-wrapper" style={{ border: '1px solid var(--border)', borderRadius: '12px', overflowX: 'auto', width: '100%' }}>
                                         <table className="hrm-table" style={{ border: 'none', width: '100%', minWidth: '750px', tableLayout: 'auto' }}>
                                             <thead>
                                                 <tr>
@@ -1380,9 +1380,9 @@ const EmployeeProfile = () => {
                                                             <button 
                                                                 type="button" 
                                                                 onClick={(e) => { e.preventDefault(); setViewingDoc({ url: `${API_URL}/uploads/${doc.fileUrl}`, type: doc.fileUrl.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image' }) }} 
-                                                                style={{ background: 'none', border: 'none', color: '#3B648B', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', padding: 0 }}
+                                                                style={{ background: 'none', border: 'none', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', fontSize: '14px', fontFamily: 'inherit', padding: 0 }}
                                                             >
-                                                                <Eye size={16} /> View
+                                                                 <Eye size={16} /> View
                                                             </button>
                                                         ) : '-'}</td>
                                                         <td style={{ textAlign: 'center', padding: '10px 5px' }}>
@@ -1410,15 +1410,15 @@ const EmployeeProfile = () => {
                         </div>
 
                         {/* Save Changes Button only in Edit Mode */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '40px', borderTop: '1px solid #f1f5f9', paddingTop: '25px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '40px', borderTop: '1px solid var(--border)', paddingTop: '25px' }}>
                             <button 
                                 onClick={handleUpdate}
                                 disabled={saving}
+                                className="btn-primary-hrm"
                                 style={{ 
-                                    background: '#3B648B', color: 'white', border: 'none', padding: '12px 36px', 
+                                    padding: '12px 36px', 
                                     borderRadius: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', 
-                                    gap: '10px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 100, 139, 0.25)',
-                                    transition: 'all 0.3s ease'
+                                    gap: '10px', cursor: 'pointer', transition: 'all 0.3s ease'
                                 }}
                                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -1564,7 +1564,7 @@ const EmployeeProfile = () => {
                     </div>
                 </div>
             )}
-            <style dangerouslySetInnerHTML={{ __html: `
+             <style dangerouslySetInnerHTML={{ __html: `
                 .ss-form-group { display: flex; flex-direction: column; gap: 8px; }
                 .ss-label { font-size: 14px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
                 .ss-input { height: 45px; padding: 0 16px; border: 1.5px solid #E2E8F0; border-radius: 10px; font-size: 15px; color: #1e293b; background: #fff; transition: all 0.2s; outline: none; }
@@ -1696,6 +1696,95 @@ const EmployeeProfile = () => {
                     font-weight: 500;
                     color: #1e293b; 
                     background: transparent;
+                }
+
+                /* Dark Mode Support */
+                body.dark-mode .ss-label {
+                    color: var(--text-secondary) !important;
+                }
+                body.dark-mode .ss-input {
+                    background: var(--bg-base) !important;
+                    border-color: var(--border) !important;
+                    color: var(--text-primary) !important;
+                }
+                body.dark-mode .ss-input:focus {
+                    border-color: var(--primary-blue) !important;
+                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15) !important;
+                }
+                body.dark-mode .ss-view-value {
+                    color: var(--text-primary) !important;
+                    border-bottom-color: var(--border) !important;
+                }
+                body.dark-mode .phone-input-group {
+                    background: var(--bg-base) !important;
+                    border-color: var(--border) !important;
+                }
+                body.dark-mode .phone-input-group:focus-within {
+                    border-color: var(--primary-blue) !important;
+                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08) !important;
+                }
+                body.dark-mode .phone-input-group .select-wrapper {
+                    background: var(--bg-elevated) !important;
+                    border-right-color: var(--border) !important;
+                }
+                body.dark-mode .custom-select-trigger {
+                    color: var(--text-primary) !important;
+                }
+                body.dark-mode .custom-select-trigger:hover {
+                    background: var(--bg-main) !important;
+                }
+                body.dark-mode .custom-select-trigger.active {
+                    background: var(--bg-base) !important;
+                }
+                body.dark-mode .custom-dropdown-list {
+                    background: var(--bg-base) !important;
+                    border-color: var(--border) !important;
+                }
+                body.dark-mode .dropdown-search {
+                    background: var(--bg-elevated) !important;
+                    border-bottom-color: var(--border) !important;
+                }
+                body.dark-mode .dropdown-search input {
+                    color: var(--text-primary) !important;
+                }
+                body.dark-mode .dropdown-option:hover {
+                    background: var(--bg-elevated) !important;
+                }
+                body.dark-mode .dropdown-option.selected {
+                    background: var(--accent-light) !important;
+                    color: var(--primary-blue) !important;
+                }
+                body.dark-mode .dropdown-option.selected .country-name,
+                body.dark-mode .dropdown-option.selected .country-code {
+                    color: var(--primary-blue) !important;
+                }
+                body.dark-mode .country-name {
+                    color: var(--text-primary) !important;
+                }
+                body.dark-mode .country-code {
+                    color: var(--text-muted) !important;
+                }
+                body.dark-mode .phone-input-group input {
+                    color: var(--text-primary) !important;
+                }
+                body.dark-mode .hrm-table-wrapper {
+                    border-color: var(--border) !important;
+                }
+                body.dark-mode .hrm-table th {
+                    background: var(--bg-elevated) !important;
+                    color: var(--text-secondary) !important;
+                    border-bottom-color: var(--border) !important;
+                }
+                body.dark-mode .hrm-table td {
+                    border-bottom-color: var(--border) !important;
+                    color: var(--text-secondary) !important;
+                }
+                body.dark-mode .hrm-table tr:hover {
+                    background: var(--bg-main) !important;
+                }
+                body.dark-mode .ss-input::-webkit-calendar-picker-indicator {
+                    filter: invert(1) !important;
+                    cursor: pointer;
                 }
             `}} />
         </div>

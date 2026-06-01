@@ -573,43 +573,71 @@ export const toggleBreak = async (req, res) => {
             return res.status(200).json({ success: true, message: "Break ended", isOnBreak: false, record });
         } else {
             // -- Defined Minutes Enforcement --
+            let finalBreakType = breakType;
             const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
             if (shift && shift.breakMode === 'Defined Minutes') {
-                const typeLower = breakType.toLowerCase();
-                let startStr = '', endStr = '';
+                const nowMins = now.getHours() * 60 + now.getMinutes();
+                const lunchStartMins = daySchedule?.lunchStart ? parseTimeToMinutes(daySchedule.lunchStart) : null;
+                const lunchEndMins = daySchedule?.lunchEnd ? parseTimeToMinutes(daySchedule.lunchEnd) : null;
+                const teaStartMins = daySchedule?.teaStart ? parseTimeToMinutes(daySchedule.teaStart) : null;
+                const teaEndMins = daySchedule?.teaEnd ? parseTimeToMinutes(daySchedule.teaEnd) : null;
 
-                if (typeLower.includes('lunch')) {
-                    startStr = daySchedule?.lunchStart;
-                    endStr = daySchedule?.lunchEnd;
-                } else if (typeLower.includes('tea')) {
-                    startStr = daySchedule?.teaStart;
-                    endStr = daySchedule?.teaEnd;
+                let allowed = false;
+                const typeLower = breakType.toLowerCase();
+                const isLunchRequest = typeLower.includes('lunch');
+                const isTeaRequest = typeLower.includes('tea');
+                const isGeneralRequest = !isLunchRequest && !isTeaRequest;
+
+                if (isLunchRequest || isGeneralRequest) {
+                    if (lunchStartMins !== null && lunchEndMins !== null) {
+                        if (nowMins >= lunchStartMins && nowMins <= lunchEndMins) {
+                            allowed = true;
+                            finalBreakType = 'Lunch';
+                        }
+                    }
                 }
 
-                if (startStr && endStr) {
-                    const nowMins = now.getHours() * 60 + now.getMinutes();
-                    const startMins = parseTimeToMinutes(startStr);
-                    const endMins = parseTimeToMinutes(endStr);
+                if (!allowed && (isTeaRequest || isGeneralRequest)) {
+                    if (teaStartMins !== null && teaEndMins !== null) {
+                        if (nowMins >= teaStartMins && nowMins <= teaEndMins) {
+                            allowed = true;
+                            finalBreakType = 'Tea';
+                        }
+                    }
+                }
 
-                    if (nowMins < startMins || nowMins > endMins) {
+                if (!allowed) {
+                    if (isLunchRequest) {
                         return res.status(400).json({
                             success: false,
-                            message: `You can only take ${breakType} between ${startStr} and ${endStr}`
+                            message: `You can only take Lunch between ${daySchedule?.lunchStart} and ${daySchedule?.lunchEnd}`
+                        });
+                    } else if (isTeaRequest) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `You can only take Tea Break between ${daySchedule?.teaStart} and ${daySchedule?.teaEnd}`
+                        });
+                    } else {
+                        let errMsg = "You can only take breaks during your defined lunch or tea break timings.";
+                        const ranges = [];
+                        if (daySchedule?.lunchStart && daySchedule?.lunchEnd) {
+                            ranges.push(`Lunch: ${daySchedule.lunchStart} - ${daySchedule.lunchEnd}`);
+                        }
+                        if (daySchedule?.teaStart && daySchedule?.teaEnd) {
+                            ranges.push(`Tea: ${daySchedule.teaStart} - ${daySchedule.teaEnd}`);
+                        }
+                        if (ranges.length > 0) {
+                            errMsg = `You can only take breaks during your defined timings:\n${ranges.join(', ')}`;
+                        }
+                        return res.status(400).json({
+                            success: false,
+                            message: errMsg
                         });
                     }
-                } else if (typeLower.includes('lunch') || typeLower.includes('tea')) {
-                    // It's a standard break but NO range is set in the shift
-                    return res.status(400).json({
-                        success: false,
-                        message: `No time range defined for ${breakType} in your shift configuration.`
-                    });
                 }
-                // For other breaks (like Personal), we allow them if not explicitly scheduled 
-                // OR we could block them too. User said "apply rule for other", so likely block?
-                // Let's stick to Lunch/Tea for now as they are the only ones with fields.
             }
 
-            record.breaks.push({ start: now, type: breakType });
+            record.breaks.push({ start: now, type: finalBreakType });
             await record.save();
             return res.status(200).json({ success: true, message: "Break started", isOnBreak: true, record });
         }
@@ -1132,9 +1160,14 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         const daysInMonth = new Date(year, monthNum, 0).getDate();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+        const todayObj = new Date();
+        const isCurrentMonth = todayObj.getFullYear() === year && (todayObj.getMonth() + 1) === monthNum;
+        const maxDayToCount = isCurrentMonth ? todayObj.getDate() : daysInMonth;
+
         let workingDaysCount = 0;
         let weekOffCount = 0;
         let totalExpectedMins = 0;
+        let elapsedWorkingDays = 0; // working days up to today
 
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(year, monthNum - 1, d);
@@ -1145,6 +1178,9 @@ export const getMonthlyAttendanceStats = async (req, res) => {
                 weekOffCount++;
             } else {
                 workingDaysCount++;
+                if (d <= maxDayToCount) {
+                    elapsedWorkingDays++;
+                }
                 const schedule = shift?.schedule?.[dayName.toLowerCase()];
                 if (schedule) {
                     const start = parseTimeToMinutes(schedule.shiftStart);
@@ -1161,18 +1197,21 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             }
         }
 
-        const presentDays = records.filter(r => r.status === 'Present').length;
-        const halfDays = records.filter(r => r.status === 'Half Day').length;
-        const absentDays = records.filter(r => r.status === 'Absent').length;
-        const leaveDays = records.filter(r => r.status === 'On Leave').length;
+        const presentCount = records.filter(r => r.status === 'Present').length;
+        const halfDaysCount = records.filter(r => r.status === 'Half Day').length;
+        const leaveDaysCount = records.filter(r => r.status === 'On Leave').length;
+        
+        // Absent days are elapsed working days minus present and leave days
+        const absentDays = Math.max(0, elapsedWorkingDays - (presentCount + (halfDaysCount * 0.5) + leaveDaysCount));
+
         const totalWorkedMins = records.reduce((acc, r) => acc + (computeWorkingMinutes(r.punches, r.breaks) || 0), 0);
 
         const stats = {
             workingDays: workingDaysCount,
-            presentDays: presentDays + (halfDays * 0.5),
+            presentDays: presentCount + (halfDaysCount * 0.5),
             absentDays,
             weekOff: weekOffCount,
-            leaves: leaveDays,
+            leaves: leaveDaysCount,
             lateIn: records.filter(r => r.lateInPenalty?.isLate).length,
             earlyOut: records.filter(r => r.earlyOutPenalty?.amount > 0).length,
             missingPunch: records.filter(r => r.punches.find(p => p.type === 'IN') && !r.punches.find(p => p.type === 'OUT')).length,

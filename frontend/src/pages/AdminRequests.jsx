@@ -17,13 +17,32 @@ const statusColors = {
 };
 
 const typeColors = {
-  'Leave': { color: '#8B5CF6', backgroundColor: '#F5F3FF' },
-  'Attendance Correction': { color: '#2563EB', backgroundColor: '#EFF6FF' },
+  'Leave': { color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.15)' },
+  'Attendance Correction': { color: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.15)' },
+};
+
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null;
+  if (dateStr instanceof Date) {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const parts = String(dateStr).split('-');
+  if (parts.length === 3) {
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  }
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d;
 };
 
 const MiniCalendar = ({ fromDate, toDate }) => {
-  const start = new Date(fromDate);
-  const end = new Date(toDate || fromDate);
+  const start = parseLocalDate(fromDate);
+  const end = parseLocalDate(toDate || fromDate);
+  
+  if (!start || !end) return null;
+
   const month = start.getMonth();
   const year = start.getFullYear();
   
@@ -139,24 +158,24 @@ const AdminRequests = () => {
     const result = await Swal.fire({
       title: status === 'Approved' ? 'Approve Request?' : 'Reject Request?',
       html: `
-        <div style="text-align: left; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: 'Inter', sans-serif;">
+        <div style="text-align: left; background: var(--bg-main); padding: 20px; border-radius: 12px; border: 1px solid var(--border); font-family: 'Inter', sans-serif;">
           <div style="margin-bottom: 15px;">
-            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Employee</p>
-            <p style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">${request.employee?.name || 'Unknown'}</p>
+            <p style="font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin: 0 0 4px 0;">Employee</p>
+            <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0;">${request.employee?.name || 'Unknown'}</p>
           </div>
           <div style="margin-bottom: 15px;">
-            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Reason for Request</p>
-            <p style="font-size: 14px; font-weight: 500; color: #334155; line-height: 1.5; margin: 0; font-style: italic;">"${request.reason || 'No reason provided'}"</p>
+            <p style="font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin: 0 0 4px 0;">Reason for Request</p>
+            <p style="font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.5; margin: 0; font-style: italic;">"${request.reason || 'No reason provided'}"</p>
           </div>
           ${request.requestType === 'Attendance Correction' && request.workSummary ? `
           <div style="margin-bottom: 15px;">
-            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Work Report / Remarks</p>
-            <p style="font-size: 14px; font-weight: 500; color: #334155; line-height: 1.5; margin: 0;">${request.workSummary}</p>
+            <p style="font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin: 0 0 4px 0;">Work Report / Remarks</p>
+            <p style="font-size: 14px; font-weight: 500; color: var(--text-primary); line-height: 1.5; margin: 0;">${request.workSummary}</p>
           </div>
           ` : ''}
           <div>
-            <p style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin: 0 0 4px 0;">Admin Remarks (Optional)</p>
-            <p style="font-size: 14px; color: #475569; margin: 0;">${adminRemark || '<span style="opacity: 0.5;">No remarks added</span>'}</p>
+            <p style="font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin: 0 0 4px 0;">Admin Remarks (Optional)</p>
+            <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">${adminRemark || '<span style="opacity: 0.5;">No remarks added</span>'}</p>
           </div>
         </div>
       `,
@@ -450,7 +469,7 @@ const AdminRequests = () => {
                             <div style={{ padding: '24px', background: 'var(--bg-main)', borderRadius: '24px', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'grid', gap: '20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
                                             <LogIn size={20} color="var(--success)" />
                                         </div>
                                         <div>
@@ -461,7 +480,7 @@ const AdminRequests = () => {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>
                                             <LogOut size={20} color="var(--danger)" />
                                         </div>
                                         <div>
@@ -481,9 +500,9 @@ const AdminRequests = () => {
                         </div>
 
                         {selectedRequest.workSummary && (
-                           <div style={{ marginTop: '16px', padding: '20px', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-                              <p style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>Work Report / Summary</p>
-                              <p style={{ margin: 0, fontSize: '14px', color: '#1E293B', fontWeight: '500', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{selectedRequest.workSummary}</p>
+                           <div style={{ marginTop: '16px', padding: '20px', background: 'var(--bg-main)', borderRadius: '20px', border: '1px solid var(--border)' }}>
+                              <p style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Work Report / Summary</p>
+                              <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{selectedRequest.workSummary}</p>
                            </div>
                         )}
                    </div>

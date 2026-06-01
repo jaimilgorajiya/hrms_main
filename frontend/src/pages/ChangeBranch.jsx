@@ -117,7 +117,7 @@ const ChangeBranch = () => {
         <div className="hrm-container" style={{ maxWidth: '1200px' }}>
             <div className="hrm-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'white', border: '1px solid #E2E8F0' }}>
+                    <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
                         <ArrowLeft size={20} />
                     </button>
                     <div>
@@ -151,22 +151,22 @@ const ChangeBranch = () => {
                             {searchQuery && (
                                 <div style={{ 
                                     position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
-                                    background: 'white', borderRadius: '16px',
+                                    background: 'var(--bg-elevated)', borderRadius: '16px',
                                     border: '1px solid var(--border)', zIndex: 100,
                                     maxHeight: '320px', overflowY: 'auto',
-                                    boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
                                 }}>
                                     {filteredEmployees.length > 0 ? filteredEmployees.map(emp => (
                                         <div key={emp._id} onClick={() => handleEmployeeSelect(emp)}
                                             style={{ 
                                                 padding: '12px 16px', cursor: 'pointer', 
-                                                borderBottom: '1px solid var(--border-subtle)', 
+                                                borderBottom: '1px solid var(--border)', 
                                                 transition: 'all 0.2s ease',
                                                 display: 'flex', alignItems: 'center', gap: '12px'
                                             }}
                                             className="search-item-hover"
                                         >
-                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <User size={20} color="var(--text-muted)" />
                                             </div>
                                             <div>
@@ -186,11 +186,11 @@ const ChangeBranch = () => {
                     </div>
 
                     {selectedEmployee && (
-                        <div className="hrm-card" style={{ padding: '24px', border: '1px solid var(--primary-blue)', background: 'linear-gradient(to bottom, #FFFFFF 0%, #F8FAFC 100%)' }}>
+                        <div className="hrm-card" style={{ padding: '24px', border: '1px solid var(--primary-blue)', background: 'linear-gradient(to bottom, var(--bg-elevated) 0%, var(--bg-base) 100%)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                                 <div style={{ 
                                     width: '64px', height: '64px', borderRadius: '16px', 
-                                    background: 'white', display: 'flex', alignItems: 'center', 
+                                    background: 'var(--bg-base)', display: 'flex', alignItems: 'center', 
                                     justifyContent: 'center', border: '1px solid var(--border)', 
                                     overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
                                 }}>
@@ -205,13 +205,13 @@ const ChangeBranch = () => {
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                <div style={{ padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                                <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>Current Branch</div>
                                     <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Building2 size={14} color="var(--primary-blue)" /> {selectedEmployee.branch || 'Not Set'}
                                     </div>
                                 </div>
-                                <div style={{ padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                                <div style={{ padding: '16px', background: 'var(--bg-base)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>Department</div>
                                     <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: '700' }}>{selectedEmployee.department || 'Not Set'}</div>
                                 </div>
@@ -222,14 +222,14 @@ const ChangeBranch = () => {
 
                 {/* Right Panel: Transfer Config */}
                 <div className="hrm-card" style={{ padding: 0, overflow: 'visible' }}>
-                    <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', borderRadius: '16px 16px 0 0' }}>
+                    <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)', borderRadius: '16px 16px 0 0', borderBottom: '1px solid var(--border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ background: 'var(--primary-gradient)', padding: '10px', borderRadius: '12px', color: 'white' }}>
                                 <RefreshCw size={20} />
                             </div>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1E293B' }}>Transfer Details</h3>
-                                <p style={{ margin: 0, fontSize: '12px', color: '#64748B', fontWeight: 500 }}>Configure the new destination for the selected employee</p>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-dark)' }}>Transfer Details</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>Configure the new destination for the selected employee</p>
                             </div>
                         </div>
                     </div>
@@ -237,7 +237,7 @@ const ChangeBranch = () => {
                     <div style={{ padding: '32px' }}>
                         {!selectedEmployee ? (
                             <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                                <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                                     <Briefcase size={40} color="var(--border)" />
                                 </div>
                                 <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '8px' }}>No Employee Selected</h3>
@@ -286,14 +286,14 @@ const ChangeBranch = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ background: '#F8FAFC', borderRadius: '20px', padding: '24px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ background: 'var(--bg-base)', borderRadius: '20px', padding: '24px', border: '1px solid var(--border)' }}>
                                     <h4 style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '20px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         Transfer Summary
                                     </h4>
                                     
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', border: '1px solid var(--border-subtle)' }}>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', border: '1px solid var(--border)' }}>
                                                 <User size={18} />
                                             </div>
                                             <div>
@@ -302,13 +302,13 @@ const ChangeBranch = () => {
                                             </div>
                                         </div>
 
-                                        <div style={{ paddingLeft: '17px', borderLeft: '2px dashed #CBD5E1', margin: '4px 0 4px 17px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        <div style={{ paddingLeft: '17px', borderLeft: '2px dashed var(--border)', margin: '4px 0 4px 17px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
-                                                <div style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: '#CBD5E1' }}></div>
+                                                <div style={{ position: 'absolute', left: '-22px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--border)' }}></div>
                                                 <MapPin size={16} color="var(--text-muted)" />
                                                 <div>
                                                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700' }}>FROM</div>
-                                                    <div style={{ fontSize: '14px', color: '#64748B', fontWeight: '600' }}>{selectedEmployee.branch}</div>
+                                                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600' }}>{selectedEmployee.branch}</div>
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
@@ -321,10 +321,10 @@ const ChangeBranch = () => {
                                             </div>
                                         </div>
 
-                                        <div style={{ background: '#EFF6FF', padding: '16px', borderRadius: '12px', border: '1px solid #DBEAFE', marginTop: '8px' }}>
+                                        <div style={{ background: 'var(--primary-light)', padding: '16px', borderRadius: '12px', border: '1px solid var(--primary-blue)', marginTop: '8px' }}>
                                             <div style={{ display: 'flex', gap: '10px' }}>
                                                 <AlertCircle size={16} color="var(--primary-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                                <p style={{ fontSize: '11px', color: '#1E40AF', lineHeight: '1.5', margin: 0, fontWeight: '500' }}>
+                                                <p style={{ fontSize: '11px', color: 'var(--text-primary)', lineHeight: '1.5', margin: 0, fontWeight: '500' }}>
                                                     Transfers are logged in the employee history. Department assignment may need verification after transfer.
                                                 </p>
                                             </div>
@@ -339,7 +339,7 @@ const ChangeBranch = () => {
 
             <style>{`
                 .search-item-hover:hover {
-                    background-color: #F8FAFC !important;
+                    background-color: var(--bg-base) !important;
                 }
                 .search-item-hover:hover h4 {
                     color: var(--primary-blue) !important;

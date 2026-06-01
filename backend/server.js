@@ -116,6 +116,13 @@ const corsOrigins = [
     'http://192.168.29.43:5175',
     'http://192.168.29.43:8081',  // Expo web on LAN
     'http://192.168.29.43:8082',  // Expo web on LAN (alternative)
+    'http://local.hrms.com:5173',
+    'http://local.hrms.com:5174',
+    'http://local.hrms.com:5175',
+    'http://local.hrms.com:7001',
+    'http://local.hrms.com',
+    'https://local.hrms.com',
+    'http://192.168.29.43:7001',
 ].filter(Boolean);
 app.use(cors({
     origin: corsOrigins,
@@ -176,4 +183,4 @@ app.get('/', (req, res) => {
 
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 API: http://localhost:${PORT} | Client: ${process.env.CLIENT_URL || 'Not Set'}`);
-});
+});             

@@ -26,8 +26,8 @@ const StatCard = ({ label, value, color, icon, subValue }) => (
         flex: '1 1 140px', padding: '16px 20px', 
         display: 'flex', flexDirection: 'column', 
         justifyContent: 'space-between', minWidth: '140px',
-        border: '1px solid #E2E8F0', background: 'white',
-        boxShadow: '0 4px 12px -2px rgba(0,0,0,0.03)'
+        border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+        boxShadow: 'var(--shadow-sm)'
     }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
             <div style={{ 
@@ -35,11 +35,11 @@ const StatCard = ({ label, value, color, icon, subValue }) => (
                 background: (color || 'var(--primary-blue)') + '15', 
                 padding: '8px', borderRadius: '10px' 
             }}>{icon}</div>
-            {subValue && <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: '20px' }}>{subValue}</span>}
+            {subValue && <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-base)', padding: '2px 8px', borderRadius: '20px' }}>{subValue}</span>}
         </div>
         <div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E293B', lineHeight: 1.2 }}>{value}</div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748B', marginTop: '2px' }}>{label}</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>{label}</div>
         </div>
     </div>
 );
@@ -133,11 +133,11 @@ const MonthlyAttendance = () => {
                     
                     <div style={{ minWidth: '240px' }}>
                         <label className="hrm-label" style={{ marginBottom: '8px', display: 'block' }}>Reporting Month</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '6px', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-base)', padding: '6px', borderRadius: '14px', border: '1px solid var(--border)' }}>
                             <button className="icon-btn" style={{ width: '36px', height: '36px', borderRadius: '10px' }} onClick={() => shiftMonth(-1)}>
                                 <ChevronLeft size={18} />
                             </button>
-                            <div style={{ flex: 1, textAlign: 'center', fontWeight: 800, color: '#1E293B', fontSize: '14px', letterSpacing: '0.5px' }}>
+                            <div style={{ flex: 1, textAlign: 'center', fontWeight: 800, color: 'var(--text-primary)', fontSize: '14px', letterSpacing: '0.5px' }}>
                                 {monthLabel()}
                             </div>
                             <button className="icon-btn" style={{ width: '36px', height: '36px', borderRadius: '10px' }} onClick={() => shiftMonth(1)}>
@@ -149,17 +149,17 @@ const MonthlyAttendance = () => {
             </div>
 
             {!selectedEmp ? (
-                <div className="hrm-card" style={{ textAlign: 'center', padding: '100px 40px', border: '2px dashed #E2E8F0', background: 'transparent' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#CBD5E1', boxShadow: '0 8px 16px -4px rgba(0,0,0,0.05)' }}>
+                <div className="hrm-card" style={{ textAlign: 'center', padding: '100px 40px', border: '2px dashed var(--border)', background: 'transparent' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--text-muted)', boxShadow: 'var(--shadow-sm)' }}>
                         <Users size={40} />
                     </div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', margin: '0 0 8px' }}>No Employee Selected</h3>
-                    <p style={{ color: '#64748B', maxWidth: '300px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>Please select an employee from the dropdown above to view their monthly attendance insights.</p>
+                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>No Employee Selected</h3>
+                    <p style={{ color: 'var(--text-secondary)', maxWidth: '300px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>Please select an employee from the dropdown above to view their monthly attendance insights.</p>
                 </div>
             ) : loading ? (
                 <div className="hrm-card" style={{ textAlign: 'center', padding: '100px 40px' }}>
                     <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
-                    <p style={{ color: '#64748B', fontWeight: 600 }}>Analyzing attendance data...</p>
+                    <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Analyzing attendance data...</p>
                 </div>
             ) : data ? (
                 <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
@@ -181,11 +181,11 @@ const MonthlyAttendance = () => {
                                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Calendar size={20} />
                                     </div>
-                                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', margin: 0 }}>Attendance Calendar</h2>
+                                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Attendance Calendar</h2>
                                 </div>
                                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                     {['Present', 'Absent', 'Half Day', 'On Leave'].map(l => (
-                                        <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#64748B' }}>
+                                        <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
                                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: STATUS_STYLE[l].dot }}></div>
                                             {l.toUpperCase()}
                                         </div>
@@ -195,7 +195,7 @@ const MonthlyAttendance = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px' }}>
                                 {DAY_LABELS.map(d => (
-                                    <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: 800, color: '#94A3B8', paddingBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>{d}</div>
+                                    <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', paddingBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>{d}</div>
                                 ))}
                                 {cells.map((cell, i) => {
                                     if (!cell) return <div key={`empty-${i}`} style={{ height: '90px' }} />;
@@ -219,8 +219,8 @@ const MonthlyAttendance = () => {
                                                 borderRadius: '20px',
                                                 padding: '12px',
                                                 cursor: 'pointer',
-                                                background: isSelected ? st.dot : (isToday ? '#F8FAFC' : 'white'),
-                                                border: isToday ? `2px solid ${st.dot}` : (isSelected ? `2px solid ${st.dot}` : '1.5px solid #F1F5F9'),
+                                                background: isSelected ? st.dot : (isToday ? 'var(--bg-main)' : 'var(--bg-elevated)'),
+                                                border: isToday ? `2px solid ${st.dot}` : (isSelected ? `2px solid ${st.dot}` : '1.5px solid var(--border)'),
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 justifyContent: 'space-between',
@@ -233,7 +233,7 @@ const MonthlyAttendance = () => {
                                         >
                                             <div style={{ 
                                                 fontSize: '16px', fontWeight: 800, 
-                                                color: isSelected ? 'white' : '#1E293B',
+                                                color: isSelected ? 'white' : 'var(--text-primary)',
                                                 display: 'flex', justifyContent: 'space-between', alignItems: 'start'
                                             }}>
                                                 {cell.day}
@@ -241,7 +241,7 @@ const MonthlyAttendance = () => {
                                             </div>
                                             
                                             {cell.rec?.punchIn && !isSelected && (
-                                                <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                     <Clock size={10} /> {cell.rec.punchIn}
                                                 </div>
                                             )}
@@ -267,17 +267,17 @@ const MonthlyAttendance = () => {
                         {/* Detail Side Panel */}
                         <div style={{ position: 'sticky', top: '24px' }}>
                             {selectedDay ? (
-                                <div className="hrm-card" style={{ padding: '24px', animation: 'slideInRight 0.3s ease-out', border: '1px solid #E2E8F0' }}>
+                                <div className="hrm-card" style={{ padding: '24px', animation: 'slideInRight 0.3s ease-out', border: '1px solid var(--border)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '24px' }}>
                                         <div>
                                             <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px' }}>
                                                 {selectedDay.dayName}
                                             </p>
-                                            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', margin: 0 }}>
+                                            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                                                 {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}
                                             </h3>
                                         </div>
-                                        <button className="icon-btn" onClick={() => setSelectedDay(null)} style={{ background: '#F1F5F9' }}>
+                                        <button className="icon-btn" onClick={() => setSelectedDay(null)} style={{ background: 'var(--bg-base)' }}>
                                             <X size={18} />
                                         </button>
                                     </div>
@@ -291,10 +291,10 @@ const MonthlyAttendance = () => {
                                         return (
                                             <>
                                                 <div style={{ 
-                                                    background: st.bg, padding: '16px', borderRadius: '16px', 
+                                                    background: st.color + '15', padding: '16px', borderRadius: '16px', 
                                                     display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' 
                                                 }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'white', color: st.dot, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--bg-elevated)', color: st.dot, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-sm)' }}>
                                                         {st.icon}
                                                     </div>
                                                     <div>
@@ -304,33 +304,33 @@ const MonthlyAttendance = () => {
                                                 </div>
 
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <LogIn size={18} color="#10B981" />
                                                         <div>
-                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Punch In</div>
-                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>{rec?.punchIn || '--:--'}</div>
+                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>Punch In</div>
+                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>{rec?.punchIn || '--:--'}</div>
                                                         </div>
                                                     </div>
-                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <LogOut size={18} color="#EF4444" />
                                                         <div>
-                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Punch Out</div>
-                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>{rec?.punchOut || '--:--'}</div>
+                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>Punch Out</div>
+                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>{rec?.punchOut || '--:--'}</div>
                                                         </div>
                                                     </div>
-                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ padding: '16px', borderRadius: '16px', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                         <Clock size={18} color="#3B82F6" />
                                                         <div>
-                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Duration</div>
-                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: '#1E293B' }}>{rec?.workingFormatted || '0h 0m'}</div>
+                                                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>Duration</div>
+                                                            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>{rec?.workingFormatted || '0h 0m'}</div>
                                                         </div>
                                                     </div>
                                                     {rec?.approvalStatus && status !== 'Absent' && (
-                                                        <div style={{ padding: '16px', borderRadius: '16px', background: '#FFFBEB', border: '1.5px solid #FEF3C7', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(217, 119, 6, 0.1)', border: '1.5px solid rgba(217, 119, 6, 0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                             <Coffee size={18} color="#D97706" />
                                                             <div>
-                                                                <div style={{ fontSize: '11px', fontWeight: 600, color: '#B45309' }}>Approval Status</div>
-                                                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#92400E' }}>{rec.approvalStatus}</div>
+                                                                <div style={{ fontSize: '11px', fontWeight: 600, color: '#D97706' }}>Approval Status</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#D97706' }}>{rec.approvalStatus}</div>
                                                             </div>
                                                         </div>
                                                     )}
@@ -359,12 +359,12 @@ const MonthlyAttendance = () => {
                                                             <>
                                                                 {/* Work Summary / History */}
                                                                 {summaries.length > 0 && (
-                                                                    <div style={{ marginTop: '8px', padding: '16px', borderRadius: '16px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                    <div style={{ marginTop: '8px', padding: '16px', borderRadius: '16px', background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                             <Briefcase size={12} /> Work Report / History
                                                                         </div>
                                                                         {summaries.map((s, idx) => (
-                                                                            <div key={idx} style={{ fontSize: '13px', color: '#1E293B', fontWeight: 500, lineHeight: 1.5, marginTop: idx > 0 ? '8px' : 0, whiteSpace: 'pre-wrap' }}>
+                                                                            <div key={idx} style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.5, marginTop: idx > 0 ? '8px' : 0, whiteSpace: 'pre-wrap' }}>
                                                                                 {s}
                                                                             </div>
                                                                         ))}
@@ -373,23 +373,23 @@ const MonthlyAttendance = () => {
 
                                                                 {/* Late Arrival Reason */}
                                                                 {(lateReasons.length > 0 || rec?.lateInPenalty?.isLate) && (
-                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FFF7ED', border: '1px solid #FFEDD5' }}>
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: 'rgba(194, 65, 12, 0.1)', border: '1px solid rgba(194, 65, 12, 0.2)' }}>
                                                                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#C2410C', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                             <AlertCircle size={12} /> Late Arrival
                                                                         </div>
-                                                                        <div style={{ fontSize: '13px', color: '#9A3412', fontWeight: 600 }}>
+                                                                        <div style={{ fontSize: '13px', color: '#C2410C', fontWeight: 600 }}>
                                                                             {lateReasons.join(' · ') || 'Marked as late entry by system rule.'}
                                                                         </div>
                                                                     </div>
                                                                 )}
 
-                                                                {/* Early Out Reason */}
+                                                                {/* Early Departure Reason */}
                                                                 {(earlyReasons.length > 0 || rec?.earlyOutPenalty?.amount > 0) && (
-                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2' }}>
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: 'rgba(220, 38, 38, 0.1)', border: '1px solid rgba(220, 38, 38, 0.2)' }}>
                                                                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#DC2626', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                             <AlertCircle size={12} /> Early Departure
                                                                         </div>
-                                                                        <div style={{ fontSize: '13px', color: '#991B1B', fontWeight: 600 }}>
+                                                                        <div style={{ fontSize: '13px', color: '#DC2626', fontWeight: 600 }}>
                                                                             {earlyReasons.join(' · ') || 'Marked as early departure penalty.'}
                                                                         </div>
                                                                     </div>
@@ -397,11 +397,11 @@ const MonthlyAttendance = () => {
 
                                                                 {/* Out of Range (Geofence) */}
                                                                 {geofenceReasons.length > 0 && (
-                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#FEF3C7', border: '1px solid #FDE68A' }}>
+                                                                    <div style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: 'rgba(180, 83, 9, 0.1)', border: '1px solid rgba(180, 83, 9, 0.2)' }}>
                                                                         <div style={{ fontSize: '11px', fontWeight: 800, color: '#B45309', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                             <AlertCircle size={12} /> Out of Range Punch
                                                                         </div>
-                                                                        <div style={{ fontSize: '13px', color: '#92400E', fontWeight: 600 }}>
+                                                                        <div style={{ fontSize: '13px', color: '#B45309', fontWeight: 600 }}>
                                                                             {geofenceReasons.join(' · ')}
                                                                         </div>
                                                                     </div>
@@ -409,16 +409,16 @@ const MonthlyAttendance = () => {
 
                                                                 {/* Attached Requests (Attendance Correction / Leave / Missing Punch) */}
                                                                 {(selectedDay.dayRequests || []).map((reqItem, rIdx) => (
-                                                                    <div key={reqItem._id || rIdx} style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: '#EFF6FF', border: '1px solid #DBEAFE' }}>
+                                                                    <div key={reqItem._id || rIdx} style={{ marginTop: '4px', padding: '14px 16px', borderRadius: '16px', background: 'rgba(29, 78, 216, 0.1)', border: '1px solid rgba(29, 78, 216, 0.2)' }}>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#1D4ED8', textTransform: 'uppercase' }}>
+                                                                            <span style={{ fontSize: '11px', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase' }}>
                                                                                 Request: {reqItem.requestType}
                                                                             </span>
-                                                                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '8px', background: reqItem.status === 'Approved' ? '#DCFCE7' : reqItem.status === 'Rejected' ? '#FEE2E2' : '#FEF3C7', color: reqItem.status === 'Approved' ? '#15803D' : reqItem.status === 'Rejected' ? '#B91C1C' : '#B45309' }}>
+                                                                            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '8px', background: reqItem.status === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : reqItem.status === 'Rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)', color: reqItem.status === 'Approved' ? '#10B981' : reqItem.status === 'Rejected' ? '#EF4444' : '#F59E0B' }}>
                                                                                 {reqItem.status}
                                                                             </span>
                                                                         </div>
-                                                                        <div style={{ fontSize: '13px', color: '#1E3A8A', fontWeight: 600 }}>
+                                                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>
                                                                             Reason: "{reqItem.reason}"
                                                                         </div>
                                                                         {reqItem.adminRemark && (
@@ -437,12 +437,12 @@ const MonthlyAttendance = () => {
                                     })()}
                                 </div>
                             ) : (
-                                <div className="hrm-card" style={{ padding: '40px 24px', textAlign: 'center', border: '2px dashed #E2E8F0', background: 'transparent' }}>
-                                    <div style={{ color: '#CBD5E1', marginBottom: '16px' }}>
+                                <div className="hrm-card" style={{ padding: '40px 24px', textAlign: 'center', border: '2px dashed var(--border)', background: 'transparent' }}>
+                                    <div style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
                                         <Activity size={40} />
                                     </div>
-                                    <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#1E293B', margin: '0 0 8px' }}>Day Insights</h4>
-                                    <p style={{ fontSize: '13px', color: '#64748B', lineHeight: 1.5 }}>Select any date from the calendar to view detailed punch logs and shift info.</p>
+                                    <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Day Insights</h4>
+                                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>Select any date from the calendar to view detailed punch logs and shift info.</p>
                                 </div>
                             )}
 

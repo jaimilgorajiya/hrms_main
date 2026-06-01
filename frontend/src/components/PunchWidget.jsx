@@ -146,17 +146,20 @@ const PunchWidget = () => {
       let longitude = null;
       let isMocked = false;
       try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { 
-            enableHighAccuracy: true, 
-            timeout: 4000 
+        if (navigator.geolocation) {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: true, 
+              timeout: 4000 
+            });
           });
-        });
-        latitude = pos.coords.latitude;
-        longitude = pos.coords.longitude;
-        // accuracy exactly 0 is a strong indicator of browser mock location extensions
-        if (pos.coords.accuracy === 0) {
-          isMocked = true;
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+          if (pos.coords.accuracy === 0) {
+            isMocked = true;
+          }
+        } else {
+          console.log('Location acquisition not supported/available in this context');
         }
       } catch (e) {
         console.log('Location acquisition failed or denied in web browser');
@@ -180,6 +183,36 @@ const PunchWidget = () => {
       if (json.success) {
         await fetchToday();
         Swal.fire({ title: json.message, icon: 'success', timer: 1200, showConfirmButton: false });
+        return;
+      }
+
+      // Handle Out of Office Range Reason Requirement
+      if (json.requireOutOfRangeReason) {
+        const { value: reason, isConfirmed: reasonConfirmed } = await Swal.fire({
+          title: 'Out of Office Range',
+          html: `<p style="color:#64748B;margin-bottom:12px">${json.message}</p>`,
+          input: 'textarea',
+          inputPlaceholder: 'Enter reason for out of range punch...',
+          inputAttributes: { rows: 3 },
+          showCancelButton: true,
+          confirmButtonColor: '#F59E0B',
+          confirmButtonText: 'Submit & Punch',
+          inputValidator: (v) => !v?.trim() && 'Reason is required',
+        });
+        if (!reasonConfirmed || !reason?.trim()) return;
+
+        const res2 = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payloadBase, geofenceReason: reason.trim() }),
+        });
+        const json2 = await res2.json();
+        if (json2.success) {
+          await fetchToday();
+          Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
+        } else {
+          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#2563EB' });
+        }
         return;
       }
 

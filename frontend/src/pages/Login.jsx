@@ -315,28 +315,31 @@ const Login = () => {
             align-items: center;
         }
 
+        body.dark-mode .modern-auth-layout .auth-input,
         .auth-input {
             width: 100%;
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
+            background: #F8FAFC !important;
+            border: 1px solid #E2E8F0 !important;
             border-radius: 12px;
             padding: 16px 16px 16px 46px;
             font-size: 15px;
-            color: #0F172A;
+            color: #0F172A !important;
             font-family: 'Plus Jakarta Sans', sans-serif;
             transition: all 0.2s ease;
             box-sizing: border-box;
         }
 
+        body.dark-mode .modern-auth-layout .auth-input:focus,
         .auth-input:focus {
             outline: none;
-            background: #FFFFFF;
-            border-color: #2563EB;
+            background: #FFFFFF !important;
+            border-color: #2563EB !important;
             box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
         }
 
+        body.dark-mode .modern-auth-layout .auth-input::placeholder,
         .auth-input::placeholder {
-            color: #94A3B8;
+            color: #94A3B8 !important;
         }
 
         .input-icon {

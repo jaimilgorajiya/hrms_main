@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, FileText, Clock, Briefcase, Award } from 'lucide-react';
+import { User, Calendar, FileText, Clock, Briefcase, Award, LogIn, LogOut, Utensils, X } from 'lucide-react';
 import authenticatedFetch from '../../utils/apiHandler';
 import API_URL from '../../config/api';
 import PunchWidget from '../../components/PunchWidget';
@@ -9,6 +9,7 @@ import '../../styles/EmployeePanel.css';
 const EmployeeDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showShiftModal, setShowShiftModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +38,17 @@ const EmployeeDashboard = () => {
 
   const emp = data?.employee || {};
   const stats = data?.stats || {};
+
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const todayName = days[(new Date().getDay() + 6) % 7];
+  const shift = emp.workSetup?.shift || null;
+  const todaySchedule = shift?.schedule?.[todayName] || {};
+  const shiftStart = todaySchedule?.shiftStart || stats.shiftStart || '09:30';
+  const shiftEnd = todaySchedule?.shiftEnd || stats.shiftEnd || '18:30';
+  const lunchStart = todaySchedule?.lunchStart || '13:00';
+  const lunchEnd = todaySchedule?.lunchEnd || '14:00';
+  const weekOffType = shift?.weekOffType || 'Selected Weekdays';
+  const weekOffDays = shift?.weekOffDays || ['Sunday'];
 
   const statCards = [
     {
@@ -77,7 +89,8 @@ const EmployeeDashboard = () => {
       sub: stats.shiftStart && stats.shiftEnd ? `${stats.shiftStart} – ${stats.shiftEnd}` : 'Not assigned',
       icon: <Briefcase size={20} />,
       color: 'blue',
-      path: '/employee/shift',
+      path: null,
+      onClick: () => setShowShiftModal(true),
     },
   ];
 
@@ -122,8 +135,11 @@ const EmployeeDashboard = () => {
           {statCards.map((card, i) => (
             <div
               key={i}
-              className={`ep-stat-card ${card.path ? 'clickable' : ''}`}
-              onClick={() => card.path && navigate(card.path)}
+              className={`ep-stat-card ${card.path || card.onClick ? 'clickable' : ''}`}
+              onClick={() => {
+                if (card.onClick) card.onClick();
+                else if (card.path) navigate(card.path);
+              }}
             >
               <div className={`ep-stat-icon ${card.color}`}>{card.icon}</div>
               <div className="ep-stat-content">
@@ -172,7 +188,7 @@ const EmployeeDashboard = () => {
             <div className="ep-info-row"><span>Work Mode</span><span>{emp.workSetup?.mode || '—'}</span></div>
           </div>
           <div className="ep-card-footer">
-            <button className="ep-link-btn" onClick={() => navigate('/employee/shift')}>View Shift Details →</button>
+            <button className="ep-link-btn" onClick={() => setShowShiftModal(true)}>View Shift Details →</button>
           </div>
         </div>
 
@@ -188,10 +204,13 @@ const EmployeeDashboard = () => {
               { label: 'Apply Leave', icon: <Calendar size={16} />, path: '/employee/leaves' },
               { label: 'Download Payslip', icon: <FileText size={16} />, path: '/employee/payslips' },
               { label: 'My Documents', icon: <FileText size={16} />, path: '/employee/documents' },
-              { label: 'Shift Schedule', icon: <Clock size={16} />, path: '/employee/shift' },
+              { label: 'Shift Schedule', icon: <Clock size={16} />, onClick: () => setShowShiftModal(true) },
               { label: 'Edit Profile', icon: <User size={16} />, path: '/employee/profile' },
             ].map((link, i) => (
-              <button key={i} className="ep-quick-link-btn" onClick={() => navigate(link.path)}>
+              <button key={i} className="ep-quick-link-btn" onClick={() => {
+                if (link.onClick) link.onClick();
+                else navigate(link.path);
+              }}>
                 {link.icon}
                 {link.label}
               </button>
@@ -199,6 +218,104 @@ const EmployeeDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Shift Detail Modal */}
+      {showShiftModal && (
+        <div 
+          className="ep-modal-overlay" 
+          onClick={() => setShowShiftModal(false)}
+        >
+          <div 
+            className="ep-shift-modal" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ep-shift-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: '#f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Clock size={20} color="#ffffff" />
+                </div>
+                <div>
+                  <div className="ep-shift-modal-title">{stats.shiftName || 'General Shift'}</div>
+                  <div className="ep-shift-modal-subtitle">Allocated timings and weekly rules</div>
+                </div>
+              </div>
+              <button 
+                className="ep-shift-modal-close"
+                onClick={() => setShowShiftModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ep-shift-modal-body">
+              {/* Card 1: Shift Start */}
+              <div className="ep-shift-detail-card">
+                <div className="ep-shift-card-left">
+                  <div className="ep-shift-card-icon-wrap">
+                    <LogIn size={20} />
+                  </div>
+                  <div className="ep-shift-card-info">
+                    <span className="ep-shift-card-label">Shift Start</span>
+                    <span className="ep-shift-card-value">{shiftStart}</span>
+                  </div>
+                </div>
+                <span className="ep-shift-badge inbound">Inbound</span>
+              </div>
+
+              {/* Card 2: Shift End */}
+              <div className="ep-shift-detail-card">
+                <div className="ep-shift-card-left">
+                  <div className="ep-shift-card-icon-wrap">
+                    <LogOut size={20} />
+                  </div>
+                  <div className="ep-shift-card-info">
+                    <span className="ep-shift-card-label">Shift End</span>
+                    <span className="ep-shift-card-value">{shiftEnd}</span>
+                  </div>
+                </div>
+                <span className="ep-shift-badge outbound">Outbound</span>
+              </div>
+
+              {/* Card 3: Lunch Break */}
+              <div className="ep-shift-detail-card">
+                <div className="ep-shift-card-left">
+                  <div className="ep-shift-card-icon-wrap">
+                    <Utensils size={20} />
+                  </div>
+                  <div className="ep-shift-card-info">
+                    <span className="ep-shift-card-label">Lunch Break</span>
+                    <span className="ep-shift-card-value">{lunchStart} - {lunchEnd}</span>
+                  </div>
+                </div>
+                <span className="ep-shift-badge lunch">Lunch</span>
+              </div>
+
+              {/* Card 4: Weekly Off Policy */}
+              <div className="ep-shift-detail-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="ep-shift-card-info">
+                    <span className="ep-shift-card-label">Weekly Off Policy</span>
+                  </div>
+                  <span className="ep-shift-badge off-policy">{weekOffType}</span>
+                </div>
+                <div className="ep-shift-week-off-row">
+                  {weekOffDays.map((day, idx) => (
+                    <span key={idx} className="ep-shift-week-off-pill">{day}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

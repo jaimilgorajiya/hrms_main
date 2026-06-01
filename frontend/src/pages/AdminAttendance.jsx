@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X, ArrowRight, Map } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
@@ -10,6 +10,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const AdminAttendance = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const today = new Date();
   const [date, setDate] = useState(today.toISOString().split('T')[0]);
   const [records, setRecords] = useState([]);
@@ -137,9 +138,9 @@ const AdminAttendance = () => {
             {['day', 'month'].map(v => (
               <button key={v} onClick={() => setViewMode(v)} style={{
                 padding: '0 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '800',
-                background: viewMode === v ? '#fff' : 'transparent',
+                background: viewMode === v ? 'var(--bg-base)' : 'transparent',
                 color: viewMode === v ? 'var(--primary-blue)' : 'var(--text-muted)',
-                boxShadow: viewMode === v ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                boxShadow: viewMode === v ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                 transition: 'all 0.2s', display: 'flex', alignItems: 'center'
               }}>
                 {v === 'day' ? 'DAILY' : 'MONTHLY'}
@@ -156,11 +157,11 @@ const AdminAttendance = () => {
             )}
           </div>
 
-          <button className="btn-hrm btn-hrm-success" onClick={() => setManualModal(true)} style={{ height: '44px', padding: '0 24px', background: 'var(--success)', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' }}>
+          <button className="btn-hrm btn-hrm-success" onClick={() => navigate('/admin/attendance/add', { state: { openModal: true } })} style={{ height: '44px', padding: '0 24px', background: 'var(--success)', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' }}>
             <Plus size={18} /> MANUAL ENTRY
           </button>
           
-          <button className="btn-hrm btn-hrm-secondary" onClick={fetchRecords} style={{ height: '44px', background: 'white', border: '1.5px solid var(--border)' }}>
+          <button className="btn-hrm btn-hrm-secondary" onClick={fetchRecords} style={{ height: '44px', background: 'var(--bg-base)', border: '1.5px solid var(--border)' }}>
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -348,16 +349,16 @@ const AdminAttendance = () => {
                   return (
                     <div key={idx} style={{ position: 'relative', marginBottom: '32px' }}>
                       {/* Dot */}
-                      <div style={{ 
+                       <div style={{ 
                         position: 'absolute', left: '-40px', top: '4px', width: '24px', height: '24px', 
-                        borderRadius: '8px', background: 'white', border: `2px solid ${color}`,
+                        borderRadius: '8px', background: 'var(--bg-elevated)', border: `2px solid ${color}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
                         boxShadow: `0 4px 10px ${color}20`
                       }}>
                         <Icon size={12} color={color} />
                       </div>
-
-                      <div className="hrm-card" style={{ padding: '20px', border: '1px solid var(--border)', background: 'white', boxShadow: '0 2px 12px rgba(0,0,0,0.02)' }}>
+ 
+                      <div className="hrm-card" style={{ padding: '20px', border: '1px solid var(--border)', background: 'var(--bg-base)', boxShadow: '0 2px 12px rgba(0,0,0,0.02)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                           <div>
                             <span style={{ fontSize: '10px', fontWeight: '900', color: color, letterSpacing: '0.1em', textTransform: 'uppercase' }}>

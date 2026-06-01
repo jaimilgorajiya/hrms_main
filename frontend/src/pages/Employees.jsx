@@ -362,45 +362,22 @@ const Employees = () => {
             <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', overflowX: 'auto', padding: '4px' }}>
                 <button
                     onClick={() => setActiveBranchId('all')}
-                    style={{
-                        padding: '10px 24px', borderRadius: '12px', whiteSpace: 'nowrap',
-                        border: '1px solid', borderColor: activeBranchId === 'all' ? 'var(--primary-blue)' : 'var(--border)',
-                        background: activeBranchId === 'all' ? 'var(--primary-blue)' : 'var(--bg-surface)',
-                        color: activeBranchId === 'all' ? 'white' : 'var(--text-secondary)',
-                        fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        boxShadow: activeBranchId === 'all' ? '0 8px 16px -4px rgba(37, 99, 235, 0.25)' : 'none'
-                    }}
+                    className={`branch-tab ${activeBranchId === 'all' ? 'active' : ''}`}
                 >
                     All
-                    <span style={{
-                        background: activeBranchId === 'all' ? 'rgba(255,255,255,0.2)' : 'var(--bg-main)',
-                        color: activeBranchId === 'all' ? 'white' : 'var(--text-muted)',
-                        padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800'
-                    }}>{employees.length}</span>
+                    <span className="branch-count">{employees.length}</span>
                 </button>
                 {branches.map(branch => {
                     const isActive = activeBranchId === branch._id;
                     const count = employees.filter(emp => emp.branch === branch.branchName).length;
                     return (
                         <button
-                            key={branch._id} onClick={() => setActiveBranchId(branch._id)}
-                            style={{
-                                padding: '10px 24px', borderRadius: '12px', whiteSpace: 'nowrap',
-                                border: '1px solid', borderColor: isActive ? 'var(--primary-blue)' : 'var(--border)',
-                                background: isActive ? 'var(--primary-blue)' : 'var(--bg-surface)',
-                                color: isActive ? 'white' : 'var(--text-secondary)',
-                                fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '10px',
-                                cursor: 'pointer', transition: 'all 0.2s',
-                                boxShadow: isActive ? '0 8px 16px -4px rgba(37, 99, 235, 0.25)' : 'none'
-                            }}
+                            key={branch._id} 
+                            onClick={() => setActiveBranchId(branch._id)}
+                            className={`branch-tab ${isActive ? 'active' : ''}`}
                         >
                             {branch.branchShortName || branch.branchName}
-                            <span style={{
-                                background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-main)',
-                                color: isActive ? 'white' : 'var(--text-muted)',
-                                padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800'
-                            }}>{count}</span>
+                            <span className="branch-count">{count}</span>
                         </button>
                     );
                 })}

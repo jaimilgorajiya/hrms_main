@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const { colors, theme, isDarkMode } = useTheme();
   const { loginWithOTP, checkPhoneStatus } = useAuth();
   const router = useRouter();
-  
+
   // State
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -40,7 +40,7 @@ export default function LoginScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, bounciness: 5, useNativeDriver: true }),
-      
+
       // Floating blobs animation
       Animated.loop(
         Animated.sequence([
@@ -71,24 +71,19 @@ export default function LoginScreen() {
       // 1. Check if phone is registered in our database
       const checkRes = await checkPhoneStatus(phone);
       if (!checkRes.success) {
-        Toast.show({ 
-          type: 'error', 
-          text1: 'Access Denied', 
-          text2: checkRes.message || 'Mobile number not registered.' 
+        Toast.show({
+          type: 'error',
+          text1: 'Access Denied',
+          text2: checkRes.message || 'Mobile number not registered.'
         });
         setLoading(false);
         return;
       }
 
       // 2. If registered, proceed with Firebase OTP
-      // 2. If registered, proceed with Firebase OTP (or mock bypass in development)
       const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-      
-      // __DEV__ mock OTP bypass removed to send real SMS OTPs.
-      
+
       // JS SDK implementation
-      console.log('DEBUG: auth object is:', auth);
-      console.log('DEBUG: typeof auth is:', typeof auth);
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setConfirm(confirmation);
 
@@ -111,20 +106,12 @@ export default function LoginScreen() {
     try {
       const result = await confirm.confirm(code);
       if (result) {
-        let idToken;
-        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-        
-        if (!auth.currentUser) {
-          // If we bypassed Firebase, send the mock token
-          idToken = `mock-token-${formattedPhone}`;
-        } else {
-          const user = auth.currentUser;
-          if (!user) throw new Error('No user found');
-          idToken = await user.getIdToken();
-        }
-        
+        const user = auth.currentUser;
+        if (!user) throw new Error('No user found');
+        const idToken = await user.getIdToken();
+
         const apiResult = await loginWithOTP(idToken);
-        
+
         if (apiResult.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           router.replace('/(tabs)/dashboard');
@@ -151,17 +138,17 @@ export default function LoginScreen() {
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgMain }]} />
       <Animated.View style={[styles.blob, styles.blob1, { backgroundColor: colors.primary, transform: [{ translateY: b1Translate }] }]} />
       <Animated.View style={[styles.blob, styles.blob2, { backgroundColor: colors.purple, transform: [{ translateX: b2Translate }] }]} />
-      
+
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            
+
             <Animated.View style={[styles.headerSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={[styles.logoBox, { backgroundColor: colors.bgCard, borderColor: colors.borderLight }]}>
                 <View style={styles.logoGrad}>
-                  <Animated.Image 
-                    source={require('../../assets/icon.png')} 
-                    style={{ width: '100%', height: '100%', borderRadius: 28 }} 
+                  <Animated.Image
+                    source={require('../../assets/icon.png')}
+                    style={{ width: '100%', height: '100%', borderRadius: 28 }}
                     resizeMode="contain"
                   />
                 </View>
@@ -174,7 +161,7 @@ export default function LoginScreen() {
                 <Text style={[styles.cardTitle, { color: colors.textDark }]}>Secure Access</Text>
                 <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
               </View>
-              
+
               <Text style={[styles.cardSub, { color: colors.textLight }]}>
                 {confirm ? 'Verify the authentication code' : 'Join using your secure mobile gateway'}
               </Text>
@@ -200,8 +187,8 @@ export default function LoginScreen() {
                 ) : (
                   <View style={styles.inputGroup}>
                     <Text style={[styles.label, { color: colors.textDark }]}>Enter 6-Digit PIN</Text>
-                    <TouchableOpacity 
-                      style={styles.otpContainer} 
+                    <TouchableOpacity
+                      style={styles.otpContainer}
                       activeOpacity={1}
                       onPress={() => otpInput.current?.focus()}
                     >
@@ -233,14 +220,14 @@ export default function LoginScreen() {
                 )}
 
 
-                
-                <TouchableOpacity 
-                  style={styles.loginBtn} 
-                  onPress={confirm ? handleVerifyOTP : handleSendOTP} 
-                  disabled={loading} 
+
+                <TouchableOpacity
+                  style={styles.loginBtn}
+                  onPress={confirm ? handleVerifyOTP : handleSendOTP}
+                  disabled={loading}
                   activeOpacity={0.8}
                 >
-                  <LinearGradient colors={isDarkMode ? ['#4338CA', '#312E81'] : ['#6366F1', '#4338CA']} style={styles.btnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>
+                  <LinearGradient colors={isDarkMode ? ['#4338CA', '#312E81'] : ['#6366F1', '#4338CA']} style={styles.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                     {loading ? <ActivityIndicator color="#fff" /> : (
                       <>
                         <Text style={[styles.btnText, { color: '#fff' }]}>{confirm ? 'Confirm & Finalize' : 'Authorize with OTP'}</Text>
