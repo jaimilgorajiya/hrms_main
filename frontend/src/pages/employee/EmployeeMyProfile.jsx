@@ -27,7 +27,11 @@ const EmployeeMyProfile = () => {
 
   const getPhotoUrl = (photo) => {
     if (!photo) return null;
-    return photo.startsWith('http') ? photo : `${API_URL}/uploads/${photo}`;
+    let url = photo.startsWith('http') ? photo : `${API_URL}/uploads/${photo}`;
+    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+      url = url.replace('http://', 'https://');
+    }
+    return url;
   };
 
   const handlePasswordSubmit = async (e) => {

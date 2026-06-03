@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertTriangle, Clock, X, Send, LogIn, LogOut, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, XCircle, AlertTriangle, Clock, X, Send, LogIn, LogOut, CalendarDays, CreditCard, AlertCircle } from 'lucide-react';
 import { useMobileAuth } from './context/MobileAuthContext';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, parseISO } from 'date-fns';
 
@@ -28,6 +28,7 @@ export default function MobileAttendance() {
   const [markedDates, setMarkedDates] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
   const [stats, setStats] = useState({ present: 0, absent: 0, missing: 0, leaves: 0 });
+  const [empStats, setEmpStats] = useState(null);
   const [weekOffDays, setWeekOffDays] = useState([]);
   const [joiningDate, setJoiningDate] = useState(null);
   const [leaveTypes, setLeaveTypes] = useState([]);
@@ -111,7 +112,10 @@ export default function MobileAttendance() {
         setWeekOffDays(histJson.weekOffDays || []);
         processRecords(histJson.records || [], histJson.requests || {}, histJson.joiningDate, histJson.weekOffDays || [], m);
       }
-      if (statsJson.success) setUserProfile(statsJson.employee);
+      if (statsJson.success) {
+        setUserProfile(statsJson.employee);
+        setEmpStats(statsJson.stats);
+      }
       if (ltJson.success) setLeaveTypes(ltJson.leaveTypes || ltJson.data || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -139,10 +143,17 @@ export default function MobileAttendance() {
   const currentRequest = requests[selectedDate];
   const isMissingPunchOut = selectedRecord && selectedRecord.punchIn && !selectedRecord.punchOut && selectedDate < today;
   const isAbsent = !selectedRecord && selectedDate < today && (!joiningDate || selectedDate >= joiningDate) && !weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE'));
-  const canRequest = selectedDate && !currentRequest && (isAbsent || isMissingPunchOut || selectedDate >= today);
+  const isPunchComplete = selectedRecord && selectedRecord.punchIn && selectedRecord.punchOut;
+  const canRequest = selectedDate && !currentRequest && !isPunchComplete && (isAbsent || isMissingPunchOut || selectedDate >= today);
 
   const handleSubmit = async () => {
-    if (reqType === 'Leave' && !selectedLeaveType) return showToast('Select a leave type', 'error');
+    if (reqType === 'Leave') {
+      if (!selectedLeaveType) return showToast('Select a leave type', 'error');
+      const maxLimit = empStats?.maxUsagePerMonth || empStats?.totalLeaves || 0;
+      if (leaveCategory === 'Paid' && maxLimit > 0 && (empStats?.usedLeaves || 0) >= maxLimit) {
+        return showToast(`Monthly paid leave limit reached (${maxLimit})`, 'error');
+      }
+    }
     if (reqType === 'Attendance Correction' && !workSummary.trim()) return showToast('Work report is required', 'error');
     if (!reason.trim()) return showToast('Reason is required', 'error');
     setSubmitting(true);
@@ -151,7 +162,13 @@ export default function MobileAttendance() {
         requestType: reqType,
         date: selectedDate,
         reason,
-        ...(reqType === 'Leave' && { leaveType: selectedLeaveType, leaveDuration, leaveCategory }),
+        ...(reqType === 'Leave' && { 
+          leaveType: selectedLeaveType, 
+          leaveDuration, 
+          leaveCategory,
+          fromDate: selectedDate,
+          toDate: selectedDate 
+        }),
         ...(reqType === 'Attendance Correction' && {
           workSummary,
           manualIn: new Date(`${selectedDate}T${manualIn}:00`),
@@ -334,7 +351,14 @@ export default function MobileAttendance() {
                   <label className="m-input-label">Request Type</label>
                   <div className="m-segment">
                     <button className={`m-segment-btn ${reqType === 'Leave' ? 'active' : ''}`} onClick={() => setReqType('Leave')}>Leave</button>
-                    <button className={`m-segment-btn ${reqType === 'Attendance Correction' ? 'active' : ''}`} onClick={() => setReqType('Attendance Correction')}>Correction</button>
+                    <button 
+                      className={`m-segment-btn ${reqType === 'Attendance Correction' ? 'active' : ''}`} 
+                      onClick={() => selectedDate <= today && setReqType('Attendance Correction')}
+                      disabled={selectedDate > today}
+                      style={selectedDate > today ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    >
+                      Correction
+                    </button>
                   </div>
                 </div>
               )}
@@ -343,11 +367,49 @@ export default function MobileAttendance() {
                 <div className="m-input-group">
                   <label className="m-input-label">Leave Type</label>
                   <div className="m-chips">
-                    {leaveTypes.map(lt => (
+                    {leaveTypes.filter(lt => {
+                      if (userProfile?.gender) {
+                        if (lt.applicableFor === 'Male Only' && userProfile.gender !== 'Male') return false;
+                        if (lt.applicableFor === 'Female Only' && userProfile.gender !== 'Female') return false;
+                      }
+                      return true;
+                    }).map(lt => (
                       <button key={lt._id} className={`m-chip ${selectedLeaveType === lt._id ? 'active' : ''}`} onClick={() => setSelectedLeaveType(lt._id)}>
                         {lt.name}
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {reqType === 'Leave' && empStats?.leavePolicy !== 'Multiple of 1' && (
+                <div className="m-input-group">
+                  <label className="m-input-label">Duration</label>
+                  <div className="m-segment">
+                    {['Full Day', 'First Half', 'Second Half'].map(d => (
+                      <button key={d} className={`m-segment-btn ${leaveDuration === d ? 'active' : ''}`} onClick={() => { setLeaveDuration(d); }}>
+                        {d === 'Full Day' ? 'Full' : d === 'First Half' ? '1st Half' : '2nd Half'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reqType === 'Leave' && (
+                <div className="m-input-group">
+                  <label className="m-input-label">Category</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className={`m-chip ${leaveCategory === 'Paid' ? 'active' : ''}`} onClick={() => setLeaveCategory('Paid')}>
+                      <CreditCard size={12} /> Paid
+                    </button>
+                    {empStats?.canApplyUnpaidLeave && (
+                      <button className={`m-chip ${leaveCategory === 'Unpaid' ? 'active' : ''}`} onClick={() => setLeaveCategory('Unpaid')}>
+                        <AlertCircle size={12} /> Unpaid
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--m-muted)', marginTop: 4, fontWeight: 600 }}>
+                    {leaveCategory === 'Paid' ? '* Deducted from paid leave balance' : '* Not deducted from paid leave balance'}
                   </div>
                 </div>
               )}
@@ -380,12 +442,12 @@ export default function MobileAttendance() {
               <div className="m-input-group">
                 <label className="m-input-label">Reason *</label>
                 <div className="m-input-wrap m-textarea-wrap">
-                  <textarea placeholder="Provide a reason..." value={reason} onChange={e => setReason(e.target.value)} rows={3} />
+                  <textarea placeholder={reqType === 'Leave' ? "Explain the reason for your leave..." : "Provide a reason..."} value={reason} onChange={e => setReason(e.target.value)} rows={3} />
                 </div>
               </div>
 
               <button className="m-btn m-btn-primary m-btn-full" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? <><div className="m-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />Submitting...</> : <><Send size={18} />Submit Request</>}
+                {submitting ? <><div className="m-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />Submitting...</> : <><Send size={18} />{reqType === 'Leave' ? 'Submit Application' : 'Submit Request'}</>}
               </button>
             </div>
           </div>

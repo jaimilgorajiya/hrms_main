@@ -37,7 +37,6 @@ const AddAttendance = () => {
     const [dateTo, setDateTo] = useState('');
     
     const [selectedEmployeeName, setSelectedEmployeeName] = useState('');
-    const [punchInLocked, setPunchInLocked] = useState(false);
     
     const [formData, setFormData] = useState({
         employeeId: '',
@@ -67,10 +66,9 @@ const AddAttendance = () => {
     const handleOpenModal = (record = null) => {
         if (record) {
             setSelectedEmployeeName(record.employee.name);
-            // Lock punch-in if employee already punched in but forgot to punch out
+            // Both punch-in and punch-out are editable for the admin
             const hasPunchIn = !!record.punchIn;
             const hasPunchOut = !!record.punchOut;
-            setPunchInLocked(hasPunchIn && !hasPunchOut);
             setFormData({
                 employeeId: record.employee._id,
                 date: record.date,
@@ -80,7 +78,6 @@ const AddAttendance = () => {
                 remark: `Correction for ${record.status} on ${record.date}`
             });
         } else {
-            setPunchInLocked(false);
             setSelectedEmployeeName('');
             setFormData({
                 employeeId: '',
@@ -356,25 +353,12 @@ const AddAttendance = () => {
                                         <div>
                                             <label className="hrm-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 Punch In
-                                                {punchInLocked && (
-                                                    <span style={{ fontSize: '11px', background: 'rgba(234, 179, 8, 0.15)', color: '#EAB308', padding: '2px 8px', borderRadius: '999px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                                        🔒 Locked
-                                                    </span>
-                                                )}
                                             </label>
                                             <input
                                                 type="time"
                                                 value={formData.inTime}
-                                                onChange={e => !punchInLocked && setFormData({...formData, inTime: e.target.value})}
-                                                readOnly={punchInLocked}
+                                                onChange={e => setFormData({...formData, inTime: e.target.value})}
                                                 className="hrm-input"
-                                                style={punchInLocked ? {
-                                                    background: 'var(--bg-base)',
-                                                    color: 'var(--text-muted)',
-                                                    cursor: 'not-allowed',
-                                                    border: '1.5px solid var(--border)'
-                                                } : {}}
-                                                title={punchInLocked ? 'Punch-in is already recorded. Only punch-out can be updated.' : ''}
                                             />
                                         </div>
                                         {/* Punch Out */}

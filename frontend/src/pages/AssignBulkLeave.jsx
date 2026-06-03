@@ -58,12 +58,13 @@ const AssignBulkLeave = () => {
                         style={{
                             width: '100%',
                             padding: '14px 16px 14px 48px',
-                            background: 'white',
-                            border: '1.5px solid #E2E8F0',
+                            background: 'var(--card-bg)',
+                            border: '1.5px solid var(--border)',
                             borderRadius: '14px',
                             fontSize: '14px',
                             fontWeight: '600',
                             outline: 'none',
+                            color: 'var(--text-primary)',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                         }}
                     />
@@ -71,29 +72,29 @@ const AssignBulkLeave = () => {
             </div>
 
             {/* Table Card */}
-            <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '20px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ padding: '8px', background: 'rgba(59, 100, 139, 0.1)', borderRadius: '10px' }}>
-                            <Users size={18} color="#3B648B" />
+                            <Users size={18} color="var(--accent)" />
                         </div>
                         <h2 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>Enrollment Roster</h2>
                    </div>
                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700' }}>
-                        Total: <span style={{ color: '#3B648B' }}>{filteredEmployees.length}</span> Employees
+                        Total: <span style={{ color: 'var(--accent)' }}>{filteredEmployees.length}</span> Employees
                    </div>
                 </div>
 
                 {loading ? (
                     <div style={{ padding: '100px', textAlign: 'center' }}>
-                        <Loader2 className="animate-spin" size={40} color="#3B648B" style={{ margin: '0 auto' }} />
+                        <Loader2 className="animate-spin" size={40} color="var(--accent)" style={{ margin: '0 auto' }} />
                         <p style={{ marginTop: '20px', color: 'var(--text-secondary)', fontWeight: '700' }}>Synchronizing data...</p>
                     </div>
                 ) : (
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>No.</th>
                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', minWidth: '150px' }}>Manage</th>
                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', minWidth: '250px' }}>Employee Details</th>
@@ -105,16 +106,17 @@ const AssignBulkLeave = () => {
                             </thead>
                             <tbody>
                                 {filteredEmployees.map((emp, idx) => (
-                                    <tr key={emp._id} style={{ borderBottom: '1px solid #F1F5F9', transition: '0.15s' }}>
+                                    <tr key={emp._id} style={{ borderBottom: '1px solid var(--border)', transition: '0.15s' }}>
                                         <td style={{ padding: '16px 24px', fontWeight: '700', color: 'var(--text-muted)' }}>{idx + 1}</td>
                                         <td style={{ padding: '16px 24px' }}>
                                             <button 
                                                 onClick={() => navigate(`/admin/leave/assign/add?empId=${emp._id}`)}
+                                                className="btn-edit-bulk"
                                                 style={{ 
-                                                    background: '#3B648B', color: 'white', padding: '10px 16px', 
+                                                    padding: '10px 16px', 
                                                     borderRadius: '10px', border: 'none', fontWeight: '800', fontSize: '11px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                                    width: 'fit-content', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(59, 100, 139, 0.2)'
+                                                    width: 'fit-content', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)'
                                                 }}
                                             >
                                                 <Edit size={14} /> {emp.leaveGroup ? 'EDIT' : 'ASSIGN BULK'}
@@ -122,7 +124,7 @@ const AssignBulkLeave = () => {
                                         </td>
                                         <td style={{ padding: '16px 24px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#F1F5F9', border: '1.5px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '13px', color: '#3B648B', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--bg-main)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '13px', color: 'var(--accent)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                                                     {emp.name.charAt(0)}
                                                 </div>
                                                 <div>
@@ -147,11 +149,11 @@ const AssignBulkLeave = () => {
                                         <td style={{ padding: '16px 24px', textAlign: 'center' }}>
                                             <div style={{ 
                                                 fontWeight: '900', 
-                                                color: (emp.leaveGroup && typeof emp.leaveGroup === 'object' && emp.leaveGroup.noOfPaidLeaves) ? '#3B648B' : '#94A3B8', 
-                                                background: '#F1F5F9', 
+                                                color: (emp.leaveGroup && typeof emp.leaveGroup === 'object' && emp.leaveGroup.noOfPaidLeaves) ? 'var(--accent)' : 'var(--text-muted)', 
+                                                background: 'var(--bg-main)', 
                                                 padding: '6px 12px', 
                                                 borderRadius: '8px', 
-                                                border: '1px solid #E2E8F0', 
+                                                border: '1px solid var(--border)', 
                                                 display: 'inline-block' 
                                             }}>
                                                 {(emp.leaveGroup && typeof emp.leaveGroup === 'object' && emp.leaveGroup.noOfPaidLeaves) ? Number(emp.leaveGroup.noOfPaidLeaves).toFixed(2) : '0.00'}
@@ -165,7 +167,9 @@ const AssignBulkLeave = () => {
                 )}
             </div>
             <style dangerouslySetInnerHTML={{ __html: `
-                tr:hover { background-color: #F8FAFC !important; }
+                .btn-edit-bulk { background: var(--primary-blue); color: #ffffff; }
+                body.dark-mode .btn-edit-bulk { color: #13121b !important; }
+                tr:hover { background-color: var(--bg-main) !important; }
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}} />

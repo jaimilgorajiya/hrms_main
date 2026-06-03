@@ -64,12 +64,12 @@ const LeaveBalance = () => {
         );
     }, [balances, searchTerm]);
 
-    const getStatusStyle = (status) => {
+const getStatusStyle = (status) => {
         switch(status) {
-            case 'Approved': return { bg: '#ECFDF5', color: '#059669', icon: CheckCircle2 };
-            case 'Pending': return { bg: '#FFF7ED', color: '#EA580C', icon: Clock };
-            case 'Rejected': return { bg: '#FEF2F2', color: '#DC2626', icon: XCircle };
-            default: return { bg: '#F1F5F9', color: 'var(--text-secondary)', icon: AlertCircle };
+            case 'Approved': return { bg: 'rgba(16, 185, 129, 0.15)', color: '#10B981', icon: CheckCircle2 };
+            case 'Pending': return { bg: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', icon: Clock };
+            case 'Rejected': return { bg: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', icon: XCircle };
+            default: return { bg: 'var(--bg-main)', color: 'var(--text-secondary)', icon: AlertCircle };
         }
     };
 
@@ -84,16 +84,16 @@ const LeaveBalance = () => {
                 
                 {/* Left Sidebar: Employee List */}
                 <div style={{ 
-                    background: 'white', 
+                    background: 'var(--card-bg)', 
                     borderRadius: '24px', 
-                    border: '1.5px solid #E2E8F0', 
+                    border: '1.5px solid var(--border)', 
                     overflow: 'hidden',
                     maxHeight: 'calc(100vh - 200px)',
                     display: 'flex',
                     flexDirection: 'column',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
                 }}>
-                    <div style={{ padding: '20px', borderBottom: '1.5px solid #F1F5F9' }}>
+                    <div style={{ padding: '20px', borderBottom: '1.5px solid var(--border)' }}>
                         <div style={{ position: 'relative' }}>
                             <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input 
@@ -104,12 +104,13 @@ const LeaveBalance = () => {
                                 style={{
                                     width: '100%',
                                     padding: '12px 12px 12px 42px',
-                                    background: '#F8FAFC',
-                                    border: '1.5px solid #E2E8F0',
+                                    background: 'var(--bg-main)',
+                                    border: '1.5px solid var(--border)',
                                     borderRadius: '12px',
                                     fontSize: '13px',
                                     fontWeight: '700',
-                                    outline: 'none'
+                                    outline: 'none',
+                                    color: 'var(--text-primary)'
                                 }}
                             />
                         </div>
@@ -122,6 +123,7 @@ const LeaveBalance = () => {
                             <div 
                                 key={emp.id}
                                 onClick={() => handleEmployeeSelect(emp.id)}
+                                className={selectedEmpId === emp.id ? 'emp-item-selected' : ''}
                                 style={{
                                     padding: '14px 16px',
                                     borderRadius: '16px',
@@ -131,40 +133,40 @@ const LeaveBalance = () => {
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     transition: '0.2s',
-                                    background: selectedEmpId === emp.id ? '#3B648B' : 'transparent',
-                                    color: selectedEmpId === emp.id ? 'white' : '#1E293B',
                                     border: '1px solid transparent'
                                 }}
-                                onMouseOver={(e) => { if (selectedEmpId !== emp.id) e.currentTarget.style.background = '#F1F5F9'; }}
+                                onMouseOver={(e) => { if (selectedEmpId !== emp.id) e.currentTarget.style.background = 'var(--bg-main)'; }}
                                 onMouseOut={(e) => { if (selectedEmpId !== emp.id) e.currentTarget.style.background = 'transparent'; }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ 
-                                        width: '36px', 
-                                        height: '36px', 
-                                        borderRadius: '10px', 
-                                        background: selectedEmpId === emp.id ? 'rgba(255,255,255,0.2)' : '#F1F5F9',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: '800',
-                                        fontSize: '13px',
-                                        color: selectedEmpId === emp.id ? 'white' : '#3B648B'
-                                    }}>
+                                    <div 
+                                        className="emp-avatar"
+                                        style={{ 
+                                            width: '36px', 
+                                            height: '36px', 
+                                            borderRadius: '10px', 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontWeight: '800',
+                                            fontSize: '13px'
+                                        }}
+                                    >
                                         {emp.name.charAt(0)}
                                     </div>
                                     <div>
                                         <div style={{ fontWeight: '800', fontSize: '13px' }}>{emp.name}</div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <div style={{ fontSize: '10px', opacity: 0.7, fontWeight: '700' }}>{emp.employeeId}</div>
-                                            <div style={{ 
-                                                fontSize: '9px', 
-                                                padding: '2px 6px', 
-                                                borderRadius: '4px', 
-                                                background: selectedEmpId === emp.id ? 'rgba(255,255,255,0.15)' : '#F1F5F9',
-                                                color: selectedEmpId === emp.id ? 'white' : '#64748B',
-                                                fontWeight: '800'
-                                            }}>
+                                            <div 
+                                                className="emp-badge"
+                                                style={{ 
+                                                    fontSize: '9px', 
+                                                    padding: '2px 6px', 
+                                                    borderRadius: '4px', 
+                                                    fontWeight: '800'
+                                                }}
+                                            >
                                                 {emp.used} / {emp.totalEntitlement}
                                             </div>
                                         </div>
@@ -185,13 +187,13 @@ const LeaveBalance = () => {
                             flexDirection: 'column', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
-                            background: '#F8FAFC', 
+                            background: 'var(--bg-main)', 
                             borderRadius: '32px', 
-                            border: '2px dashed #E2E8F0',
+                            border: '2px dashed var(--border)',
                             padding: '60px'
                         }}>
-                            <div style={{ padding: '20px', background: 'white', borderRadius: '50%', marginBottom: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.05)' }}>
-                                <User size={40} color="#CBD5E1" />
+                            <div style={{ padding: '20px', background: 'var(--card-bg)', borderRadius: '50%', marginBottom: '20px', boxShadow: '0 10px 20px rgba(0,0,0,0.05)', border: '1.5px solid var(--border)' }}>
+                                <User size={40} color="var(--text-muted)" />
                             </div>
                             <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-secondary)', marginBottom: '8px' }}>Select an Employee</h3>
                             <p style={{ color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center', fontWeight: '600' }}>Pick a team member from the sidebar to view their comprehensive leave balance and historical data.</p>
@@ -205,8 +207,8 @@ const LeaveBalance = () => {
                             
                             {/* Summary Cards */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '25px', marginBottom: '35px' }}>
-                                <div style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: '#3B648B15', color: '#3B648B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '24px', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'rgba(59, 100, 139, 0.12)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <Calendar size={24} />
                                     </div>
                                     <div>
@@ -214,8 +216,8 @@ const LeaveBalance = () => {
                                         <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)' }}>{employeeData?.totalEntitlement?.toFixed(2) || '0.00'}</div>
                                     </div>
                                 </div>
-                                <div style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1.5px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: '#DC262615', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '24px', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'rgba(220, 38, 38, 0.12)', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <TrendingUp size={24} />
                                     </div>
                                     <div>
@@ -223,8 +225,8 @@ const LeaveBalance = () => {
                                         <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-primary)' }}>{employeeData?.used?.toFixed(2) || '0.00'}</div>
                                     </div>
                                 </div>
-                                <div style={{ background: '#3B648B', padding: '24px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '20px', color: 'white', boxShadow: '0 10px 20px rgba(59,100,139,0.2)' }}>
-                                    <div style={{ width: '50px', height: '50px', borderRadius: '14px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div className="card-remaining-balance" style={{ padding: '24px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 10px 20px rgba(59,100,139,0.2)' }}>
+                                    <div className="card-remaining-icon" style={{ width: '50px', height: '50px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <PieChart size={24} />
                                     </div>
                                     <div>
@@ -235,10 +237,10 @@ const LeaveBalance = () => {
                             </div>
 
                             {/* Leave Group & Policy Card */}
-                            <div style={{ background: '#F8FAFC', padding: '20px 25px', borderRadius: '20px', border: '1.5px solid #E2E8F0', marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ background: 'var(--bg-main)', padding: '20px 25px', borderRadius: '20px', border: '1.5px solid var(--border)', marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <div style={{ padding: '10px', background: 'white', borderRadius: '12px', border: '1.5px solid #E2E8F0' }}>
-                                        <Briefcase size={20} color="#3B648B" />
+                                    <div style={{ padding: '10px', background: 'var(--card-bg)', borderRadius: '12px', border: '1.5px solid var(--border)' }}>
+                                        <Briefcase size={20} color="var(--accent)" />
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Active Policy Group</div>
@@ -247,21 +249,21 @@ const LeaveBalance = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Employee ID</div>
-                                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#3B648B' }}>{employeeData?.employeeId}</div>
+                                    <div style={{ fontSize: '16px', fontWeight: '900', color: 'var(--accent)' }}>{employeeData?.employeeId}</div>
                                 </div>
                             </div>
 
                             {/* Request History Section */}
-                            <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', overflow: 'hidden' }}>
-                                <div style={{ padding: '20px 25px', borderBottom: '1.5px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <History size={18} color="#3B648B" />
+                            <div style={{ background: 'var(--card-bg)', borderRadius: '24px', border: '1.5px solid var(--border)', overflow: 'hidden' }}>
+                                <div style={{ padding: '20px 25px', borderBottom: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <History size={18} color="var(--accent)" />
                                     <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', margin: 0 }}>Approval History</h3>
                                 </div>
 
                                 <div style={{ overflowX: 'auto' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
-                                            <tr style={{ background: '#F8FAFC' }}>
+                                            <tr style={{ background: 'var(--bg-main)' }}>
                                                 <th style={{ padding: '15px 25px', textAlign: 'left', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Period</th>
                                                 <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Duration</th>
                                                 <th style={{ padding: '15px 25px', textAlign: 'center', fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Days</th>
@@ -278,14 +280,14 @@ const LeaveBalance = () => {
                                                 const dayCount = req.leaveDuration === 'Full Day' ? diff : 0.5;
 
                                                 return (
-                                                    <tr key={req._id} style={{ borderBottom: '1.5px solid #F8FAFC' }}>
+                                                    <tr key={req._id} style={{ borderBottom: '1.5px solid var(--border)' }}>
                                                         <td style={{ padding: '18px 25px' }}>
                                                             <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
                                                                 {start.toLocaleDateString('en-GB')} - {end.toLocaleDateString('en-GB')}
                                                             </div>
                                                         </td>
                                                         <td style={{ padding: '18px 25px', textAlign: 'center' }}>
-                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', background: '#F1F5F9', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' }}>
+                                                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', background: 'var(--bg-main)', padding: '4px 10px', borderRadius: '8px', display: 'inline-block' }}>
                                                                 {req.leaveDuration}
                                                             </div>
                                                         </td>
@@ -331,13 +333,31 @@ const LeaveBalance = () => {
             </div>
 
             <style dangerouslySetInnerHTML={{ __html: `
+                .emp-item-selected { background: var(--primary-blue) !important; color: white !important; }
+                .emp-item-selected .emp-avatar { background: rgba(255,255,255,0.2); color: white; }
+                .emp-item-selected .emp-badge { background: rgba(255,255,255,0.15); color: white; }
+                .emp-avatar { background: var(--bg-main); color: var(--primary-blue); }
+                .emp-badge { background: var(--bg-main); color: var(--text-secondary); }
+
+                .card-remaining-balance { background: var(--accent); color: white; }
+                .card-remaining-icon { background: rgba(255,255,255,0.2); }
+                .card-remaining-icon svg { stroke: white; }
+
+                body.dark-mode .emp-item-selected { color: #13121b !important; }
+                body.dark-mode .emp-item-selected .emp-avatar { background: rgba(19, 18, 27, 0.2) !important; color: #13121b !important; }
+                body.dark-mode .emp-item-selected .emp-badge { background: rgba(19, 18, 27, 0.15) !important; color: #13121b !important; }
+                
+                body.dark-mode .card-remaining-balance { color: #13121b !important; }
+                body.dark-mode .card-remaining-balance .card-remaining-icon { background: rgba(19, 18, 27, 0.15) !important; }
+                body.dark-mode .card-remaining-balance .card-remaining-icon svg { stroke: #13121b !important; }
+
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 ::-webkit-scrollbar { width: 6px; }
                 ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
-                ::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+                ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
             `}} />
         </div>
     );

@@ -43,7 +43,11 @@ const CompanyDetails = () => {
       if (data && data._id) {
         setFormData(data);
         if (data.logo) {
-          setLogoPreview(data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`);
+          let logoUrl = data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`;
+          if (window.location.protocol === 'https:' && logoUrl.startsWith('http://')) {
+            logoUrl = logoUrl.replace('http://', 'https://');
+          }
+          setLogoPreview(logoUrl);
         }
         window.dispatchEvent(new CustomEvent('companyDetailsUpdated', { 
           detail: { 
@@ -145,6 +149,9 @@ const CompanyDetails = () => {
         const uploadData = await uploadRes.json();
         if (uploadData.success) {
           logoPath = uploadData.fileUrl;
+          if (window.location.protocol === 'https:' && logoPath.startsWith('http://')) {
+            logoPath = logoPath.replace('http://', 'https://');
+          }
         }
       }
 

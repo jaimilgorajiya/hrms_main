@@ -156,14 +156,12 @@ const MonthlyPayout = () => {
                     display: flex;
                     gap: 16px;
                     align-items: center;
-                }
-
-                .payout-month-container {
+                }                .payout-month-container {
                     position: relative;
                     display: flex;
                     align-items: center;
-                    background: white;
-                    border: 1px solid #e2e8f0;
+                    background: var(--card-bg);
+                    border: 1px solid var(--border);
                     border-radius: 12px;
                     padding: 8px 16px;
                     gap: 12px;
@@ -173,14 +171,14 @@ const MonthlyPayout = () => {
                 }
 
                 .payout-month-container:hover {
-                    border-color: #2563eb;
+                    border-color: var(--primary-blue);
                     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
                 }
 
                 .payout-month-label {
                     font-size: 14px;
                     font-weight: 600;
-                    color: #1e293b;
+                    color: var(--text-primary);
                     min-width: 100px;
                 }
 
@@ -195,7 +193,7 @@ const MonthlyPayout = () => {
                 }
 
                 .btn-payout-initiate {
-                    background: linear-gradient(135deg, #2563eb, #1e40af);
+                    background: var(--primary-gradient);
                     color: white;
                     border: none;
                     padding: 6px 18px;
@@ -217,9 +215,9 @@ const MonthlyPayout = () => {
                 }
 
                 .btn-payout-initiated {
-                    background: #f1f5f9;
-                    color: #64748b;
-                    border: 1px solid #e2e8f0;
+                    background: var(--bg-main);
+                    color: var(--text-muted);
+                    border: 1px solid var(--border);
                     padding: 6px 18px;
                     border-radius: 20px;
                     font-size: 12px;
@@ -235,16 +233,16 @@ const MonthlyPayout = () => {
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justifyContent: center;
                     transition: all 0.2s;
-                    background: #fff5f5;
-                    border: 1px solid #fee2e2;
-                    color: #ef4444;
+                    background: rgba(239, 68, 68, 0.15);
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    color: var(--danger);
                     cursor: pointer;
                 }
 
                 .redo-container:hover {
-                    background: #ef4444;
+                    background: var(--danger);
                     color: white;
                     box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
                 }
@@ -276,14 +274,15 @@ const MonthlyPayout = () => {
                                 paddingLeft: '40px', 
                                 paddingRight: '12px',
                                 borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
+                                border: '1px solid var(--border)',
                                 fontWeight: '600',
                                 color: 'var(--text-primary)',
-                                background: 'white',
+                                background: 'var(--card-bg)',
                                 height: '42px',
                                 cursor: 'pointer',
                                 outline: 'none',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                colorScheme: 'dark'
                             }}
                             value={month}
                             onChange={(e) => setMonth(e.target.value)}
@@ -313,7 +312,7 @@ const MonthlyPayout = () => {
                                 <tr key={i} onClick={() => setSelectedEmp(s)} style={{ cursor: 'pointer' }}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ width: '35px', height: '35px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div style={{ width: '35px', height: '35px', background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 <User size={18} color="var(--text-secondary)" />
                                             </div>
                                             <div>
@@ -327,11 +326,11 @@ const MonthlyPayout = () => {
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{s.attendance.present}P | {s.attendance.absent}A | {s.attendance.paidLeave}L</div>
                                     </td>
                                     <td>
-                                        <div style={{ color: s.isInitiated ? '#94a3b8' : '#ef4444', fontWeight: 600 }}>-₹{s.penalties.total.toLocaleString()}</div>
+                                        <div style={{ color: s.isInitiated ? '#94a3b8' : 'var(--danger)', fontWeight: 600 }}>-₹{s.penalties.total.toLocaleString()}</div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Policy Penalties</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '16px', fontWeight: 700, color: s.isInitiated ? '#94a3b8' : '#2563eb' }}>
+                                        <div style={{ fontSize: '16px', fontWeight: 700, color: s.isInitiated ? '#94a3b8' : 'var(--primary-blue)' }}>
                                             ₹{s.salary.accruedNet.toLocaleString()}
                                         </div>
                                         <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Gross: ₹{s.salary.monthlyGross}</div>
@@ -371,9 +370,9 @@ const MonthlyPayout = () => {
 
             {selectedEmp && (
                 <div className="hrm-modal-overlay">
-                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%' }}>
-                        <div className="hrm-modal-header">
-                            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Payout Audit: {selectedEmp.employee.name}</h2>
+                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%', background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                        <div className="hrm-modal-header" style={{ borderBottom: '1px solid var(--border)' }}>
+                            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Payout Audit: {selectedEmp.employee.name}</h2>
                             <button 
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} 
                                 onClick={() => setSelectedEmp(null)}
@@ -383,21 +382,21 @@ const MonthlyPayout = () => {
                         </div>
                         <div className="hrm-modal-body">
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div className="hrm-card" style={{ padding: '15px', background: '#f8fafc' }}>
+                                <div className="hrm-card" style={{ padding: '15px', background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
                                     <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={14}/> Attendance Breakdown</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#059669', fontWeight: 600 }}>{selectedEmp.attendance.present}</span> Present</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#ef4444', fontWeight: 600 }}>{selectedEmp.attendance.absent}</span> Absent</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#0284c7', fontWeight: 600 }}>{selectedEmp.attendance.halfDay}</span> Half Days</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#10B981', fontWeight: 600 }}>{selectedEmp.extraBenefits?.extraDaysWorked || 0}</span> Extra Days</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#6366f1', fontWeight: 600 }}>{selectedEmp.attendance.weekOff}</span> Week Offs</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#db2777', fontWeight: 600 }}>{selectedEmp.attendance.paidLeave}</span> Paid Leaves</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#ea580c', fontWeight: 600 }}>{selectedEmp.attendance.unpaidLeave}</span> Unpaid Leaves</div>
-                                        <div style={{ fontSize: '13px' }}><span style={{ color: '#F59E0B', fontWeight: 600 }}>{selectedEmp.extraBenefits?.bonusPayDays || 0}</span> Bonus Days</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#059669', fontWeight: 600 }}>{selectedEmp.attendance.present}</span> Present</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: 'var(--danger)', fontWeight: 600 }}>{selectedEmp.attendance.absent}</span> Absent</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#0284c7', fontWeight: 600 }}>{selectedEmp.attendance.halfDay}</span> Half Days</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#10B981', fontWeight: 600 }}>{selectedEmp.extraBenefits?.extraDaysWorked || 0}</span> Extra Days</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#6366f1', fontWeight: 600 }}>{selectedEmp.attendance.weekOff}</span> Week Offs</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#db2777', fontWeight: 600 }}>{selectedEmp.attendance.paidLeave}</span> Paid Leaves</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#ea580c', fontWeight: 600 }}>{selectedEmp.attendance.unpaidLeave}</span> Unpaid Leaves</div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}><span style={{ color: '#F59E0B', fontWeight: 600 }}>{selectedEmp.extraBenefits?.bonusPayDays || 0}</span> Bonus Days</div>
                                     </div>
                                 </div>
 
-                                <div className="hrm-card" style={{ padding: '15px', background: '#f8fafc' }}>
+                                <div className="hrm-card" style={{ padding: '15px', background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
                                     <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={14}/> Hours Analysis</h4>
                                     <div style={{ textAlign: 'center', padding: '10px 0' }}>
                                         <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedEmp.hours.worked}</div>
@@ -406,47 +405,47 @@ const MonthlyPayout = () => {
                                     </div>
                                 </div>
 
-                                <div className="hrm-card" style={{ padding: '15px', background: '#fef2f2', border: '1px solid #fee2e2' }}>
-                                    <h4 style={{ fontSize: '12px', color: '#ef4444', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><AlertCircle size={14}/> Policy Penalties</h4>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                <div className="hrm-card" style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid var(--border)' }}>
+                                    <h4 style={{ fontSize: '12px', color: 'var(--danger)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><AlertCircle size={14}/> Policy Penalties</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>Late In Total:</span>
                                         <span style={{ fontWeight: 600 }}>₹{selectedEmp.penalties.lateIn}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>Early Out Total:</span>
                                         <span style={{ fontWeight: 600 }}>₹{selectedEmp.penalties.earlyOut}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca' }}>
-                                        <span style={{ fontSize: '13px', fontWeight: 600 }}>Total Performance Deduction:</span>
-                                        <span style={{ fontWeight: 700, color: '#ef4444' }}>₹{selectedEmp.penalties.total}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(239, 68, 68, 0.3)' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Total Deduction:</span>
+                                        <span style={{ fontWeight: 700, color: 'var(--danger)' }}>₹{selectedEmp.penalties.total}</span>
                                     </div>
                                 </div>
 
-                                <div className="hrm-card" style={{ padding: '15px', background: '#ecfdf5', border: '1px solid #d1fae5' }}>
-                                    <h4 style={{ fontSize: '12px', color: '#059669', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calculator size={14}/> Accrual Logic</h4>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <div className="hrm-card" style={{ padding: '15px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid var(--border)' }}>
+                                    <h4 style={{ fontSize: '12px', color: '#10B981', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calculator size={14}/> Accrual Logic</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>Monthly Net Base:</span>
                                         <span style={{ fontWeight: 600 }}>₹{selectedEmp.salary.monthlyNet.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>LOP Deduction:</span>
-                                        <span style={{ fontWeight: 600, color: '#ef4444' }}>-₹{selectedEmp.salary.unpaidLeaveDeduction.toLocaleString()}</span>
+                                        <span style={{ fontWeight: 600, color: 'var(--danger)' }}>-₹{selectedEmp.salary.unpaidLeaveDeduction.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>Extra Day Benefit:</span>
-                                        <span style={{ fontWeight: 600, color: '#059669' }}>+₹{selectedEmp.salary.extraDayAmount?.toLocaleString()}</span>
+                                        <span style={{ fontWeight: 600, color: '#10B981' }}>+₹{selectedEmp.salary.extraDayAmount?.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '13px' }}>Performance Penalties:</span>
-                                        <span style={{ fontWeight: 600, color: '#ef4444' }}>-₹{selectedEmp.penalties.total.toLocaleString()}</span>
+                                        <span style={{ fontWeight: 600, color: 'var(--danger)' }}>-₹{selectedEmp.penalties.total.toLocaleString()}</span>
                                     </div>
-                                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #a7f3d0' }}>
+                                    <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed rgba(16, 185, 129, 0.3)' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#059669' }}>Manual Adjustment (+/-):</span>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#10B981' }}>Manual Adjustment (+/-):</span>
                                             <input 
                                                 type="number" 
                                                 className="hrm-input" 
-                                                style={{ width: '100px', height: '30px', textAlign: 'right', fontWeight: 700 }}
+                                                style={{ width: '100px', height: '30px', textAlign: 'right', fontWeight: 700, colorScheme: 'dark' }}
                                                 value={adjustments.amount}
                                                 onChange={(e) => setAdjustments({...adjustments, amount: e.target.value})}
                                             />
@@ -463,13 +462,13 @@ const MonthlyPayout = () => {
                                              />
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', paddingTop: '12px', borderTop: '2px solid #a7f3d0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', paddingTop: '12px', borderTop: '2px solid rgba(16, 185, 129, 0.3)', color: 'var(--text-primary)' }}>
                                         <span style={{ fontSize: '15px', fontWeight: 800 }}>Final Net Accrued:</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                            <span style={{ fontWeight: 900, color: '#2563eb', fontSize: '20px' }}>₹</span>
+                                            <span style={{ fontWeight: 900, color: 'var(--primary-blue)', fontSize: '20px' }}>₹</span>
                                             <input 
                                                 type="number" 
-                                                style={{ background: 'none', border: 'none', fontWeight: 900, color: '#2563eb', fontSize: '20px', width: '120px', textAlign: 'right', outline: 'none' }}
+                                                style={{ background: 'none', border: 'none', fontWeight: 900, color: 'var(--primary-blue)', fontSize: '20px', width: '120px', textAlign: 'right', outline: 'none' }}
                                                 value={finalNet}
                                                 onChange={(e) => {
                                                     const newTotal = Number(e.target.value);
@@ -482,7 +481,7 @@ const MonthlyPayout = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="hrm-modal-footer">
+                        <div className="hrm-modal-footer" style={{ borderTop: '1px solid var(--border)' }}>
                             <button className="btn-hrm btn-hrm-secondary" onClick={() => setSelectedEmp(null)}>Close Audit</button>
                             <button 
                                 className={`btn-hrm ${selectedEmp.isInitiated ? 'btn-hrm-secondary' : 'btn-hrm-primary'}`} 

@@ -6507,4 +6507,76 @@ body.dark-mode input::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+/* Status Badge Styling for Payroll Archive */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.status-published {
+  background: #ecfdf5;
+  color: #059669;
+}
+.status-badge.status-generated {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.status-badge.status-initiated {
+  background: #fffbeb;
+  color: #d97706;
+}
+.status-badge.status-default {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+body.dark-mode .status-badge.status-published {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+}
+body.dark-mode .status-badge.status-generated {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+}
+body.dark-mode .status-badge.status-initiated {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+}
+body.dark-mode .status-badge.status-default {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Dark Mode Overrides for Month/Date filters */
+body.dark-mode .hrm-date-filter {
+  background: var(--card-bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-mode .hrm-date-input {
+  color: var(--text-primary) !important;
+  background: transparent !important;
+}
+
+/* Custom SweetAlert Dark Mode styles */
+.swal-dark-popup {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.swal-dark-popup .swal2-title {
+  color: var(--text-primary) !important;
+}
+
+.swal-dark-popup .swal2-html-container {
+  color: var(--text-secondary) !important;
+}
+
 

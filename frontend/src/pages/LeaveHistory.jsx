@@ -4,9 +4,9 @@ import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 
 const statusColors = {
-  Approved: { color: '#10B981', bg: '#ECFDF5', icon: <CheckCircle size={14} /> },
-  Rejected: { color: '#EF4444', bg: '#FEF2F2', icon: <XCircle size={14} /> },
-  Pending: { color: '#F59E0B', bg: '#FFFBEB', icon: <Clock size={14} /> },
+  Approved: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', icon: <CheckCircle size={14} /> },
+  Rejected: { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)', icon: <XCircle size={14} /> },
+  Pending: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', icon: <Clock size={14} /> },
 };
 
 const typeColors = {
@@ -63,9 +63,9 @@ const LeaveHistory = () => {
           onClick={fetchRequests} 
           style={{
             display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px',
-            background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '15px',
+            background: 'var(--card-bg)', border: '1.5px solid var(--border)', borderRadius: '15px',
             fontSize: '14px', fontWeight: '700', cursor: 'pointer', color: 'var(--text-primary)',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', transition: 'all 0.2s'
+            boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s'
           }}
         >
           <RefreshCw size={18} /> Refresh Log
@@ -73,8 +73,8 @@ const LeaveHistory = () => {
       </div>
 
       <div style={{ 
-        background: '#fff', padding: '24px', borderRadius: '24px', border: '1.5px solid #E2E8F0', 
-        marginBottom: '30px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)',
+        background: 'var(--card-bg)', padding: '24px', borderRadius: '24px', border: '1.5px solid var(--border)', 
+        marginBottom: '30px', boxShadow: 'var(--shadow-sm)',
         display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center'
       }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
@@ -83,15 +83,15 @@ const LeaveHistory = () => {
             type="text" placeholder="Search by employee, ID, or reason..."
             value={search} onChange={e => setSearch(e.target.value)}
             style={{
-              width: '100%', padding: '14px 14px 14px 48px', border: '1.5px solid #F1F5F9',
+              width: '100%', padding: '14px 14px 14px 48px', border: '1.5px solid var(--border)',
               borderRadius: '16px', fontSize: '14px', outline: 'none', color: 'var(--text-primary)',
-              background: '#F8FAFC', fontWeight: '600'
+              background: 'var(--bg-main)', fontWeight: '600'
             }}
           />
         </div>
 
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '10px 16px', borderRadius: '16px', border: '1.5px solid #F1F5F9' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-main)', padding: '10px 16px', borderRadius: '16px', border: '1.5px solid var(--border)' }}>
             <Calendar size={16} color="var(--text-secondary)" />
             <input 
               type="date" 
@@ -111,7 +111,7 @@ const LeaveHistory = () => {
           <select 
             value={filterStatus} 
             onChange={e => setFilterStatus(e.target.value)}
-            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            style={{ padding: '14px 20px', border: '1.5px solid var(--border)', borderRadius: '16px', outline: 'none', background: 'var(--bg-main)', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
           >
             <option value="All">Statuses</option>
             <option value="Approved">Approved</option>
@@ -122,7 +122,7 @@ const LeaveHistory = () => {
           <select 
             value={filterType} 
             onChange={e => setFilterType(e.target.value)}
-            style={{ padding: '14px 20px', border: '1.5px solid #F1F5F9', borderRadius: '16px', outline: 'none', background: '#F8FAFC', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            style={{ padding: '14px 20px', border: '1.5px solid var(--border)', borderRadius: '16px', outline: 'none', background: 'var(--bg-main)', fontWeight: '700', color: 'var(--text-secondary)', cursor: 'pointer' }}
           >
             <option value="All">All Types</option>
             <option value="Leave">Leave</option>
@@ -131,7 +131,7 @@ const LeaveHistory = () => {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: '30px', border: '1.5px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: '30px', border: '1.5px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
         {loading ? (
           <div style={{ padding: '100px', textAlign: 'center', color: '#3B648B' }}>
             <RefreshCw className="animate-spin" size={48} />
@@ -147,7 +147,7 @@ const LeaveHistory = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1.5px solid #E2E8F0' }}>
+                <tr style={{ background: 'var(--bg-main)', borderBottom: '1.5px solid var(--border)' }}>
                   <th style={thStyle}>Employee</th>
                   <th style={thStyle}>Period / Type</th>
                   <th style={thStyle}>Status</th>
@@ -158,10 +158,10 @@ const LeaveHistory = () => {
               </thead>
               <tbody>
                 {filtered.map(r => (
-                  <tr key={r._id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
+                  <tr key={r._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: '#F1F5F9', border: '1px solid #E2E8F0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'var(--bg-main)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {r.employee?.profilePhoto ? (
                                 <img src={`${API_URL}/uploads/${r.employee.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : <User size={22} color="var(--text-muted)" />}
@@ -197,8 +197,8 @@ const LeaveHistory = () => {
                       {r.requestType === 'Leave' && (
                         <div style={{ 
                           padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800',
-                          background: r.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB',
-                          color: r.leaveCategory === 'Paid' ? '#059669' : '#D97706',
+                          background: r.leaveCategory === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                          color: r.leaveCategory === 'Paid' ? '#10B981' : '#F59E0B',
                           display: 'inline-block'
                         }}>
                           {r.leaveCategory || 'Paid'}
@@ -229,7 +229,7 @@ const LeaveHistory = () => {
           </div>
         )}
       </div>
-      <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .animate-spin { animation: spin 1s linear infinite; }` }} />
+      <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .animate-spin { animation: spin 1s linear infinite; } body.dark-mode input[type="date"] { color-scheme: dark; }` }} />
     </div>
   );
 };

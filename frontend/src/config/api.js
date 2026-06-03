@@ -1,7 +1,6 @@
 const getApiUrl = () => {
   const envUrl = import.meta.env.VITE_API_URL;
-  // If the env variable is set to a production/live domain, use it
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+  if (envUrl) {
     return envUrl;
   }
   // For local development, dynamically match the hostname of the browser

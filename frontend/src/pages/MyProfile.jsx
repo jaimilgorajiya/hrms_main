@@ -180,7 +180,11 @@ const MyProfile = () => {
 
   const getFullLogoUrl = (logoPath) => {
     if (!logoPath) return null;
-    return logoPath.startsWith('http') ? logoPath : `${API_URL}${logoPath}`;
+    let url = logoPath.startsWith('http') ? logoPath : `${API_URL}${logoPath}`;
+    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+      url = url.replace('http://', 'https://');
+    }
+    return url;
   };
 
   const formatDate = (dateString) => {
@@ -311,7 +315,10 @@ const MyProfile = () => {
               
               const uploadData = await uploadRes.json();
               if (uploadData.success) {
-                  const newLogoUrl = uploadData.fileUrl;
+                  let newLogoUrl = uploadData.fileUrl;
+                  if (window.location.protocol === 'https:' && newLogoUrl.startsWith('http://')) {
+                      newLogoUrl = newLogoUrl.replace('http://', 'https://');
+                  }
                   
                   const response = await authenticatedFetch(`${API_URL}/api/company`, {
                     method: 'PUT',

@@ -238,8 +238,8 @@ const EmployeeCTC = () => {
             <div className="hrm-stats-grid" style={{ marginBottom: '32px' }}>
                 {[
                     { label: 'Total Payroll Budget', value: `₹${(employees || []).reduce((sum, e) => sum + (e.ctcDetails?.annualCTC || 0), 0).toLocaleString()}`, icon: <Wallet size={20} />, color: 'var(--primary-blue)', bg: 'var(--primary-light)' },
-                    { label: 'Unassigned CTC', value: (employees || []).filter(e => !e.ctcDetails).length, icon: <Users size={20} />, color: 'var(--warning)', bg: '#FFFBEB' },
-                    { label: 'Active Structures', value: (employees || []).filter(e => e.ctcDetails?.status === 'Active').length, icon: <CheckCircle2 size={20} />, color: 'var(--success)', bg: '#ECFDF5' }
+                    { label: 'Unassigned CTC', value: (employees || []).filter(e => !e.ctcDetails).length, icon: <Users size={20} />, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' },
+                    { label: 'Active Structures', value: (employees || []).filter(e => e.ctcDetails?.status === 'Active').length, icon: <CheckCircle2 size={20} />, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }
                 ].map((stat, i) => (
                     <div key={i} className="hrm-stat-card">
                         <div className="hrm-stat-icon-wrapper" style={{ background: stat.bg, color: stat.color }}>
@@ -361,7 +361,7 @@ const EmployeeCTC = () => {
                                     <p style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-dark)', margin: 0 }}>₹{formData.annualCTC.toLocaleString()}</p>
                                     <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--primary-blue)', marginTop: '4px' }}>₹{formData.monthlyGross.toLocaleString()} / mo Gross</p>
                                 </div>
-                                <div style={{ background: '#ECFDF5', padding: '20px', borderRadius: '18px', border: '1px solid #D1FAE5' }}>
+                                <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '20px', borderRadius: '18px', border: '1px solid var(--border)' }}>
                                     <p style={{ fontSize: '10px', fontWeight: '800', color: 'var(--success)', textTransform: 'uppercase', marginBottom: '8px' }}>Est. Net Salary</p>
                                     <p style={{ fontSize: '24px', fontWeight: '900', color: 'var(--success)', margin: 0 }}>₹{formData.netSalary.toLocaleString()}</p>
                                     <p style={{ fontSize: '11px', fontWeight: '700', color: '#10B981', marginTop: '4px' }}>Take-home amount</p>
@@ -376,28 +376,28 @@ const EmployeeCTC = () => {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {formData.earnings.map((item, index) => (
-                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
-                                            <SearchableSelect 
-                                                options={componentTypes.earnings.map(c => ({ value: c._id, label: c.name }))}
-                                                value={item.componentId}
-                                                onChange={(val) => updateComponent('earning', index, 'componentId', val)}
-                                                placeholder="Select Category"
-                                            />
-                                            <div style={{ position: 'relative' }}>
-                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
-                                                <input 
-                                                    type="number" 
-                                                    className="hrm-input"
-                                                    style={{ paddingLeft: '24px' }}
-                                                    value={item.amount}
-                                                    onChange={(e) => updateComponent('earning', index, 'amount', e.target.value)}
-                                                />
-                                            </div>
-                                            <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('earning', index)}><Trash2 size={16} /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                                         <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
+                                             <SearchableSelect 
+                                                 options={componentTypes.earnings.map(c => ({ value: c._id, label: c.name }))}
+                                                 value={item.componentId}
+                                                 onChange={(val) => updateComponent('earning', index, 'componentId', val)}
+                                                 placeholder="Select Category"
+                                             />
+                                             <div style={{ position: 'relative' }}>
+                                                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
+                                                 <input 
+                                                     type="number" 
+                                                     className="hrm-input"
+                                                     style={{ paddingLeft: '24px' }}
+                                                     value={item.amount}
+                                                     onChange={(e) => updateComponent('earning', index, 'amount', e.target.value)}
+                                                 />
+                                             </div>
+                                             <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('earning', index)}><Trash2 size={16} /></button>
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
 
                             {/* Deductions Section */}
                             <div style={{ marginBottom: '32px' }}>
@@ -407,28 +407,28 @@ const EmployeeCTC = () => {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {formData.deductions.map((item, index) => (
-                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
-                                            <SearchableSelect 
-                                                options={componentTypes.deductions.map(c => ({ value: c._id, label: c.name }))}
-                                                value={item.componentId}
-                                                onChange={(val) => updateComponent('deduction', index, 'componentId', val)}
-                                                placeholder="Select Category"
-                                            />
-                                            <div style={{ position: 'relative' }}>
-                                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
-                                                <input 
-                                                    type="number" 
-                                                    className="hrm-input"
-                                                    style={{ paddingLeft: '24px' }}
-                                                    value={item.amount}
-                                                    onChange={(e) => updateComponent('deduction', index, 'amount', e.target.value)}
-                                                />
-                                            </div>
-                                            <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('deduction', index)}><Trash2 size={16} /></button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                                         <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
+                                             <SearchableSelect 
+                                                 options={componentTypes.deductions.map(c => ({ value: c._id, label: c.name }))}
+                                                 value={item.componentId}
+                                                 onChange={(val) => updateComponent('deduction', index, 'componentId', val)}
+                                                 placeholder="Select Category"
+                                             />
+                                             <div style={{ position: 'relative' }}>
+                                                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
+                                                 <input 
+                                                     type="number" 
+                                                     className="hrm-input"
+                                                     style={{ paddingLeft: '24px' }}
+                                                     value={item.amount}
+                                                     onChange={(e) => updateComponent('deduction', index, 'amount', e.target.value)}
+                                                 />
+                                             </div>
+                                             <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('deduction', index)}><Trash2 size={16} /></button>
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
 
                             {/* Additional Info */}
                             <div style={{ padding: '20px', background: 'var(--bg-main)', borderRadius: '18px', border: '1px solid var(--border)' }}>
@@ -464,6 +464,7 @@ const EmployeeCTC = () => {
                 {`
                     @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
                     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    body.dark-mode input[type="date"] { color-scheme: dark; }
                 `}
             </style>
         </div>

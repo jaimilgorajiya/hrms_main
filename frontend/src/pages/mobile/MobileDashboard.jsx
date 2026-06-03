@@ -25,6 +25,21 @@ const formatMs = (ms) => {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 };
 
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // metres
+  const phi1 = lat1 * Math.PI/180;
+  const phi2 = lat2 * Math.PI/180;
+  const deltaPhi = (lat2-lat1) * Math.PI/180;
+  const deltaLambda = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+          Math.cos(phi1) * Math.cos(phi2) *
+          Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // in metres
+};
+
 /* ── Punch Ring SVG ── */
 function PunchRing({ percent, elapsed, status, statusColor, onClick }) {
   const size = 200, stroke = 12, center = size / 2, radius = (size - stroke) / 2;
@@ -127,6 +142,12 @@ export default function MobileDashboard() {
   const [reasonType, setReasonType] = useState(null);
   const [serverMessage, setServerMessage] = useState('');
   const [showShiftModal, setShowShiftModal] = useState(false);
+  const [showWorkSummaryModal, setShowWorkSummaryModal] = useState(false);
+  const [workSummary, setWorkSummary] = useState('');
+  const [showInRangeModal, setShowInRangeModal] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState('');
+  const [tempLocation, setTempLocation] = useState(null);
+  const [calculatedDistance, setCalculatedDistance] = useState(0);
 
   const timerRef = useRef(null);
 
@@ -255,34 +276,164 @@ export default function MobileDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
-  const handlePunch = async (overrideReason = null) => {
+  const handlePunch = async (overrideReason = null, skipModal = false) => {
     if (punch.isDone) return;
+    
+    // If punching OUT, ask for Work Summary first
+    if (punch.punchedIn && !workSummary.trim()) {
+      setShowWorkSummaryModal(true);
+      return;
+    }
+
     setPunchLoading(true);
     try {
       // Get location
       let lat = null;
       let lng = null;
       try {
-        if (navigator.geolocation) {
-          const pos = await new Promise((resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-          );
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        } else {
-          console.warn('Geolocation is not supported or not available in this context (insecure origin)');
+        if (!window.isSecureContext) {
+          throw new Error('Insecure Context');
         }
+        if (!navigator.geolocation) {
+          throw new Error('Unsupported Browser');
+        }
+        const pos = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+            enableHighAccuracy: true,
+            timeout: 8000 
+          })
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
       } catch (err) {
-        console.warn('Location retrieval failed or timed out:', err);
+        console.error('Location retrieval failed:', err);
+        let errorMsg = 'Location access is required for attendance. Please enable GPS and allow location access in your browser settings.';
+        if (err.message === 'Insecure Context') {
+          errorMsg = 'Location is blocked because this site is accessed over insecure HTTP. Please use HTTPS or access via http://localhost:5173.';
+        } else if (err.code === 1) { // PERMISSION_DENIED
+          errorMsg = 'Location permission was denied. Please click the site settings/lock icon in your browser address bar to allow location access.';
+        } else if (err.code === 3) { // TIMEOUT
+          errorMsg = 'Location retrieval timed out. Please verify your device has GPS enabled and try again.';
+        }
+        showToast(errorMsg, 'error');
+        setPunchLoading(false);
+        return;
+      }
+
+      // Fetch human-readable address from coordinates
+      let addr = 'Address not found';
+      try {
+        const resAddress = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+        const jsonAddress = await resAddress.json();
+        if (jsonAddress && jsonAddress.display_name) {
+          addr = jsonAddress.display_name;
+        }
+      } catch (addrErr) {
+        console.error('Address reverse geocoding error:', addrErr);
+      }
+      setCurrentAddress(addr);
+
+      // Check geofence
+      const target = stats?.branchCoords;
+      let distance = 0;
+      let isOutOfRange = false;
+      if (target && target.latitude !== 0) {
+        distance = Math.round(getDistance(lat, lng, target.latitude, target.longitude));
+        setCalculatedDistance(distance);
+        const radius = target.radius || 200;
+        if (distance > radius) {
+          isOutOfRange = true;
+        }
+      }
+
+      const actualReason = typeof overrideReason === 'string' ? overrideReason : null;
+
+      // Geofence check
+      if (isOutOfRange && !actualReason && stats?.requireOutOfRangeReason) {
+        setTempLocation({ latitude: lat, longitude: lng });
+        setReasonType('geofence');
+        setServerMessage(`You are outside the designated branch geofence boundary (Distance: ${distance}m). Please provide a reason to complete your punch.`);
+        setShowLocModal(true);
+        setPendingPunchType(punch.punchedIn ? 'OUT' : 'IN');
+        setPunchLoading(false);
+        return;
+      }
+
+      // Late check
+      if (!punch.punchedIn && !actualReason && stats?.requireLateReason) {
+        let skipCheck = false;
+        if (stats?.isWeekOff && !stats?.lateEarlyApplyOnExtraDay) {
+          skipCheck = true;
+        }
+        if (!skipCheck) {
+          const [h, m] = stats.shiftStart.split(':').map(Number);
+          const now = new Date();
+          const lateLimit = new Date();
+          lateLimit.setHours(h, m + (stats.effectiveMaxLate || 0), 0, 0);
+          if (now > lateLimit) {
+            setTempLocation({ latitude: lat, longitude: lng });
+            setReasonType('late');
+            setServerMessage(`You are punching in late. Please provide a reason.`);
+            setShowLocModal(true);
+            setPendingPunchType('IN');
+            setPunchLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Early check
+      if (punch.punchedIn && !actualReason && stats?.requireEarlyOutReason) {
+        let skipCheck = false;
+        if (stats?.isWeekOff && !stats?.lateEarlyApplyOnExtraDay) {
+          skipCheck = true;
+        }
+        if (!skipCheck) {
+          const [h, m] = stats.shiftEnd.split(':').map(Number);
+          const now = new Date();
+          let earlyGrace = stats.effectiveMaxEarly || 0;
+          if (stats.lateEarlyType === 'Combined') {
+            const firstInTime = punch.startTime ? new Date(punch.startTime) : null;
+            const shiftStartStr = stats.shiftStart;
+            if (firstInTime && shiftStartStr) {
+              const [sh, sm] = shiftStartStr.split(':').map(Number);
+              const shiftTime = new Date(firstInTime);
+              shiftTime.setHours(sh, sm, 0, 0);
+              const lateMs = firstInTime - shiftTime;
+              const lateMins = Math.max(0, Math.floor(lateMs / 60000));
+              earlyGrace = Math.max(0, (stats.effectiveMaxLate || 0) - lateMins);
+            }
+          }
+          const earlyLimit = new Date();
+          earlyLimit.setHours(h, m - earlyGrace, 0, 0);
+          if (now < earlyLimit) {
+            setTempLocation({ latitude: lat, longitude: lng });
+            setReasonType('early');
+            setServerMessage(`You are punching out early. Please provide a reason.`);
+            setShowLocModal(true);
+            setPendingPunchType('OUT');
+            setPunchLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Show Verified: In Range or Remote Punch confirmation modal before submit if not already submitting an override reason
+      if (!actualReason && !skipModal && !showInRangeModal) {
+        setTempLocation({ latitude: lat, longitude: lng });
+        setShowInRangeModal(true);
+        setPunchLoading(false);
+        return;
       }
 
       const payload = {
         latitude: lat,
         longitude: lng,
+        locationAddress: addr,
         clientTime: new Date().toISOString(),
+        workSummary: punch.punchedIn ? workSummary : undefined,
       };
 
-      const actualReason = typeof overrideReason === 'string' ? overrideReason : null;
       if (actualReason) {
         if (reasonType === 'early') {
           payload.earlyReason = actualReason;
@@ -302,25 +453,12 @@ export default function MobileDashboard() {
       if (json.success) {
         showToast(punch.punchedIn ? 'Punched Out successfully!' : 'Punched In successfully!');
         setShowLocModal(false);
+        setShowInRangeModal(false);
         setGeofenceReason('');
+        setWorkSummary('');
         setReasonType(null);
         setServerMessage('');
         loadData();
-      } else if (json.requireOutOfRangeReason) {
-        setReasonType('geofence');
-        setServerMessage(json.message);
-        setShowLocModal(true);
-        setPendingPunchType(punch.punchedIn ? 'OUT' : 'IN');
-      } else if (json.requireLateReason) {
-        setReasonType('late');
-        setServerMessage(json.message);
-        setShowLocModal(true);
-        setPendingPunchType('IN');
-      } else if (json.earlyOut && json.requireReason) {
-        setReasonType('early');
-        setServerMessage(json.message);
-        setShowLocModal(true);
-        setPendingPunchType('OUT');
       } else {
         showToast(json.message || 'Failed to punch', 'error');
       }
@@ -339,6 +477,16 @@ export default function MobileDashboard() {
       return;
     }
     handlePunch(geofenceReason);
+  };
+
+  const handleWorkSummarySubmit = (e) => {
+    e.preventDefault();
+    if (!workSummary.trim()) {
+      showToast('Please enter your work summary', 'error');
+      return;
+    }
+    setShowWorkSummaryModal(false);
+    handlePunch();
   };
 
   const handleBreak = async () => {
@@ -780,6 +928,189 @@ export default function MobileDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Work Summary Modal */}
+      {showWorkSummaryModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
+          <div className="m-card" style={{
+            width: '100%',
+            maxWidth: 380,
+            padding: 24,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+            animation: 'scaleUp 0.2s ease-out'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'rgba(79, 70, 229, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <FileText size={20} color="var(--m-primary)" />
+              </div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--m-text)' }}>
+                Daily Work Report
+              </h3>
+            </div>
+            
+            <p style={{ fontSize: 14, color: 'var(--m-muted)', margin: '0 0 16px', lineHeight: 1.5 }}>
+              Please describe your work achievements or tasks completed today before punching out.
+            </p>
+
+            <form onSubmit={handleWorkSummarySubmit}>
+              <textarea
+                className="m-input"
+                placeholder="List tasks completed, meetings attended, etc..."
+                value={workSummary}
+                onChange={(e) => setWorkSummary(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: 120,
+                  padding: 12,
+                  borderRadius: 10,
+                  border: '1px solid var(--m-border)',
+                  background: 'var(--m-elevated)',
+                  color: 'var(--m-text)',
+                  fontSize: 14,
+                  resize: 'none',
+                  outline: 'none',
+                  marginBottom: 16,
+                  boxSizing: 'border-box'
+                }}
+                required
+              />
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="m-btn m-btn-ghost"
+                  onClick={() => {
+                    setShowWorkSummaryModal(false);
+                    setWorkSummary('');
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="m-btn m-btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  Submit Punch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Verified: In Range Modal */}
+      {showInRangeModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
+          <div className="m-card" style={{
+            width: '100%',
+            maxWidth: 380,
+            padding: 24,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+            animation: 'scaleUp 0.2s ease-out',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(16, 185, 129, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <CheckCircle size={36} color="var(--m-success)" />
+            </div>
+
+            <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: 'var(--m-text)' }}>
+              {calculatedDistance <= (stats?.branchCoords?.radius || 200)
+                ? 'You are in range'
+                : 'Remote Punch Available'}
+            </h3>
+
+            {currentAddress ? (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                padding: '10px 14px',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                margin: '12px 0'
+              }}>
+                <span style={{ fontSize: 13, color: 'var(--m-success)', fontWeight: '700', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                  📍 {currentAddress}
+                </span>
+              </div>
+            ) : null}
+
+            <p style={{ fontSize: 12, color: 'var(--m-muted)', fontWeight: '700', margin: '0 0 24px' }}>
+              Distance to Branch: {calculatedDistance}m
+            </p>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="m-btn m-btn-ghost"
+                onClick={() => {
+                  setShowInRangeModal(false);
+                }}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="m-btn m-btn-primary"
+                onClick={() => {
+                  setShowInRangeModal(false);
+                  handlePunch(null, true);
+                }}
+                style={{ flex: 1 }}
+              >
+                {punch.punchedIn ? 'Punch Out' : 'Punch In'}
+              </button>
+            </div>
           </div>
         </div>
       )}

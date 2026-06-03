@@ -1210,7 +1210,7 @@ const EmployeeProfile = () => {
                                             value={formData.phone} 
                                             onCodeChange={(val) => setFormData(p => ({ ...p, phoneCountryCode: val }))} 
                                             handlePhoneInputChange={handlePhoneInputChange} 
-                                            placeholder="6354088391" 
+                                            placeholder="9876543210" 
                                             activePhoneDropdown={activePhoneDropdown}
                                             setActivePhoneDropdown={setActivePhoneDropdown}
                                             countries={countries}

@@ -107,23 +107,25 @@ const PublishSalarySlip = () => {
                     </div>
                 
                 <div style={{ display: 'flex', gap: '15px' }}>
-                    <div className="hrm-search-container">
-                        <Search size={18} className="hrm-search-icon" />
+                    <div className="hrm-search-container" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+                        <Search size={18} className="hrm-search-icon" style={{ color: 'var(--text-muted)' }} />
                         <input 
                             type="text" 
                             className="hrm-search-input" 
                             placeholder="Find employee..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none' }}
                         />
                     </div>
-                    <div className="hrm-date-filter" style={{ minWidth: '180px' }}>
-                        <Calendar size={18} />
+                    <div className="hrm-date-filter" style={{ minWidth: '180px', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px', borderRadius: '12px' }}>
+                        <Calendar size={18} style={{ color: 'var(--primary-blue)' }} />
                         <input 
                             type="month" 
                             className="hrm-date-input"
                             value={month}
                             onChange={(e) => setMonth(e.target.value)}
+                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none', height: '42px', cursor: 'pointer', colorScheme: 'dark' }}
                         />
                     </div>
                 </div>
@@ -150,7 +152,7 @@ const PublishSalarySlip = () => {
                             <tr>
                                 <th style={{ width: '40px' }}>
                                     <div style={{ cursor: 'pointer' }} onClick={toggleSelectAll}>
-                                        {selectedIds.length === filteredPayouts.length && filteredPayouts.length > 0 ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="#cbd5e1" />}
+                                        {selectedIds.length === filteredPayouts.length && filteredPayouts.length > 0 ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="var(--border)" />}
                                     </div>
                                 </th>
                                 <th>Employee Details</th>
@@ -167,7 +169,7 @@ const PublishSalarySlip = () => {
                             ) : filteredPayouts.map((p, i) => (
                                 <tr key={i} onClick={() => toggleSelect(p._id)} style={{ cursor: 'pointer' }}>
                                     <td onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
-                                        {selectedIds.includes(p._id) ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="#cbd5e1" />}
+                                        {selectedIds.includes(p._id) ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="var(--border)" />}
                                     </td>
                                     <td>
                                         <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
@@ -186,7 +188,7 @@ const PublishSalarySlip = () => {
                                                 className="btn-hrm-icon" 
                                                 onClick={(e) => { e.stopPropagation(); setPreviewUrl(getPdfUrl(p._id)); }}
                                                 title="Quick View Payslip"
-                                                style={{ padding: '6px', borderRadius: '6px', background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
+                                                style={{ padding: '6px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: '1px solid var(--border)' }}
                                             >
                                                 <Eye size={16} />
                                             </button>
@@ -194,7 +196,7 @@ const PublishSalarySlip = () => {
                                                 className="btn-hrm-icon" 
                                                 onClick={(e) => { e.stopPropagation(); handleDownload(p._id); }}
                                                 title="Download Payslip"
-                                                style={{ padding: '6px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}
+                                                style={{ padding: '6px', borderRadius: '6px', background: 'rgba(37, 99, 235, 0.15)', color: '#2563eb', border: '1px solid var(--border)' }}
                                             >
                                                 <Download size={16} />
                                             </button>
@@ -209,9 +211,9 @@ const PublishSalarySlip = () => {
 
             {previewUrl && (
                 <div className="hrm-modal-overlay" onClick={() => setPreviewUrl(null)}>
-                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%', height: '85vh', display: 'flex', flexDirection: 'column', padding: '15px' }} onClick={e => e.stopPropagation()}>
+                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%', height: '85vh', display: 'flex', flexDirection: 'column', padding: '15px', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Payslip Quick View</h2>
+                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>Payslip Quick View</h2>
                             <button 
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} 
                                 onClick={() => setPreviewUrl(null)}
@@ -221,7 +223,7 @@ const PublishSalarySlip = () => {
                         </div>
                         <iframe 
                             src={previewUrl} 
-                            style={{ flex: 1, width: '100%', border: '1px solid #e2e8f0', borderRadius: '8px' }} 
+                            style={{ flex: 1, width: '100%', border: '1px solid var(--border)', borderRadius: '8px' }} 
                             title="Payslip Preview" 
                         />
                     </div>

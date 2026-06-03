@@ -74,7 +74,7 @@ const MiniCalendar = ({ fromDate, toDate }) => {
   };
 
   return (
-    <div style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #E2E8F0', marginTop: '12px' }}>
+    <div style={{ background: 'var(--card-bg)', borderRadius: '16px', padding: '16px', border: '1px solid var(--border)', marginTop: '12px' }}>
       <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '12px', textAlign: 'center' }}>
         {monthNames[month]} {year}
       </div>
@@ -98,7 +98,7 @@ const MiniCalendar = ({ fromDate, toDate }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: '8px',
-                color: active ? 'white' : d ? '#475569' : 'transparent',
+                color: active ? 'white' : d ? 'var(--text-secondary)' : 'transparent',
                 background: active ? 'var(--primary-blue)' : 'transparent',
                 opacity: d ? 1 : 0,
                 border: startDay || endDay ? '2px solid rgba(255,255,255,0.5)' : 'none'
@@ -429,10 +429,10 @@ const AdminRequests = () => {
                         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                             <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Leave Category</p>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ padding: '6px 12px', background: '#F5F3FF', color: '#7C3AED', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
+                                <span style={{ padding: '6px 12px', background: 'rgba(124, 92, 246, 0.15)', color: '#8B5CF6', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
                                     {selectedRequest.leaveType.name}
                                 </span>
-                                <span style={{ padding: '6px 12px', background: selectedRequest.leaveCategory === 'Paid' ? '#ECFDF5' : '#FFFBEB', color: selectedRequest.leaveCategory === 'Paid' ? '#059669' : '#D97706', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
+                                <span style={{ padding: '6px 12px', background: selectedRequest.leaveCategory === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: selectedRequest.leaveCategory === 'Paid' ? '#10B981' : '#F59E0B', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
                                     {selectedRequest.leaveCategory || 'Paid'}
                                 </span>
                             </div>

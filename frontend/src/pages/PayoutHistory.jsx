@@ -42,12 +42,12 @@ const PayoutHistory = () => {
         window.open(url, '_blank');
     };
 
-    const getStatusStyle = (status) => {
+    const getStatusClass = (status) => {
         switch (status) {
-            case 'Published': return { background: '#ecfdf5', color: '#059669' }; // Green
-            case 'Generated': return { background: '#eff6ff', color: '#2563eb' }; // Blue
-            case 'Initiated': return { background: '#fffbeb', color: '#d97706' }; // Amber
-            default: return { background: '#f1f5f9', color: 'var(--text-secondary)' };
+            case 'Published': return 'status-published';
+            case 'Generated': return 'status-generated';
+            case 'Initiated': return 'status-initiated';
+            default: return 'status-default';
         }
     };
 
@@ -113,7 +113,7 @@ const PayoutHistory = () => {
                                         <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout?.toLocaleString()}</div>
                                     </td>
                                     <td>
-                                        <span className="status-badge" style={{ fontSize: '10px', ...getStatusStyle(p.status) }}>
+                                        <span className={`status-badge ${getStatusClass(p.status)}`} style={{ fontSize: '10px' }}>
                                             {p.status}
                                         </span>
                                     </td>
@@ -128,7 +128,7 @@ const PayoutHistory = () => {
                                     <td>
                                         <button 
                                             className="btn-hrm-icon" 
-                                            style={{ color: '#2563eb' }}
+                                            style={{ color: 'var(--primary-blue)' }}
                                             onClick={() => handleDownload(p._id)}
                                             title="View Official Payslip"
                                         >

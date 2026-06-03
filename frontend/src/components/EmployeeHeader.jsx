@@ -34,7 +34,11 @@ const EmployeeHeader = ({ toggleSidebar, isCollapsed }) => {
         if (res.ok) {
           const data = await res.json();
           if (data?.logo) {
-            setCompanyLogo(data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`);
+            let logoUrl = data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`;
+            if (window.location.protocol === 'https:' && logoUrl.startsWith('http://')) {
+              logoUrl = logoUrl.replace('http://', 'https://');
+            }
+            setCompanyLogo(logoUrl);
           }
         }
       } catch (e) {}

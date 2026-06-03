@@ -7,14 +7,14 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const STATUS_STYLE = {
-    'Present':  { color: '#10B981', bg: '#DCFCE7' },
-    'Absent':   { color: '#EF4444', bg: '#FEE2E2' },
-    'Half Day': { color: '#F59E0B', bg: '#FEF3C7' },
-    'On Leave': { color: '#8B5CF6', bg: '#EDE9FE' },
+    'Present':  { color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' },
+    'Absent':   { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' },
+    'Half Day': { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' },
+    'On Leave': { color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)' },
 };
 
 const SummaryCard = ({ icon, label, value, color }) => (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '18px 22px', flex: 1, minWidth: 130 }}>
+    <div style={{ background: 'var(--card-bg)', borderRadius: 12, border: '1px solid var(--border)', padding: '18px 22px', flex: 1, minWidth: 130 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <div style={{ color, background: color + '20', borderRadius: 8, padding: 6, display: 'flex' }}>{icon}</div>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</span>
@@ -39,6 +39,48 @@ const AttendanceReport = () => {
     const [employees, setEmployees] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [search, setSearch] = useState('');
+
+    const isDarkMode = document.body.classList.contains('dark-mode');
+
+    const getStatusBadgeStyle = (statusName) => {
+        switch (statusName) {
+            case 'Present':
+                return isDarkMode 
+                    ? { color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' }
+                    : { color: '#059669', background: '#ecfdf5' };
+            case 'Absent':
+                return isDarkMode
+                    ? { color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)' }
+                    : { color: '#dc2626', background: '#fef2f2' };
+            case 'Half Day':
+                return isDarkMode
+                    ? { color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)' }
+                    : { color: '#d97706', background: '#fffbeb' };
+            case 'On Leave':
+                return isDarkMode
+                    ? { color: '#a78bfa', background: 'rgba(139, 92, 246, 0.15)' }
+                    : { color: '#7c3aed', background: '#f5f3ff' };
+            default:
+                return {};
+        }
+    };
+
+    const getApprovalBadgeStyle = (approvalStatus) => {
+        switch (approvalStatus) {
+            case 'Approved':
+                return isDarkMode 
+                    ? { color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' }
+                    : { color: '#059669', background: '#ecfdf5' };
+            case 'Rejected':
+                return isDarkMode
+                    ? { color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)' }
+                    : { color: '#dc2626', background: '#fef2f2' };
+            default: // Pending
+                return isDarkMode
+                    ? { color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)' }
+                    : { color: '#d97706', background: '#fffbeb' };
+        }
+    };
 
     useEffect(() => {
         authenticatedFetch(`${API_URL}/api/users`)
@@ -183,7 +225,7 @@ const AttendanceReport = () => {
                                     <button className="btn-hrm btn-hrm-secondary" onClick={exportCSV} title="Export CSV" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <Download size={14} /> CSV
                                     </button>
-                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportPDF} title="Export PDF" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', borderColor: '#FECACA', color: '#991B1B' }}>
+                                    <button className="btn-hrm btn-hrm-secondary" onClick={exportPDF} title="Export PDF" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)', color: 'var(--accent-red)' }}>
                                         <FileText size={14} /> PDF
                                     </button>
                                 </>
@@ -246,7 +288,8 @@ const AttendanceReport = () => {
                                     </thead>
                                     <tbody>
                                         {filtered.map((r, i) => {
-                                            const st = STATUS_STYLE[r.status];
+                                            const badgeStyle = getStatusBadgeStyle(r.status);
+                                            const appStyle = getApprovalBadgeStyle(r.approvalStatus);
                                             return (
                                                 <tr key={i}>
                                                     <td style={{ fontWeight: 500 }}>{r.date}</td>
@@ -254,27 +297,24 @@ const AttendanceReport = () => {
                                                     <td style={{ fontWeight: 600 }}>{r.name}</td>
                                                     <td style={{ color: 'var(--text-secondary)' }}>{r.department}</td>
                                                     <td>
-                                                        {st ? (
-                                                            <span style={{ background: st.bg, color: st.color, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 500 }}>{r.status}</span>
-                                                        ) : r.status}
+                                                        <span style={{ ...badgeStyle, borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 500 }}>{r.status}</span>
                                                     </td>
                                                     <td>{r.punchIn}</td>
                                                     <td>{r.punchOut}</td>
                                                     <td>{r.workHours}</td>
                                                     <td>
-                                                        <span style={{ color: r.lateIn === 'Yes' ? '#F59E0B' : '#94a3b8', fontWeight: r.lateIn === 'Yes' ? 600 : 400 }}>{r.lateIn}</span>
+                                                        <span style={{ color: r.lateIn === 'Yes' ? '#F59E0B' : 'var(--text-muted)', fontWeight: r.lateIn === 'Yes' ? 600 : 400 }}>{r.lateIn}</span>
                                                     </td>
-                                                    <td style={{ color: r.penalty > 0 ? '#EF4444' : '#94a3b8', fontWeight: r.penalty > 0 ? 600 : 400 }}>
+                                                    <td style={{ color: r.penalty > 0 ? '#EF4444' : 'var(--text-muted)', fontWeight: r.penalty > 0 ? 600 : 400 }}>
                                                         {r.penalty > 0 ? `₹${r.penalty}` : '—'}
                                                     </td>
                                                     <td>
                                                         {r.status === 'Absent' ? (
-                                                            <span style={{ color: '#94a3b8' }}>—</span>
+                                                            <span style={{ color: 'var(--text-muted)' }}>—</span>
                                                         ) : (
                                                             <span style={{
                                                                 fontSize: 12, fontWeight: 500, borderRadius: 6, padding: '3px 10px',
-                                                                background: r.approvalStatus === 'Approved' ? '#DCFCE7' : r.approvalStatus === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
-                                                                color: r.approvalStatus === 'Approved' ? '#10B981' : r.approvalStatus === 'Rejected' ? '#EF4444' : '#F59E0B',
+                                                                ...appStyle
                                                             }}>{r.approvalStatus}</span>
                                                         )}
                                                     </td>

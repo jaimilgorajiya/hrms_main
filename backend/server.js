@@ -77,7 +77,7 @@ import clientRoutes from './routes/Client.Routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 // Create HTTP Server for Socket.io
 const httpServer = createServer(app);
@@ -119,10 +119,10 @@ const corsOrigins = [
     'http://local.hrms.com:5173',
     'http://local.hrms.com:5174',
     'http://local.hrms.com:5175',
-    'http://local.hrms.com:7001',
+    'http://local.hrms.com:7000',
     'http://local.hrms.com',
     'https://local.hrms.com',
-    'http://192.168.29.43:7001',
+    'http://192.168.29.43:7000',
 ].filter(Boolean);
 app.use(cors({
     origin: corsOrigins,
@@ -136,7 +136,7 @@ initSocket(httpServer, {
 });
 
 app.use(cookieParser());
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'public/uploads'));
 
 
 app.use('/api/auth', authRoutes);

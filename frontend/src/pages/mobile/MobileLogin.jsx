@@ -55,7 +55,9 @@ export default function MobileLogin() {
       }
 
       // 2. Setup standard invisible recaptcha verifier
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isLocalhost = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' ||
+                          window.location.hostname.includes('hrms.com');
 
       if (isLocalhost) {
         // Developer Bypass for localhost: Immediately transition to mock code confirmation
@@ -285,7 +287,7 @@ export default function MobileLogin() {
                 </>
               ) : (
                 <>
-                  {confirm ? 'Confirm & Verify 🔑' : 'Authorize with OTP 🚀'}
+                  {confirm ? 'Confirm & Verify ' : 'Authorize with OTP '}
                 </>
               )}
             </button>

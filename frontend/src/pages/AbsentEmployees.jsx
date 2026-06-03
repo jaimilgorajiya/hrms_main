@@ -189,6 +189,24 @@ const AbsentEmployees = () => {
     }
   };
 
+  const isDarkMode = document.body.classList.contains('dark-mode');
+
+  const getStatColor = (type) => {
+    if (isDarkMode) {
+      if (type === 'absent') return { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', label: '#fca5a5' };
+      if (type === 'weekoff') return { bg: 'rgba(124, 58, 237, 0.15)', text: '#a78bfa', label: '#c084fc' };
+      return { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', label: '#86efac' };
+    } else {
+      if (type === 'absent') return { bg: '#FFF1F2', text: '#9F1239', label: '#9F1239' };
+      if (type === 'weekoff') return { bg: '#F5F3FF', text: '#5B21B6', label: '#5B21B6' };
+      return { bg: '#ECFDF5', text: '#065F46', label: '#065F46' };
+    }
+  };
+
+  const absentColors = getStatColor('absent');
+  const weekoffColors = getStatColor('weekoff');
+  const presentColors = getStatColor('present');
+
   const filtered = absentees.filter(a => {
     const q = search.toLowerCase();
     const matchSearch = a.name?.toLowerCase().includes(q) || a.employeeId?.toLowerCase().includes(q);
@@ -199,54 +217,79 @@ const AbsentEmployees = () => {
     return matchSearch && matchDept && matchType;
   });
 
-  const departments = ['All', ...new Set(absentees.map(a => a.department).filter(Boolean))];
-
-  return (
-    <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+  const departments = ['All', ...new Set(absentees.map(a => a.department).filter(Boolean))];  return (
+    <div style={{ padding: '32px', maxWidth: '1450px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       {/* Header & Stats Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
         <div>
-          <h1 className="hrm-title" style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Absent Employees</h1>
-          </div>
+          <h1 style={{ fontSize: '30px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>
+            Absentee Tracking
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '14px', fontWeight: '500' }}>
+            Review absent logs, week-offs, and quickly log manual entries.
+          </p>
+        </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: '12px', padding: '0 12px' }}>
-            <CalendarIcon size={18} color="var(--text-secondary)" />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', background: 'var(--card-bg)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '0 14px', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+            <CalendarIcon size={16} color="var(--text-muted)" />
             <input 
               type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: 'none', padding: '12px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', outline: 'none', background: 'transparent' }} 
+              style={{ border: 'none', padding: '12px 6px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', outline: 'none', background: 'transparent', cursor: 'pointer' }} 
             />
           </div>
-          <button onClick={fetchAbsentees} style={{ padding: '14px', borderRadius: '12px', border: 'none', background: '#2563EB', color: '#fff', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }}>
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+          <button 
+            onClick={fetchAbsentees} 
+            style={{ 
+              width: '44px', height: '44px', borderRadius: '14px', border: 'none', 
+              background: 'var(--primary-blue)', color: '#fff', cursor: 'pointer', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', transition: 'all 0.2s' 
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        <div style={statCardStyle('#FEE2E2', '#EF4444')}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-            <AlertTriangle size={24} color="#EF4444" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        <div style={statCardStyle(absentColors.bg, absentColors.text)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: '700', color: absentColors.label, margin: '0 0 6px 0' }}>Actually Absent</p>
+              <h3 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: absentColors.text }}>{absentees.filter(a => !a.isWeekOff).length}</h3>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(225, 29, 72, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={22} color="#E11D48" />
+            </div>
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{absentees.filter(a => !a.isWeekOff).length}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>Actually Absent</p>
         </div>
 
-        <div style={statCardStyle('#F1F5F9', '#64748B')}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-            <Clock size={24} color="var(--text-secondary)" />
+        <div style={statCardStyle(weekoffColors.bg, weekoffColors.text)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: '700', color: weekoffColors.label, margin: '0 0 6px 0' }}>On Week-off</p>
+              <h3 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: weekoffColors.text }}>{absentees.filter(a => a.isWeekOff).length}</h3>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(124, 58, 237, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={22} color="#7C3AED" />
+            </div>
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{absentees.filter(a => a.isWeekOff).length}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>On Week-off</p>
         </div>
 
-        <div style={statCardStyle('#ECFDF5', '#10B981')}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-            <Users size={24} color="#10B981" />
+        <div style={statCardStyle(presentColors.bg, presentColors.text)}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: '700', color: presentColors.label, margin: '0 0 6px 0' }}>Present Today</p>
+              <h3 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: presentColors.text }}>{stats.presentCount}</h3>
+            </div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(5, 150, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={22} color="#059669" />
+            </div>
           </div>
-          <h3 style={{ fontSize: '32px', fontWeight: '900', margin: '0 0 4px', color: 'var(--text-primary)' }}>{stats.presentCount}</h3>
-          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-secondary)', margin: 0 }}>Present Today</p>
         </div>
       </div>
 
@@ -255,8 +298,8 @@ const AbsentEmployees = () => {
         <div style={{ position: 'relative', flex: 1, minWidth: '300px' }}>
           <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
-            type="text" placeholder="Search by name or employee ID..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '14px', fontWeight: '600', outline: 'none', background: '#fff' }}
+            type="text" placeholder="Search by employee name or ID..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '14px', border: '1.5px solid var(--border)', fontSize: '14px', fontWeight: '600', outline: 'none', background: 'var(--card-bg)', color: 'var(--text-primary)', boxSizing: 'border-box' }}
           />
         </div>
 
@@ -264,27 +307,27 @@ const AbsentEmployees = () => {
           value={filterDept} onChange={e => setFilterDept(e.target.value)}
           style={filterSelectStyle}
         >
-          {departments.map(d => <option key={d} value={d}>{d === 'All' ? 'All Departments' : d}</option>)}
+          {departments.map(d => <option key={d} value={d} style={{ background: 'var(--card-bg)', color: 'var(--text-primary)' }}>{d === 'All' ? 'All Departments' : d}</option>)}
         </select>
 
         <select 
           value={filterType} onChange={e => setFilterType(e.target.value)}
           style={filterSelectStyle}
         >
-          <option value="All">All Absentees</option>
-          <option value="Absent">Strictly Absent</option>
-          <option value="Week-off">Week-Off Only</option>
+          <option value="All" style={{ background: 'var(--card-bg)', color: 'var(--text-primary)' }}>All Absentees</option>
+          <option value="Absent" style={{ background: 'var(--card-bg)', color: 'var(--text-primary)' }}>Strictly Absent</option>
+          <option value="Week-off" style={{ background: 'var(--card-bg)', color: 'var(--text-primary)' }}>Week-Off Only</option>
         </select>
       </div>
 
       {/* Absentees Grid/Table */}
-      <div style={{ background: '#fff', borderRadius: '24px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: '24px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         {loading ? (
-          <div style={{ padding: '80px', textAlign: 'center' }}><RefreshCw size={40} color="#2563EB" className="animate-spin" /></div>
+          <div style={{ padding: '80px', textAlign: 'center' }}><RefreshCw size={40} color="var(--primary-blue)" className="animate-spin" /></div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '100px 20px', textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', borderRadius: '30px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <Users size={40} color="#CBD5E1" />
+            <div style={{ width: '80px', height: '80px', borderRadius: '30px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <Users size={40} color="var(--text-muted)" />
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-secondary)' }}>No Absentees Found</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Everyone is accounted for based on your current filters.</p>
@@ -293,78 +336,84 @@ const AbsentEmployees = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                  <th style={thStyle}>Employee</th>
+                <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={thStyle}>Employee Details</th>
                   <th style={thStyle}>Department & Branch</th>
-                  <th style={thStyle}>Contact</th>
                   <th style={thStyle}>Reason / Schedule</th>
-                  <th style={thStyle}>Actions</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(a => (
-                  <tr key={a._id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                  <tr key={a._id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }}>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border)' }}>
                           {a.profilePhoto ? (
                             <img src={a.profilePhoto.startsWith('http') ? a.profilePhoto : `${API_URL}/uploads/${a.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : <User size={20} color="var(--text-muted)" />}
                         </div>
                         <div>
                           <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>{a.name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>#{a.employeeId}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '2px' }}>
+                            #{a.employeeId} {a.phone ? `· 📞 ${a.phone}` : ''}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td style={tdStyle}>
                       <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>{a.department || '—'}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={12} /> {a.branch || 'Main Branch'}
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        <MapPin size={12} color="var(--text-muted)" /> {a.branch || 'Main Branch'}
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      {a.phone ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
-                            <Phone size={14} />
-                          </div>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>{a.phone}</span>
-                        </div>
-                      ) : <span style={{ color: '#CBD5E1', fontSize: '12px' }}>No phone listed</span>}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                        <span style={{ 
+                          padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800',
+                          background: a.isWeekOff 
+                            ? (isDarkMode ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF') 
+                            : (isDarkMode ? 'rgba(239, 68, 68, 0.15)' : '#FFF1F2'),
+                          color: a.isWeekOff 
+                            ? (isDarkMode ? '#a78bfa' : '#7C3AED') 
+                            : (isDarkMode ? '#ef4444' : '#E11D48'),
+                          border: `1px solid ${a.isWeekOff 
+                            ? (isDarkMode ? 'rgba(139, 92, 246, 0.3)' : '#DDD6FE') 
+                            : (isDarkMode ? 'rgba(239, 68, 68, 0.3)' : '#FECDD3')}`
+                        }}>
+                          {a.isWeekOff ? 'Week Off' : 'Unmarked Absence'}
+                        </span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '700' }}>Shift: {a.shiftName}</div>
+                      </div>
                     </td>
-                    <td style={tdStyle}>
-                      <span style={{ 
-                        padding: '6px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: '800',
-                        background: a.isWeekOff ? '#F5F3FF' : '#FFF1F2',
-                        color: a.isWeekOff ? '#7C3AED' : '#E11D48',
-                        border: `1px solid ${a.isWeekOff ? '#DDD6FE' : '#FECDD3'}`
-                      }}>
-                        {a.isWeekOff ? 'Week Off' : 'Unmarked Absence'}
-                      </span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontWeight: '600' }}>Shift: {a.shiftName}</div>
-                    </td>
-                    <td style={tdStyle}>
+                    <td style={{ ...tdStyle, textAlign: 'right' }}>
                       <button 
                         style={{ 
-                          width: '36px', 
-                          height: '36px', 
-                          borderRadius: '10px', 
-                          border: 'none', 
-                          background: '#F8FAFC', 
-                          color: 'var(--text-secondary)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
+                          padding: '8px 16px',
+                          borderRadius: '10px',
+                          border: '1.5px solid var(--primary-blue)',
+                          background: 'var(--primary-light)',
+                          color: 'var(--primary-blue)',
+                          fontWeight: '800',
+                          fontSize: '12px',
                           cursor: 'pointer',
-                          transition: 'background 0.2s'
+                          transition: 'all 0.2s',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
                         }}
                         onClick={() => handleAction(a)}
                         title="Resolve Attendance"
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--primary-blue)';
+                          e.currentTarget.style.color = '#fff';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'var(--primary-light)';
+                          e.currentTarget.style.color = 'var(--primary-blue)';
+                        }}
                       >
-                        <MoreVertical size={18} />
+                        Correct Log
                       </button>
                     </td>
                   </tr>
@@ -393,8 +442,8 @@ const statCardStyle = (bg, color) => ({
 });
 
 const filterSelectStyle = { 
-  padding: '12px 16px', border: '1.5px solid #E2E8F0', borderRadius: '14px', 
-  outline: 'none', background: '#fff', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '14px', minWidth: '180px' 
+  padding: '12px 16px', border: '1.5px solid var(--border)', borderRadius: '14px', 
+  outline: 'none', background: 'var(--card-bg)', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '14px', minWidth: '180px' 
 };
 
 const thStyle = { padding: '20px', textAlign: 'left', fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' };

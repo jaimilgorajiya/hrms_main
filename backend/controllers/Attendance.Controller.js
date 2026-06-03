@@ -234,13 +234,16 @@ export const togglePunch = async (req, res) => {
 
         // Server-side Geofence Validation
         const emp = await User.findById(req.user._id);
-        if (emp?.branch && latitude && longitude) {
+        if (emp?.branch) {
             let branch = await Branch.findOne({ branchName: emp.branch, adminId: emp.adminId || emp._id });
             if (!branch) {
                 const escaped = emp.branch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 branch = await Branch.findOne({ branchName: { $regex: new RegExp(`^${escaped}$`, 'i') }, adminId: emp.adminId || emp._id });
             }
             if (branch && branch.latitude !== 0) {
+                if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+                    return res.status(400).json({ success: false, message: "Location coordinates are required to verify geofence boundaries." });
+                }
                 const distance = getDistance(latitude, longitude, branch.latitude, branch.longitude);
                 const radius = branch.radius || 200;
                 const { shift } = await getEmployeeShiftToday(req.user._id);
@@ -528,10 +531,27 @@ export const togglePunch = async (req, res) => {
             locationAddress,
             ...(isOfflineSync ? { syncedOffline: true, syncedAt: new Date() } : {})
         });
-        await record.save();
-        notifyAdminPunch(req.user._id, 'OUT', date, record.status);
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
+        let minFullDayMins = 8 * 60;
+        let minHalfDayMins = 4 * 60;
+        if (daySchedule) {
+            if (daySchedule.minFullDayHours > 0) minFullDayMins = daySchedule.minFullDayHours * 60;
+            if (daySchedule.minHalfHours > 0) minHalfDayMins = daySchedule.minHalfHours * 60;
+        }
+
+        let finalStatus = 'Present';
+        if (workingMinutes < minHalfDayMins) {
+            finalStatus = 'Absent';
+        } else if (workingMinutes < minFullDayMins) {
+            finalStatus = 'Half Day';
+        } else {
+            finalStatus = 'Present';
+        }
+        record.status = finalStatus;
+
+        await record.save();
+        notifyAdminPunch(req.user._id, 'OUT', date, record.status);
 
         res.status(200).json({
             success: true,
@@ -746,7 +766,7 @@ export const getAttendanceHistory = async (req, res) => {
 // GET /api/attendance/admin/all?date=YYYY-MM-DD  (admin only)
 export const getAdminAttendance = async (req, res) => {
     try {
-        const { date, department, branch, status } = req.query;
+        const { date, department, branch, status, approvalStatus } = req.query;
         const targetDate = date || getTodayStr();
 
         // 1. Get all active & resigned employees first
@@ -785,6 +805,7 @@ export const getAdminAttendance = async (req, res) => {
                     branch: emp.workSetup?.location || emp.branch,
                     profilePhoto: emp.profilePhoto,
                 },
+                date: record?.date || targetDate,
                 status: attendanceStatus,
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '---',
@@ -794,7 +815,7 @@ export const getAdminAttendance = async (req, res) => {
                 isEarly: record?.earlyOutPenalty?.isEarly || false,
                 lateInPenalty: record?.lateInPenalty || { amount: 0, isApplied: false },
                 earlyOutPenalty: record?.earlyOutPenalty || { amount: 0, isApplied: false },
-                approvalStatus: record?.approvalStatus || 'Pending',
+                approvalStatus: record ? (record.approvalStatus || 'Pending') : 'N/A',
                 punches: record?.punches || [],
                 breaks: record?.breaks || []
             };
@@ -810,7 +831,10 @@ export const getAdminAttendance = async (req, res) => {
             }
         }
 
-        // 5. Calculate Stats
+        // Filter by approvalStatus if requested
+        if (approvalStatus && approvalStatus !== 'All') {
+            filteredData = filteredData.filter(d => d.approvalStatus === approvalStatus);
+        }        // 5. Calculate Stats
         const stats = {
             total: data.length,
             present: data.filter(d => ['Present', 'Clocked In'].includes(d.status)).length,
@@ -1092,7 +1116,7 @@ export const getAbsentEmployees = async (req, res) => {
             adminId: req.user._id
         })
             .select('name employeeId department designation profilePhoto workSetup phone branch')
-            .populate('workSetup.shift', 'weekOffDays');
+            .populate('workSetup.shift', 'weekOffDays shiftName');
 
         // 3. Identify who is NOT present and NOT excused
         const absentees = employees.filter(emp =>
@@ -1119,7 +1143,7 @@ export const getAbsentEmployees = async (req, res) => {
                 phone: emp.phone,
                 branch: emp.branch,
                 isWeekOff,
-                shiftName: emp.workSetup?.shift?.name || 'Not Assigned'
+                shiftName: emp.workSetup?.shift?.shiftName || 'Not Assigned'
             };
         });
 

@@ -147,7 +147,11 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
         if (response.ok) {
           const data = await response.json();
           if (data && data.logo) {
-            setCompanyLogo(data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`);
+            let logoUrl = data.logo.startsWith('http') ? data.logo : `${API_URL}${data.logo}`;
+            if (window.location.protocol === 'https:' && logoUrl.startsWith('http://')) {
+              logoUrl = logoUrl.replace('http://', 'https://');
+            }
+            setCompanyLogo(logoUrl);
           }
         }
       } catch (error) {
@@ -160,7 +164,11 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
     // Listen for cross-component updates
     const handleCompanyUpdate = (event) => {
       if (event.detail && event.detail.logo) {
-        setCompanyLogo(event.detail.logo.startsWith('http') ? event.detail.logo : `${API_URL}${event.detail.logo}`);
+        let logoUrl = event.detail.logo.startsWith('http') ? event.detail.logo : `${API_URL}${event.detail.logo}`;
+        if (window.location.protocol === 'https:' && logoUrl.startsWith('http://')) {
+          logoUrl = logoUrl.replace('http://', 'https://');
+        }
+        setCompanyLogo(logoUrl);
       }
     };
     window.addEventListener('companyDetailsUpdated', handleCompanyUpdate);
