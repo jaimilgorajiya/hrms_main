@@ -10,6 +10,4 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-console.log('API_URL loaded:', API_URL);
-
 export default API_URL;

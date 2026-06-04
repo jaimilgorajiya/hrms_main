@@ -674,7 +674,7 @@ const changeBranch = async (req, res) => {
 
 const getLeaveBalances = async (req, res) => {
     try {
-        const users = await User.find({ status: { $ne: "Ex-Employee" }, role: { $ne: "Admin" } })
+        const users = await User.find({ status: { $ne: "Ex-Employee" }, role: { $ne: "Admin" }, adminId: req.user._id })
             .populate('leaveGroup')
             .select('name employeeId leaveGroup noOfPaidLeaves');
 

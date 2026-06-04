@@ -141,13 +141,13 @@ const getUpcomingRetirements = async (req, res) => {
 
         // Find users whose 60th birthday is within next 6 months
         // Note: Logic simplification. In prod, use DOB field + aggregation.
-        // Assuming user has 'dob' field.
+        // Assuming user has 'dateOfBirth' field.
         const adminId = req.user._id;
-        const users = await User.find({ dob: { $exists: true }, adminId }).select("-password");
+        const users = await User.find({ dateOfBirth: { $exists: true }, adminId }).select("-password");
         
         const retiringUsers = users.filter(user => {
-            if (!user.dob) return false;
-            const birthDate = new Date(user.dob);
+            if (!user.dateOfBirth) return false;
+            const birthDate = new Date(user.dateOfBirth);
             const retirementDate = new Date(birthDate.getFullYear() + retirementAge, birthDate.getMonth(), birthDate.getDate());
             return retirementDate >= today && retirementDate <= sixMonthsFromNow;
         });

@@ -94,6 +94,49 @@ export const getAdminStats = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
+        // 7-day trend calculations
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const istDate = new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+            last7Days.push(istDate.toISOString().split('T')[0]);
+        }
+
+        const attendanceRecords = await Attendance.find({
+            adminId,
+            date: { $in: last7Days },
+            employee: { $in: activeEmpIds }
+        });
+
+        const usersList = await User.find({
+            adminId,
+            role: { $ne: 'Admin' }
+        }).select('createdAt');
+
+        const workforceTrend = [];
+        const presentTrend = [];
+        const absentTrend = [];
+        const onLeaveTrend = [];
+
+        last7Days.forEach(dateStr => {
+            const dayEnd = new Date(dateStr + 'T23:59:59.999Z');
+            const workforceCount = usersList.filter(u => new Date(u.createdAt) <= dayEnd).length;
+            
+            const recordsForDay = attendanceRecords.filter(r => r.date === dateStr);
+            const present = recordsForDay.filter(r => ['Present', 'Clocked In'].includes(r.status)).length;
+            const halfDay = recordsForDay.filter(r => ['Half Day', 'HALF DAY'].includes(r.status)).length;
+            const onLeave = recordsForDay.filter(r => r.status === 'On Leave').length;
+            const totalAttendance = recordsForDay.length;
+
+            const absent = Math.max(0, workforceCount - totalAttendance);
+
+            workforceTrend.push({ v: workforceCount });
+            presentTrend.push({ v: present + halfDay });
+            absentTrend.push({ v: absent });
+            onLeaveTrend.push({ v: onLeave });
+        });
+
         res.status(200).json({
             success: true,
             stats: {
@@ -109,6 +152,12 @@ export const getAdminStats = async (req, res) => {
                 activeOffboarding,
                 pendingLeaveRequests,
                 pendingAttendanceRequests
+            },
+            trends: {
+                workforce: workforceTrend,
+                present: presentTrend,
+                absent: absentTrend,
+                onLeave: onLeaveTrend
             },
             departmentStats,
             roleStats,

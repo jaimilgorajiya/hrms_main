@@ -25,7 +25,7 @@ export const submitRequest = async (req, res) => {
         }
 
         // Get adminId for this employee
-        const employee = await User.findById(employeeId);
+        const employee = await User.findById(employeeId).populate('leaveGroup');
         if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
 
         const adminId = employee.adminId || employeeId; // Fallback to self if no admin assigned (e.g. root admin)
@@ -65,9 +65,42 @@ export const submitRequest = async (req, res) => {
                 return res.status(400).json({ success: false, message: "Back-dated leave is restricted for this leave type." });
             }
 
-            // 3. Monthly Paid Leave Limit Check
+            // 3. Paid Leave Balance and Monthly Limit Check
             if (leaveCategory === 'Paid') {
-                const leaveGroup = await LeaveGroup.findById(employee.leaveGroup);
+                const leaveGroup = employee.leaveGroup;
+                const entitlement = Number(employee.noOfPaidLeaves || leaveGroup?.noOfPaidLeaves || 0);
+
+                // Calculate requested days for the current request
+                const reqStart = new Date(startStr);
+                const reqEnd = new Date(endStr);
+                const reqDiffDays = Math.ceil(Math.abs(reqEnd - reqStart) / (1000 * 60 * 60 * 24)) + 1;
+                const requestedDays = leaveDuration === "Full Day" ? reqDiffDays : 0.5;
+
+                // Calculate total used/pending paid leaves so far (excluding Rejected status)
+                const allApprovedRequests = await Request.find({
+                    employee: employeeId,
+                    requestType: 'Leave',
+                    status: { $ne: 'Rejected' },
+                    leaveCategory: 'Paid'
+                });
+
+                let totalUsed = 0;
+                allApprovedRequests.forEach(r => {
+                    const start = new Date(r.fromDate);
+                    const end = new Date(r.toDate);
+                    const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+                    totalUsed += (r.leaveDuration === "Full Day" ? diffDays : 0.5);
+                });
+
+                const remainingBalance = entitlement - totalUsed;
+                if (requestedDays > remainingBalance) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Insufficient Paid Leave balance: You have only ${remainingBalance.toFixed(2)} days remaining, but requested ${requestedDays} days.`
+                    });
+                }
+
+                // Enforce monthly limit check
                 const maxInMonth = (employee.maxPLMonth && employee.maxPLMonth > 0) 
                     ? employee.maxPLMonth 
                     : (leaveGroup?.maxUseInMonth || 0);
@@ -92,12 +125,6 @@ export const submitRequest = async (req, res) => {
                         const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
                         usedInMonth += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
                     });
-
-                    // Calculate days for the current request being submitted
-                    const reqStart = new Date(startStr);
-                    const reqEnd = new Date(endStr);
-                    const reqDiffDays = Math.ceil(Math.abs(reqEnd - reqStart) / (1000 * 60 * 60 * 24)) + 1;
-                    const requestedDays = leaveDuration === "Full Day" ? reqDiffDays : 0.5;
 
                     if ((usedInMonth + requestedDays) > maxInMonth) {
                         return res.status(400).json({ 

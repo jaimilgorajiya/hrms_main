@@ -226,9 +226,6 @@ const userSchema = new mongoose.Schema(
         insuranceExpiryDate: {
             type: Date
         },
-        retirementAge: {
-            type: Number
-        },
         inviteSent: {
             type: Boolean,
             default: false

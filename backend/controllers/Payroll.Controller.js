@@ -40,7 +40,7 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             const isInitiated = !!initiatedMap[emp._id.toString()];
             
             const ctc = await EmployeeCTC.findOne({ employeeId: emp._id, status: 'Active' });
-            if (!ctc) continue;
+            const ctcMissing = !ctc;
 
             const monthAttendance = await Attendance.find({
                 employee: emp._id,
@@ -133,8 +133,8 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
             const baseDays = isFixed ? (salaryGroup?.fixedDays || 26) : daysInMonth;
 
-            const perDayGross = (ctc.monthlyGross || 0) / baseDays;
-            const perDayNet = (ctc.netSalary || 0) / baseDays;
+            const perDayGross = ctc ? ((ctc.monthlyGross || 0) / baseDays) : 0;
+            const perDayNet = ctc ? ((ctc.netSalary || 0) / baseDays) : 0;
 
             let accruedGross = 0;
             let accruedNet = 0;
@@ -145,11 +145,11 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 const regularPayable = Math.min(baseDays, basePayable);
                 accruedGross = (perDayGross * regularPayable) + (perDayGross * extraBenefit);
                 accruedNet = ((perDayNet * regularPayable) + (perDayNet * extraBenefit)) - monthPenalty;
-                unpaidLeaveDeduction = (ctc.netSalary || 0) - (perDayNet * regularPayable); 
+                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * regularPayable); 
             } else {
                 accruedGross = perDayGross * payableDays;
                 accruedNet = (perDayNet * payableDays) - monthPenalty;
-                unpaidLeaveDeduction = (ctc.netSalary || 0) - (perDayNet * (payableDays - extraBenefit)); 
+                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * (payableDays - extraBenefit)); 
             }
 
             if (salaryGroup?.roundedSalary === 'Yes') {
@@ -196,13 +196,14 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     total: isInitiated ? 0 : monthPenalty 
                 },
                 salary: { 
-                    monthlyGross: ctc.monthlyGross, 
-                    monthlyNet: ctc.netSalary, 
+                    monthlyGross: ctc?.monthlyGross || 0, 
+                    monthlyNet: ctc?.netSalary || 0, 
                     accruedGross: isInitiated ? (initiatedMap[emp._id.toString()].systemAccrued || 0) : accruedGross, 
                     accruedNet: isInitiated ? (initiatedMap[emp._id.toString()].finalPayout || 0) : accruedNet, 
                     unpaidLeaveDeduction: isInitiated ? 0 : unpaidLeaveDeduction,
                     extraDayAmount: extraBenefit * perDayNet
-                }
+                },
+                ctcMissing
             });
         }
         res.status(200).json({ success: true, month, summary });

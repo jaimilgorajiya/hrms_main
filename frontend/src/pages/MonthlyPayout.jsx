@@ -316,7 +316,14 @@ const MonthlyPayout = () => {
                                                 <User size={18} color="var(--text-secondary)" />
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 600 }}>{s.employee.name}</div>
+                                                <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {s.employee.name}
+                                                    {s.ctcMissing && (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fee2e2', color: '#ef4444', fontSize: '9px', padding: '2px 6px', borderRadius: '10px', fontWeight: 700, border: '1px solid #fca5a5' }}>
+                                                            <AlertCircle size={10} /> MISSING CTC
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{s.employee.employeeId}</div>
                                             </div>
                                         </div>
@@ -338,12 +345,22 @@ const MonthlyPayout = () => {
                                     <td>
                                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                             {!s.isInitiated ? (
-                                                <button 
-                                                    className="btn-payout-initiate"
-                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmp(s); }}
-                                                >
-                                                    <Calculator size={14} /> Initiate
-                                                </button>
+                                                s.ctcMissing ? (
+                                                    <button 
+                                                        className="btn-payout-initiate"
+                                                        style={{ background: '#374151', color: '#9ca3af', border: '1px solid #4b5563', cursor: 'not-allowed', boxShadow: 'none' }}
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedEmp(s); }}
+                                                    >
+                                                        <AlertCircle size={14} /> View Warning
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        className="btn-payout-initiate"
+                                                        onClick={(e) => { e.stopPropagation(); setSelectedEmp(s); }}
+                                                    >
+                                                        <Calculator size={14} /> Initiate
+                                                    </button>
+                                                )
                                             ) : (
                                                 <div className="btn-payout-initiated">
                                                     Initiated
@@ -381,6 +398,14 @@ const MonthlyPayout = () => {
                             </button>
                         </div>
                         <div className="hrm-modal-body">
+                            {selectedEmp.ctcMissing && (
+                                <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', color: '#f87171' }}>
+                                    <AlertCircle size={20} />
+                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>
+                                        Warning: This employee has no active CTC group. Please assign a CTC structure before initiating payroll.
+                                    </div>
+                                </div>
+                            )}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div className="hrm-card" style={{ padding: '15px', background: 'var(--bg-main)', border: '1px solid var(--border)' }}>
                                     <h4 style={{ fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><Calendar size={14}/> Attendance Breakdown</h4>
@@ -483,13 +508,23 @@ const MonthlyPayout = () => {
                         </div>
                         <div className="hrm-modal-footer" style={{ borderTop: '1px solid var(--border)' }}>
                             <button className="btn-hrm btn-hrm-secondary" onClick={() => setSelectedEmp(null)}>Close Audit</button>
-                            <button 
-                                className={`btn-hrm ${selectedEmp.isInitiated ? 'btn-hrm-secondary' : 'btn-hrm-primary'}`} 
-                                onClick={() => !selectedEmp.isInitiated && handleInitiatePayout(selectedEmp)}
-                                disabled={selectedEmp.isInitiated}
-                            >
-                                {selectedEmp.isInitiated ? 'Already Initiated' : 'Initiate Payout'}
-                            </button>
+                            {selectedEmp.ctcMissing ? (
+                                <button 
+                                    className="btn-hrm" 
+                                    style={{ background: '#374151', color: '#9ca3af', border: '1px solid #4b5563', cursor: 'not-allowed' }}
+                                    disabled={true}
+                                >
+                                    CTC Structure Required
+                                </button>
+                            ) : (
+                                <button 
+                                    className={`btn-hrm ${selectedEmp.isInitiated ? 'btn-hrm-secondary' : 'btn-hrm-primary'}`} 
+                                    onClick={() => !selectedEmp.isInitiated && handleInitiatePayout(selectedEmp)}
+                                    disabled={selectedEmp.isInitiated}
+                                >
+                                    {selectedEmp.isInitiated ? 'Already Initiated' : 'Initiate Payout'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

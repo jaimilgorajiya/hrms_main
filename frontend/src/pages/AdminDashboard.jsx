@@ -122,16 +122,50 @@ const AdminDashboard = () => {
 
   const deptBarData = (data?.departmentStats || []).slice(0, 7).map(d => ({ name: d.name, Employees: d.count }));
 
-  const statCards = [
-    { title: 'Total Workforce', value: stats.totalUsers || 0, icon: <Users size={22} />, color: 'blue', link: '/admin/employees/list', trend: '+2.4%', up: true },
-    { title: 'Present Today', value: (stats.presentToday || 0) + (stats.halfDayToday || 0), icon: <UserPlus size={22} />, color: 'green', link: '/admin/attendance/records?status=Present', trend: 'Stable', up: true },
-    { title: 'Absent Today', value: stats.absentToday || 0, icon: <UserMinus size={22} />, color: 'red', link: '/admin/attendance/absent', trend: '-1.2%', up: false },
-    { title: 'On Leave', value: stats.onLeaveToday || 0, icon: <Calendar size={22} />, color: 'purple', link: '/admin/attendance/records?status=On Leave', trend: 'Normal', up: true },
-  ];
+  const calculateTrendString = (sparkArray) => {
+    if (!sparkArray || sparkArray.length < 2) return { label: 'Stable', up: true };
+    const last = sparkArray[sparkArray.length - 1].v;
+    const prev = sparkArray[sparkArray.length - 2].v;
+    if (prev === 0) {
+      return last > 0 ? { label: `+${last}`, up: true } : { label: 'Stable', up: true };
+    }
+    const diff = last - prev;
+    const pct = ((diff / prev) * 100).toFixed(1);
+    if (diff > 0) return { label: `+${pct}%`, up: true };
+    if (diff < 0) return { label: `${pct}%`, up: false };
+    return { label: 'Stable', up: true };
+  };
 
-  // Mock data for sparklines
-  const sparkData = [
-    { v: 40 }, { v: 45 }, { v: 42 }, { v: 50 }, { v: 48 }, { v: 55 }, { v: 60 }
+  const calculateWeekOverWeekTrend = (sparkArray) => {
+    if (!sparkArray || sparkArray.length < 2) return { label: 'Stable', up: true };
+    const last = sparkArray[sparkArray.length - 1].v;
+    const first = sparkArray[0].v;
+    if (first === 0) {
+      return last > 0 ? { label: `+${last}`, up: true } : { label: 'Stable', up: true };
+    }
+    const diff = last - first;
+    const pct = ((diff / first) * 100).toFixed(1);
+    if (diff > 0) return { label: `+${pct}%`, up: true };
+    if (diff < 0) return { label: `${pct}%`, up: false };
+    return { label: 'Stable', up: true };
+  };
+
+  const trends = data?.trends || {};
+  const workforceTrend = trends.workforce || [];
+  const presentTrend = trends.present || [];
+  const absentTrend = trends.absent || [];
+  const onLeaveTrend = trends.onLeave || [];
+
+  const workforceTrendInfo = calculateWeekOverWeekTrend(workforceTrend);
+  const presentTrendInfo = calculateTrendString(presentTrend);
+  const absentTrendInfo = calculateTrendString(absentTrend);
+  const onLeaveTrendInfo = calculateTrendString(onLeaveTrend);
+
+  const statCards = [
+    { title: 'Total Workforce', value: stats.totalUsers || 0, icon: <Users size={22} />, color: 'blue', link: '/admin/employees/list', trend: workforceTrendInfo.label, up: workforceTrendInfo.up, sparkData: workforceTrend },
+    { title: 'Present Today', value: (stats.presentToday || 0) + (stats.halfDayToday || 0), icon: <UserPlus size={22} />, color: 'green', link: '/admin/attendance/records?status=Present', trend: presentTrendInfo.label, up: presentTrendInfo.up, sparkData: presentTrend },
+    { title: 'Absent Today', value: stats.absentToday || 0, icon: <UserMinus size={22} />, color: 'red', link: '/admin/attendance/absent', trend: absentTrendInfo.label, up: absentTrendInfo.up, sparkData: absentTrend },
+    { title: 'On Leave', value: stats.onLeaveToday || 0, icon: <Calendar size={22} />, color: 'purple', link: '/admin/attendance/records?status=On Leave', trend: onLeaveTrendInfo.label, up: onLeaveTrendInfo.up, sparkData: onLeaveTrend },
   ];
 
   return (
@@ -166,7 +200,7 @@ const AdminDashboard = () => {
              </div>
              <div style={{ height: 40, width: '100%', marginTop: 'auto' }}>
                 <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
-                   <AreaChart data={sparkData}>
+                   <AreaChart data={card.sparkData}>
                       <defs>
                          <linearGradient id={`grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor={card.color === 'blue' ? '#0052ff' : card.color === 'green' ? '#10b981' : card.color === 'red' ? '#f43f5e' : '#8b5cf6'} stopOpacity={0.3}/>
@@ -283,10 +317,10 @@ const AdminDashboard = () => {
 
         {/* Priority Approvals */}
         <div className="card-prem">
-           <div className="card-header-prem">
-              <h2>Priority Approvals</h2>
-              <button className="icon-btn-prem" onClick={() => navigate('/admin/requests/all')}><ClipboardList size={18} /></button>
-           </div>
+            <div className="card-header-prem">
+               <h2>Priority Approvals</h2>
+               <button className="icon-btn-prem" onClick={() => navigate('/admin/leave/request')}><ClipboardList size={18} /></button>
+            </div>
            <div className="card-body-prem" style={{ padding: '16px' }}>
               <div className="activity-list-prem">
                  {pendingRequests.map(req => (
