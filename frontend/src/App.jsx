@@ -48,6 +48,7 @@ import EmployeePromotion from './pages/EmployeePromotion';
 import DailyAttendanceEmail from './pages/DailyAttendanceEmail';
 import AdminAttendance from './pages/AdminAttendance';
 import AddAttendance from './pages/AddAttendance';
+import FixAttendance from './pages/FixAttendance';
 import AbsentEmployees from './pages/AbsentEmployees';
 import AdminRequests from './pages/AdminRequests';
 import AdminDeleteAttendance from './pages/AdminDeleteAttendance';
@@ -122,6 +123,7 @@ function App() {
               <Route path="attendance/break-type" element={<BreakType />} />
               <Route path="attendance/records" element={<AdminAttendance />} />
               <Route path="attendance/add" element={<AddAttendance />} />
+              <Route path="attendance/fix" element={<FixAttendance />} />
               <Route path="attendance/monthly" element={<MonthlyAttendance />} />
               <Route path="attendance/absent" element={<AbsentEmployees />} />
               <Route path="attendance/delete" element={<AdminDeleteAttendance />} />

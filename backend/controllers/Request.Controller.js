@@ -4,12 +4,25 @@ import User from "../models/User.Model.js";
 import Notification from "../models/Notification.Model.js";
 import LeaveType from "../models/LeaveType.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
+import { isMonthLocked } from "../utils/payoutLock.js";
 
 // POST /api/requests/submit
 export const submitRequest = async (req, res) => {
     try {
         const { requestType, leaveType, date, reason, manualIn, manualOut, workSummary, leaveDuration, fromDate, toDate, leaveCategory } = req.body;
         const employeeId = req.user._id;
+
+        // Check if month is locked (month-end lock feature)
+        const checkStart = fromDate || date;
+        const checkEnd = toDate || date;
+        if (checkStart) {
+            if (await isMonthLocked(employeeId, checkStart, checkEnd)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Attendance/Leave for this month has been locked and cannot be modified." 
+                });
+            }
+        }
 
         // Get adminId for this employee
         const employee = await User.findById(employeeId);
@@ -191,6 +204,18 @@ export const updateRequestStatus = async (req, res) => {
 
         const request = await Request.findById(requestId);
         if (!request) return res.status(404).json({ success: false, message: "Request not found" });
+
+        // Check if month is locked (month-end lock feature)
+        const checkStart = request.fromDate || request.date;
+        const checkEnd = request.toDate || request.date;
+        if (checkStart) {
+            if (await isMonthLocked(request.employee, checkStart, checkEnd)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Attendance/Leave for this month has been locked and cannot be modified." 
+                });
+            }
+        }
 
         request.status = status;
         request.adminRemark = adminRemark;

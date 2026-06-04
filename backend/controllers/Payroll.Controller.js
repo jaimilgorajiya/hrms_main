@@ -92,6 +92,10 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                         if (isWeekOff) extraDaysWorked += 0.5;
                     } else if (record.status === 'Absent') {
                         absentDaysCount++;
+                    } else if (record.status === 'Holiday') {
+                        holidaysPaid++;
+                    } else if (record.status === 'Week Off') {
+                        weekOffsPaid++;
                     }
                     
                     // Accumulate penalties
@@ -105,7 +109,7 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             }
 
             // Estimate expected mins (roughly 9h per working day)
-            const expectedMins = (daysInMonth - weekOffsPaid) * 540;
+            const expectedMins = Math.max(0, daysInMonth - weekOffsPaid - holidaysPaid) * 540;
 
             // Calculate Extra Benefit Multiplier (as Total Multiplier)
             // e.g., 2x means the employee gets 2 days of pay total for that day (1 regular + 1 bonus)

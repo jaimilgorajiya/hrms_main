@@ -4,7 +4,7 @@ const uploadFile = (req, res) => {
     }
     
     const host = req.get('host') || '';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.');
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('local.hrms.com') || host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.');
     const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
     const finalProtocol = !isLocal ? 'https' : proto;
 

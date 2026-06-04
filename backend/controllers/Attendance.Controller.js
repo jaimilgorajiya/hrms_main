@@ -7,6 +7,7 @@ import Attendance from "../models/Attendance.Model.js";
 import Branch from "../models/Branch.Model.js";
 import { computeWorkingMinutes, formatMinutes, getDistance } from "../utils/attendance.js";
 import Notification from "../models/Notification.Model.js";
+import { isMonthLocked } from '../utils/payoutLock.js';
 
 // Notify admin when employee punches in or out
 const notifyAdminPunch = async (employeeId, action, date, status) => {
@@ -141,14 +142,23 @@ export const getTodayAttendance = async (req, res) => {
                     const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
                     const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
                     const lateByMins = inMins - shiftStartMins;
-                    if (lateByMins > 0) {
+                    const graceMins = empShift.maxLateInMinutes || 0;
+                    if (lateByMins > graceMins) {
                         const recalcAmount = await calculatePenaltyAmount(empShift._id, lateByMins, req.user._id);
                         liveLatePenalty = { amount: recalcAmount, isApplied: recalcAmount > 0, isLate: true };
                         // Patch the stored record if it differs
-                        if (recalcAmount !== record.lateInPenalty?.amount) {
+                        if (recalcAmount !== record.lateInPenalty?.amount || !record.lateInPenalty?.isLate) {
                             await Attendance.updateOne(
                                 { _id: record._id },
-                                { $set: { 'lateInPenalty.amount': recalcAmount, 'lateInPenalty.isApplied': recalcAmount > 0 } }
+                                { $set: { 'lateInPenalty.amount': recalcAmount, 'lateInPenalty.isApplied': recalcAmount > 0, 'lateInPenalty.isLate': true } }
+                            );
+                        }
+                    } else {
+                        liveLatePenalty = { amount: 0, isApplied: false, isLate: false };
+                        if (record.lateInPenalty?.isLate || (record.lateInPenalty?.amount > 0)) {
+                            await Attendance.updateOne(
+                                { _id: record._id },
+                                { $set: { 'lateInPenalty.amount': 0, 'lateInPenalty.isApplied': false, 'lateInPenalty.isLate': false } }
                             );
                         }
                     }
@@ -231,6 +241,10 @@ export const togglePunch = async (req, res) => {
             ? new Date(clientTime).toISOString().slice(0, 10)  // Use the real punch date for offline syncs
             : getTodayStr();
         const now = isOfflineSync && clientTime ? new Date(clientTime) : new Date();
+
+        if (await isMonthLocked(req.user._id, date)) {
+            return res.status(400).json({ success: false, message: "Attendance for this month has been locked/published and cannot be modified." });
+        }
 
         // Server-side Geofence Validation
         const emp = await User.findById(req.user._id);
@@ -356,7 +370,7 @@ export const togglePunch = async (req, res) => {
             const lateInPenalty = {
                 amount: latePenaltyAmount,
                 isApplied: latePenaltyAmount > 0,
-                isLate: lateByMins > 0
+                isLate: lateByMins > (shift.maxLateInMinutes || 0)
             };
 
             if (!record) {
@@ -577,6 +591,10 @@ export const toggleBreak = async (req, res) => {
         const { breakType = 'General' } = req.body;
         const date = getTodayStr();
         const now = new Date();
+
+        if (await isMonthLocked(req.user._id, date)) {
+            return res.status(400).json({ success: false, message: "Attendance for this month has been locked/published and cannot be modified." });
+        }
 
         const record = await Attendance.findOne({ employee: req.user._id, date });
         if (!record) return res.status(400).json({ success: false, message: "No attendance record for today" });
@@ -889,6 +907,10 @@ export const deleteAttendance = async (req, res) => {
         const record = await Attendance.findById(attendanceId);
         if (!record) return res.status(404).json({ success: false, message: "Record not found" });
 
+        if (await isMonthLocked(record.employee, record.date)) {
+            return res.status(400).json({ success: false, message: "Attendance for this month has been locked/published and cannot be modified." });
+        }
+
         // Update to Absent instead of deleting
         record.status = "Absent";
         record.punches = [];
@@ -929,6 +951,10 @@ export const addManualAttendance = async (req, res) => {
 
         if (!employeeId || !date || !status) {
             return res.status(400).json({ success: false, message: "Missing required fields" });
+        }
+
+        if (await isMonthLocked(employeeId, date)) {
+            return res.status(400).json({ success: false, message: "Attendance for this month has been locked/published and cannot be modified." });
         }
 
         // Helper to create date object in IST context but stored as UTC
@@ -981,7 +1007,7 @@ export const addManualAttendance = async (req, res) => {
                     const lateByMins = inMins - shiftStartMins;
                     if (lateByMins > 0) {
                         const amount = await calculatePenaltyAmount(empShift._id, lateByMins, employeeId);
-                        lateInPenalty = { amount, isApplied: amount > 0, isLate: true };
+                        lateInPenalty = { amount, isApplied: amount > 0, isLate: lateByMins > (empShift.maxLateInMinutes || 0) };
                     }
                 }
 
@@ -1184,6 +1210,34 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         const daysInMonth = new Date(year, monthNum, 0).getDate();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+        // On-the-fly cleanup of older records that are within shift's grace minutes limit
+        if (shift) {
+            const graceMins = shift.maxLateInMinutes || 0;
+            for (let r of records) {
+                if (r.lateInPenalty?.isLate || r.lateInPenalty?.amount > 0) {
+                    const firstIn = r.punches.find(p => p.type === 'IN');
+                    const [yearStr, monthStr, dayStr] = r.date.split('-');
+                    const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+                    const dayName = days[dateObj.getDay()].toLowerCase();
+                    const daySchedule = shift.schedule?.[dayName];
+                    if (firstIn && daySchedule?.shiftStart) {
+                        const shiftStartMins = parseTimeToMinutes(daySchedule.shiftStart);
+                        const inTime = new Date(firstIn.time);
+                        const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                        const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                        const lateByMins = inMins - shiftStartMins;
+                        if (lateByMins <= graceMins) {
+                            r.lateInPenalty = { amount: 0, isApplied: false, isLate: false };
+                            await Attendance.updateOne(
+                                { _id: r._id },
+                                { $set: { 'lateInPenalty.amount': 0, 'lateInPenalty.isApplied': false, 'lateInPenalty.isLate': false } }
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         const todayObj = new Date();
         const isCurrentMonth = todayObj.getFullYear() === year && (todayObj.getMonth() + 1) === monthNum;
         const maxDayToCount = isCurrentMonth ? todayObj.getDate() : daysInMonth;
@@ -1291,6 +1345,40 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         });
     } catch (error) {
         console.error("getMonthlyAttendanceStats error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export const getSpecificRecord = async (req, res) => {
+    try {
+        const { employeeId, date } = req.query;
+        if (!employeeId || !date) {
+            return res.status(400).json({ success: false, message: "Employee ID and Date are required" });
+        }
+
+        const record = await Attendance.findOne({ employee: employeeId, date });
+
+        if (!record) {
+            return res.status(200).json({ success: true, record: null });
+        }
+
+        const firstIn = record.punches.find(p => p.type === 'IN');
+        const lastOut = [...record.punches].reverse().find(p => p.type === 'OUT');
+
+        res.status(200).json({
+            success: true,
+            record: {
+                _id: record._id,
+                date: record.date,
+                status: record.status,
+                remark: record.remark || '',
+                punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                approvalStatus: record.approvalStatus || "Pending"
+            }
+        });
+    } catch (error) {
+        console.error("getSpecificRecord error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

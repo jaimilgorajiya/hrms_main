@@ -136,7 +136,18 @@ initSocket(httpServer, {
 });
 
 app.use(cookieParser());
-app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'public/uploads'));
+
+let serveUploadsDir = process.env.UPLOAD_DIR || 'public/uploads';
+if (process.env.UPLOAD_DIR) {
+    try {
+        if (!fs.existsSync(process.env.UPLOAD_DIR)) {
+            serveUploadsDir = 'public/uploads';
+        }
+    } catch (e) {
+        serveUploadsDir = 'public/uploads';
+    }
+}
+app.use('/uploads', express.static(serveUploadsDir));
 
 
 app.use('/api/auth', authRoutes);
