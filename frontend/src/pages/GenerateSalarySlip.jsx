@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
-import { Search, Calculator, Calendar, CheckSquare, Square, FileText } from 'lucide-react';
+import { Search, Calculator, Calendar, CheckSquare, Square, FileText, Wallet, Briefcase } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const GenerateSalarySlip = () => {
@@ -78,50 +78,69 @@ const GenerateSalarySlip = () => {
 
     return (
         <div className="hrm-container">
-            <div className="hrm-header">
+            {/* ── Premium Page Header ── */}
+            <div className="hrm-header" style={{ marginBottom: '28px' }}>
                 <div>
                     <h1 className="hrm-title">Generate Salary Slips</h1>
-                    </div>
+                </div>
                 
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <div className="hrm-search-container" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-                        <Search size={18} className="hrm-search-icon" style={{ color: 'var(--text-muted)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div className="search-wrapper" style={{ width: '260px', margin: 0 }}>
+                        <Search size={18} color="var(--text-secondary)" />
                         <input 
                             type="text" 
-                            className="hrm-search-input" 
                             placeholder="Find employee..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none' }}
                         />
                     </div>
-                    <div className="hrm-date-filter" style={{ minWidth: '180px', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px', borderRadius: '12px' }}>
-                        <Calendar size={18} style={{ color: 'var(--primary-blue)' }} />
+                    <div className="search-wrapper" style={{ width: '180px', margin: 0, paddingRight: '12px' }}>
+                        <Calendar size={18} color="var(--text-secondary)" />
                         <input 
                             type="month" 
-                            className="hrm-date-input"
                             value={month}
                             onChange={(e) => setMonth(e.target.value)}
-                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none', height: '42px', cursor: 'pointer', colorScheme: 'dark' }}
+                            onClick={e => { try { e.target.showPicker(); } catch (err) {} }}
+                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none', height: '100%', cursor: 'pointer', flex: 1, paddingLeft: '8px' }}
                         />
                     </div>
+                    <button 
+                        className="btn-hrm btn-hrm-primary" 
+                        onClick={handleGenerate}
+                        disabled={selectedIds.length === 0}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', height: '42px' }}
+                    >
+                        <FileText size={18} /> Generate Slips
+                    </button>
                 </div>
             </div>
 
-            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                    {selectedIds.length > 0 && <span>Selected <strong>{selectedIds.length}</strong> employees</span>}
+            {/* ── Selection Indicator Alert ── */}
+            {selectedIds.length > 0 && (
+                <div style={{ 
+                    background: 'rgba(37, 99, 235, 0.08)', 
+                    border: '1px solid rgba(37, 99, 235, 0.2)', 
+                    borderRadius: '12px', 
+                    padding: '12px 20px', 
+                    marginBottom: '20px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary-blue)' }}>
+                        Selected <strong>{selectedIds.length}</strong> {selectedIds.length === 1 ? 'employee' : 'employees'} for slip generation.
+                    </span>
+                    <button 
+                        onClick={() => setSelectedIds([])} 
+                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}
+                    >
+                        Clear Selection
+                    </button>
                 </div>
-                <button 
-                    className="btn-hrm btn-hrm-primary" 
-                    onClick={handleGenerate}
-                    disabled={selectedIds.length === 0}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                    <FileText size={18} /> Generate Selected Slips
-                </button>
-            </div>
+            )}
 
+            {/* ── Payouts Table ── */}
             <div className="hrm-card" style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="hrm-table-container">
                     <table className="hrm-table">
@@ -135,35 +154,61 @@ const GenerateSalarySlip = () => {
                                 <th>Employee Details</th>
                                 <th>Attendance Summary</th>
                                 <th>Net Payable</th>
-                                <th>Admin Actions</th>
+                                <th style={{ textAlign: 'center' }}>Admin Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>Loading initiated payouts...</td></tr>
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontWeight: 600 }}>Loading initiated payouts...</td></tr>
                             ) : filteredPayouts.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No pending payouts to generate for this month.</td></tr>
+                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', fontWeight: 600 }}>No pending payouts to generate for this month.</td></tr>
                             ) : filteredPayouts.map((p, i) => (
                                 <tr key={i} onClick={() => toggleSelect(p._id)} style={{ cursor: 'pointer' }}>
                                     <td onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
                                         {selectedIds.includes(p._id) ? <CheckSquare size={20} color="var(--primary-blue)" /> : <Square size={20} color="var(--border)" />}
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.employeeId?.employeeId}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                                                {p.employeeId?.profilePhoto ? <img src={`${API_URL}/uploads/${p.employeeId.profilePhoto}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Briefcase size={20} color="var(--text-muted)" />}
+                                            </div>
+                                            <div>
+                                                <p style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>{p.employeeId?.name}</p>
+                                                <p style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', margin: 0 }}>{p.employeeId?.employeeId}</p>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
-                                        <div style={{ fontSize: '13px' }}>{p.attendance?.present} Present | {p.attendance?.absent} Absent</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{p.attendance?.paidLeave} Leave Taken</div>
+                                        <div>
+                                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-dark)' }}>{p.attendance?.present || 0} Present</span>
+                                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 6px' }}>|</span>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.attendance?.absent || 0} Absent</span>
+                                        </div>
+                                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginTop: '2px' }}>
+                                            {p.attendance?.paidLeave || 0} Leaves Taken
+                                        </div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout.toLocaleString()}</div>
-                                        <span className="status-badge status-pending" style={{ fontSize: '9px' }}>Initiated by {p.initiatedBy?.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Wallet size={14} color="var(--success)" />
+                                            <span style={{ fontSize: '15px', fontWeight: '900', color: 'var(--success)' }}>
+                                                ₹{(p.finalPayout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, marginTop: '2px', textTransform: 'uppercase' }}>
+                                            Initiated by {p.initiatedBy?.name || 'Admin'}
+                                        </div>
                                     </td>
                                     <td>
-                                        <button className="btn-hrm-icon">
-                                            <Calculator size={16} color="var(--text-secondary)" />
-                                        </button>
+                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                            <button 
+                                                className="btn-hrm-icon" 
+                                                style={{ padding: '6px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card-bg)', color: 'var(--text-secondary)' }}
+                                                title="Calculate Payout"
+                                            >
+                                                <Calculator size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

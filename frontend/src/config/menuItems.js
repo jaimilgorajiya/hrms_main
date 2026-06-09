@@ -122,7 +122,7 @@ export const menuItems = [
         path: "/admin/payroll",
         children: [
           { title: "Employee CTC", path: "/admin/payroll/employee-ctc" },
-          { title: "Monthly Payout Summary", path: "/admin/monthly-payout" },
+          { title: "Create Salary Slip", path: "/admin/payroll/create-salary-slip" },
           { title: "Generate Salary Slip", path: "/admin/payroll/generate-slip" },
           { title: "Publish Salary Slip", path: "/admin/payroll/publish-slip" },
           { title: "Payroll History", path: "/admin/payroll/history" },

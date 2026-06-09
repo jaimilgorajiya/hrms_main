@@ -27,6 +27,27 @@ const payoutSchema = new mongoose.Schema({
         days: { type: Number, default: 0 },
         amount: { type: Number, default: 0 }
     },
+    joiningNetSalary: {
+        type: Number,
+        default: 0
+    },
+    joiningMonthlyGross: {
+        type: Number,
+        default: 0
+    },
+    earnings: [
+        {
+            componentName: String,
+            monthlyAmount: { type: Number, default: 0 },
+            calculatedAmount: { type: Number, default: 0 }
+        }
+    ],
+    deductions: [
+        {
+            componentName: String,
+            amount: { type: Number, default: 0 }
+        }
+    ],
     systemAccrued: {
         type: Number,
         required: true

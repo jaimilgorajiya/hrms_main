@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X, ArrowRight, Map } from 'lucide-react';
+import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X, ArrowRight, Map, Wrench } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -22,6 +22,10 @@ const AdminAttendance = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [manualModal, setManualModal] = useState(false);
+  const [fixHalfDayModal, setFixHalfDayModal] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [fixResult, setFixResult] = useState(null);
+  const [fixRange, setFixRange] = useState({ startDate: '', endDate: '' });
   const [employees, setEmployees] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
   const [manualData, setManualData] = useState({
@@ -78,6 +82,30 @@ const AdminAttendance = () => {
       }
     } catch (e) { console.error(e); }
     finally { setFormLoading(false); }
+  };
+
+  const handleFixHalfDay = async () => {
+    setFixLoading(true);
+    setFixResult(null);
+    try {
+      const res = await authenticatedFetch(`${API_URL}/api/attendance/admin/recalculate-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fixRange)
+      });
+      const json = await res.json();
+      if (json.success) {
+        setFixResult(json);
+        fetchRecords(); // refresh the table
+      } else {
+        Swal.fire('Error', json.message || 'Fix failed', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'Server connection error', 'error');
+    } finally {
+      setFixLoading(false);
+    }
   };
 
   const handleApproval = async (attendanceId, status) => {
@@ -156,6 +184,10 @@ const AdminAttendance = () => {
               <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="hrm-input" style={{ width: '180px', height: '44px', paddingLeft: '40px' }} />
             )}
           </div>
+
+          <button className="btn-hrm btn-hrm-primary" onClick={() => { setFixHalfDayModal(true); setFixResult(null); setFixRange({ startDate: '', endDate: '' }); }} style={{ height: '44px', padding: '0 20px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #6366F1, #4F46E5)', boxShadow: '0 6px 16px rgba(99,102,241,0.3)' }}>
+            <Wrench size={16} /> FIX HALF DAY
+          </button>
 
           <button className="btn-hrm btn-hrm-success" onClick={() => navigate('/admin/attendance/add', { state: { openModal: true } })} style={{ height: '44px', padding: '0 24px', background: 'var(--success)', boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' }}>
             <Plus size={18} /> MANUAL ENTRY
@@ -403,6 +435,89 @@ const AdminAttendance = () => {
                 <button className="btn-hrm btn-hrm-secondary" style={{ flex: 1, height: '52px', fontSize: '14px', color: 'var(--danger)' }} onClick={() => handleApproval(selectedRecord._id, 'Rejected')}>REJECT</button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Fix Half Day Modal */}
+      {fixHalfDayModal && (
+        <div className="hrm-modal-overlay" onClick={() => { setFixHalfDayModal(false); setFixResult(null); }}>
+          <div className="hrm-modal-content" style={{ maxWidth: '500px', animation: 'modalSlideUp 0.3s ease-out' }} onClick={e => e.stopPropagation()}>
+            <div className="hrm-modal-header" style={{ padding: '24px 32px', background: 'linear-gradient(135deg, #6366F1, #4F46E5)' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#fff' }}>Fix Half Day Records</h2>
+                <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>Re-evaluate Half Day records using actual shift schedule</p>
+              </div>
+              <button className="icon-btn" onClick={() => { setFixHalfDayModal(false); setFixResult(null); }} style={{ color: '#fff', background: 'rgba(255,255,255,0.1)', border: 'none' }}><X size={20} /></button>
+            </div>
+
+            <div style={{ padding: '28px 32px' }}>
+              {!fixResult ? (
+                <>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.6 }}>
+                    This will scan all <strong>Half Day</strong> attendance records in the selected date range and re-check them against each employee's actual shift schedule. Records that should be <strong>Present</strong> will be corrected automatically.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <label className="hrm-label">Start Date</label>
+                      <input type="date" className="hrm-input" value={fixRange.startDate} onChange={e => setFixRange(r => ({ ...r, startDate: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="hrm-label">End Date</label>
+                      <input type="date" className="hrm-input" value={fixRange.endDate} onChange={e => setFixRange(r => ({ ...r, endDate: e.target.value }))} />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>Leave both dates empty to scan ALL historical Half Day records.</p>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button className="btn-hrm btn-hrm-secondary" style={{ flex: 1, height: '48px' }} onClick={() => { setFixHalfDayModal(false); setFixResult(null); }}>CANCEL</button>
+                    <button
+                      className="btn-hrm btn-hrm-primary"
+                      style={{ flex: 2, height: '48px', background: 'linear-gradient(135deg, #6366F1, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={handleFixHalfDay}
+                      disabled={fixLoading}
+                    >
+                      {fixLoading ? <><RefreshCw size={16} className="animate-spin" /> Scanning...</> : <><Wrench size={16} /> RUN FIX</>}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ textAlign: 'center', padding: '16px 0 24px' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <CheckCircle size={32} color="#6366F1" />
+                    </div>
+                    <h3 style={{ fontWeight: 800, color: 'var(--text-dark)', margin: '0 0 4px' }}>Fix Complete!</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>{fixResult.message}</p>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                    {[{ label: 'Scanned', val: fixResult.total, color: 'var(--primary-blue)' }, { label: 'Fixed', val: fixResult.fixed, color: '#22c55e' }, { label: 'Skipped', val: fixResult.skipped, color: 'var(--text-muted)' }].map((s, i) => (
+                      <div key={i} style={{ background: 'var(--bg-main)', borderRadius: '12px', padding: '16px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {fixResult.details?.length > 0 && (
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '20px', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                      {fixResult.details.map((d, i) => (
+                        <div key={i} style={{ padding: '10px 16px', borderBottom: i < fixResult.details.length - 1 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{d.name} <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({d.employeeId})</span></div>
+                            <div style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>{d.date} · {d.day}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>Half Day</span>
+                            <span style={{ margin: '0 6px', color: 'var(--text-muted)' }}>→</span>
+                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>{d.newStatus}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button className="btn-hrm btn-hrm-primary" style={{ width: '100%', height: '48px', background: 'linear-gradient(135deg, #6366F1, #4F46E5)' }} onClick={() => { setFixHalfDayModal(false); setFixResult(null); }}>CLOSE</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

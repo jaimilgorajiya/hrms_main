@@ -1,5 +1,6 @@
 import PenaltyRule from '../models/PenaltyRule.Model.js';
 import Shift from '../models/Shift.Model.js';
+import EmployeeCTC from '../models/EmployeeCTC.Model.js';
 
 // Get penalty rule by shift ID
 export const getPenaltyRuleByShift = async (req, res) => {
@@ -130,14 +131,49 @@ export const calculatePenaltyAmount = async (shiftId, penaltyMins, employeeId = 
 
         console.log(`[PENALTY_DEBUG] Match Found! Slab: ${matchingSlab.minTime}-${matchingSlab.maxTime}, Value: ${matchingSlab.value}, Type: ${matchingSlab.type}`);
 
+        let dailySalary = 0;
+        if (employeeId) {
+            const ctc = await EmployeeCTC.findOne({ employeeId });
+            if (ctc) {
+                const monthlyGross = ctc.monthlyGross || 0;
+                dailySalary = monthlyGross / 30; // Standard fallback of 30 days
+                console.log(`[PENALTY_DEBUG] Employee monthlyGross: ${monthlyGross}, dailySalary: ${dailySalary}`);
+            } else {
+                console.log(`[PENALTY_DEBUG] No EmployeeCTC found for employee: ${employeeId}`);
+            }
+        } else {
+            console.log(`[PENALTY_DEBUG] No employeeId provided, dailySalary defaulted to 0`);
+        }
+
+        let amount = 0;
         switch (matchingSlab.type) {
             case 'Flat':
-                return matchingSlab.value;
+                amount = matchingSlab.value || 0;
+                break;
+            case 'Percentage':
+                amount = (dailySalary * (matchingSlab.value || 0)) / 100;
+                break;
             case 'Per Minute (Flat Amount)':
-                return cleanMins * matchingSlab.value;
+                amount = cleanMins * (matchingSlab.value || 0);
+                break;
+            case 'Per Minute (As Per Salary)':
+                // dailySalary divided by 480 minutes (8 hours) to get per-minute rate, multiplied by matchingSlab.value
+                amount = cleanMins * (dailySalary / 480) * (matchingSlab.value || 1);
+                break;
+            case 'Half Day Salary':
+                amount = dailySalary * 0.5 * (matchingSlab.value || 1);
+                break;
+            case 'Full Day Salary':
+                amount = dailySalary * (matchingSlab.value || 1);
+                break;
             default:
-                return matchingSlab.value;
+                amount = matchingSlab.value || 0;
+                break;
         }
+
+        const finalAmount = parseFloat(amount.toFixed(2));
+        console.log(`[PENALTY_DEBUG] Calculated penalty amount: ${finalAmount} (Type: ${matchingSlab.type})`);
+        return finalAmount;
     } catch (error) {
         console.error("[PENALTY_DEBUG] Calculation Error:", error);
         return 0;

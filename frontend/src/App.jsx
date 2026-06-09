@@ -29,6 +29,10 @@ import EditLeaveGroup from './pages/EditLeaveGroup';
 import EarningDeductionType from './pages/EarningDeductionType';
 import SalaryGroups from './pages/SalaryGroups';
 import EmployeeCTC from './pages/EmployeeCTC';
+import AddEmployeeCTC from './pages/AddEmployeeCTC';
+import ViewEmployeeCTC from './pages/ViewEmployeeCTC';
+import EmployeeCTCHistory from './pages/EmployeeCTCHistory';
+import CreateSalarySlip from './pages/CreateSalarySlip';
 import EmployeeOnboarding from './pages/EmployeeOnboarding';
 import EmployeeOffboarding from './pages/EmployeeOffboarding';
 import PayrollTaxSetting from './pages/PayrollTaxSetting';
@@ -59,7 +63,6 @@ import LeaveHistory from './pages/LeaveHistory';
 import UseMobileApp from './pages/employee/UseMobileApp';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import PendingAttendance from "./pages/PendingAttendance";
-import MonthlyPayout from './pages/MonthlyPayout';
 import PayoutHistory from './pages/PayoutHistory';
 import GenerateSalarySlip from './pages/GenerateSalarySlip';
 import PublishSalarySlip from './pages/PublishSalarySlip';
@@ -152,6 +155,10 @@ function App() {
               <Route path="payroll/tax-setting" element={<PayrollTaxSetting />} />
               <Route path="payroll/salary-group" element={<SalaryGroups />} />
               <Route path="payroll/employee-ctc" element={<EmployeeCTC />} />
+              <Route path="payroll/employee-ctc/add" element={<AddEmployeeCTC />} />
+              <Route path="payroll/employee-ctc/view/:id" element={<ViewEmployeeCTC />} />
+              <Route path="payroll/employee-ctc/history/:id" element={<EmployeeCTCHistory />} />
+              <Route path="payroll/create-salary-slip" element={<CreateSalarySlip />} />
               <Route path="payroll/earning-deduction" element={<EarningDeductionType />} />
               <Route path="payroll/generate-slip" element={<GenerateSalarySlip />} />
               <Route path="payroll/publish-slip" element={<PublishSalarySlip />} />
@@ -181,7 +188,6 @@ function App() {
               <Route path="attendance/punch-request" element={<PendingAttendance />} />
               <Route path="attendance/punch-missing" element={<PendingAttendance />} />
               <Route path="attendance/request" element={<AdminRequests />} />
-              <Route path="monthly-payout" element={<MonthlyPayout />} />
               <Route path="payout-history" element={<PayoutHistory />} />
               <Route path="leaves/*" element={<ModulePlaceholder title="Leave Operations" />} />
               <Route path="wfh/*" element={<ModulePlaceholder title="WFH Management" />} />

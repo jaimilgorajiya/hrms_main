@@ -74,6 +74,7 @@ import resignationRoutes from './routes/Resignation.Routes.js';
 import reportRoutes from './routes/AttendanceReport.Route.js';
 import packageRoutes from './routes/Package.Routes.js';
 import clientRoutes from './routes/Client.Routes.js';
+import salarySlipRoutes from './routes/SalarySlip.Routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -186,6 +187,7 @@ app.use('/api/admin/reports', reportRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/salary-slip', salarySlipRoutes);
 app.use('/api/admin', clientRoutes); // Alias to match requested pattern
 
 app.get('/', (req, res) => {

@@ -46,6 +46,34 @@ const employeeCTCSchema = new mongoose.Schema({
         enum: ['Active', 'Inactive', 'Revised'],
         default: 'Active'
     },
+    incrementPercentage: {
+        type: Number,
+        default: 0
+    },
+    history: [{
+        annualCTC: Number,
+        monthlyGross: Number,
+        netSalary: Number,
+        earnings: [{
+            componentId: { type: mongoose.Schema.Types.ObjectId, ref: 'EarningDeductionType' },
+            componentName: String,
+            amount: Number
+        }],
+        deductions: [{
+            componentId: { type: mongoose.Schema.Types.ObjectId, ref: 'EarningDeductionType' },
+            componentName: String,
+            amount: Number
+        }],
+        effectiveDate: Date,
+        endDate: Date,
+        incrementPercentage: Number,
+        status: { type: String, default: 'Previous' },
+        branch: String,
+        department: String,
+        designation: String,
+        salaryGroup: String,
+        updatedAt: { type: Date, default: Date.now }
+    }],
     adminId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

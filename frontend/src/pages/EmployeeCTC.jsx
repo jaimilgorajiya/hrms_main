@@ -3,38 +3,25 @@ import {
     Search, Filter, Plus, Edit2, ChevronRight, Briefcase, 
     CreditCard, PieChart, Users, ArrowUpRight, CheckCircle2,
     X, Wallet, DollarSign, Calculator, Calendar, History, Trash2,
-    ChevronDown, Check
+    ChevronDown, Check, Eye
 } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
+import { useNavigate } from 'react-router-dom';
 import '../pages/AdminDashboard.css'; // Reusing established premium styles
 
 
 const EmployeeCTC = () => {
+    const navigate = useNavigate();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedEmployee, setSelectedEmployee] = useState(null);
-    const [componentTypes, setComponentTypes] = useState({ earnings: [], deductions: [] });
     const [salaryGroups, setSalaryGroups] = useState([]);
-    
-    // Modal Form State
-    const [formData, setFormData] = useState({
-        annualCTC: 0,
-        monthlyGross: 0,
-        earnings: [],
-        deductions: [],
-        netSalary: 0,
-        effectiveDate: new Date().toISOString().split('T')[0],
-        status: 'Active'
-    });
 
     useEffect(() => {
         fetchData();
-        fetchComponents();
         fetchSalaryGroups();
     }, []);
 
@@ -51,18 +38,6 @@ const EmployeeCTC = () => {
             setEmployees([]);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchComponents = async () => {
-        try {
-            const response = await authenticatedFetch(`${API_URL}/api/employee-ctc/components`);
-            const data = await response.json();
-            if (data.success) {
-                setComponentTypes({ earnings: data.earnings, deductions: data.deductions });
-            }
-        } catch (error) {
-            console.error("Error fetching components:", error);
         }
     };
 
@@ -106,110 +81,10 @@ const EmployeeCTC = () => {
         }
     };
 
-    const handleOpenManage = (employee) => {
-        if (!employee.workSetup?.salaryGroup) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Salary Group Required',
-                text: 'Please select a Salary Group for this employee first to manage their CTC.',
-                confirmButtonColor: '#3B648B'
-            });
-            return;
-        }
-        setSelectedEmployee(employee);
-        if (employee.ctcDetails) {
-            setFormData({
-                ...employee.ctcDetails,
-                effectiveDate: employee.ctcDetails.effectiveDate ? employee.ctcDetails.effectiveDate.split('T')[0] : new Date().toISOString().split('T')[0]
-            });
-        } else {
-            setFormData({
-                annualCTC: 0,
-                monthlyGross: 0,
-                earnings: [],
-                deductions: [],
-                netSalary: 0,
-                effectiveDate: new Date().toISOString().split('T')[0],
-                status: 'Active'
-            });
-        }
-        setIsModalOpen(true);
-    };
-
-    // Auto-calculate logic
-    useEffect(() => {
-        const totalEarnings = formData.earnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        const totalDeductions = formData.deductions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        const monthlyGross = totalEarnings;
-        const netSalary = monthlyGross - totalDeductions;
-        const annualCTC = monthlyGross * 12;
-
-        setFormData(prev => ({
-            ...prev,
-            monthlyGross,
-            netSalary,
-            annualCTC
-        }));
-    }, [formData.earnings, formData.deductions]);
-
-    const addComponent = (type) => {
-        const list = type === 'earning' ? 'earnings' : 'deductions';
-        setFormData(prev => ({
-            ...prev,
-            [list]: [...prev[list], { componentId: '', componentName: '', amount: 0 }]
-        }));
-    };
-
-    const removeComponent = (type, index) => {
-        const list = type === 'earning' ? 'earnings' : 'deductions';
-        const updated = [...formData[list]];
-        updated.splice(index, 1);
-        setFormData(prev => ({ ...prev, [list]: updated }));
-    };
-
-    const updateComponent = (type, index, field, value) => {
-        const list = type === 'earning' ? 'earnings' : 'deductions';
-        const updated = [...formData[list]];
-        
-        if (field === 'componentId') {
-            const listToSearch = type === 'earning' ? componentTypes.earnings : componentTypes.deductions;
-            const comp = listToSearch.find(c => c._id === value);
-            updated[index].componentId = value;
-            updated[index].componentName = comp ? comp.name : '';
-        } else {
-            updated[index][field] = value;
-        }
-        
-        setFormData(prev => ({ ...prev, [list]: updated }));
-    };
-
-    const handleSave = async () => {
-        try {
-            const response = await authenticatedFetch(`${API_URL}/api/employee-ctc/upsert`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    employeeId: selectedEmployee._id,
-                    ...formData
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                Swal.fire('Success', 'CTC Structure updated effectively', 'success');
-                setIsModalOpen(false);
-                fetchData();
-            } else {
-                Swal.fire('Error', data.message || 'Failed to update', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Server connection error', 'error');
-        }
-    };
-
     const filteredEmployees = useMemo(() => {
         if (!Array.isArray(employees)) return [];
         return employees.filter(emp => 
-            emp && emp.name && (
+            emp && emp.ctcDetails && emp.name && (
                 emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
             )
@@ -221,16 +96,25 @@ const EmployeeCTC = () => {
             <div className="hrm-header">
                 <div>
                     <h1 className="hrm-title">Employee CTC</h1>
-                    </div>
+                </div>
                 
-                <div className="search-wrapper" style={{ width: '350px' }}>
-                    <Search size={18} color="var(--text-secondary)" />
-                    <input 
-                        type="text" 
-                        placeholder="Search by name or Employee ID..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div className="search-wrapper" style={{ width: '350px', margin: 0 }}>
+                        <Search size={18} color="var(--text-secondary)" />
+                        <input 
+                            type="text" 
+                            placeholder="Search by name or Employee ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        className="btn-hrm btn-hrm-primary" 
+                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        onClick={() => navigate('/admin/payroll/employee-ctc/add')}
+                    >
+                        <Plus size={16} /> ADD NEW
+                    </button>
                 </div>
             </div>
 
@@ -259,7 +143,7 @@ const EmployeeCTC = () => {
                     <table className="hrm-table">
                         <thead>
                             <tr>
-                                <th>Employee & Designation</th>
+                                <th>Employee </th>
                                 <th style={{ width: '220px' }}>Salary Group Assignment</th>
                                 <th>Annual CTC</th>
                                 <th>Monthly Gross</th>
@@ -281,17 +165,14 @@ const EmployeeCTC = () => {
                                             </div>
                                             <div>
                                                 <p style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>{emp.name}</p>
-                                                <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', margin: 0 }}>{emp.employeeId} | {emp.designation}</p>
+                                                <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', margin: 0 }}>{emp.employeeId}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <SearchableSelect 
-                                            options={salaryGroups.map(g => ({ value: g._id, label: g.groupName }))} 
-                                            value={emp.workSetup?.salaryGroup?._id || ''} 
-                                            onChange={(val) => handleSalaryGroupChange(emp._id, val)}
-                                            placeholder="-- Assign Group --"
-                                        />
+                                        <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-dark)' }}>
+                                            {emp.workSetup?.salaryGroup?.groupName || '--'}
+                                        </span>
                                     </td>
                                     <td>
                                         <p style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>₹{(emp.ctcDetails?.annualCTC || 0).toLocaleString()}</p>
@@ -307,14 +188,103 @@ const EmployeeCTC = () => {
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                            {emp.ctcDetails && (
+                                                <button 
+                                                    onClick={() => navigate(`/admin/payroll/employee-ctc/view/${emp._id}`)}
+                                                    title="View CTC Details"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid var(--border)',
+                                                        background: 'var(--card-bg)',
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseOver={(e) => {
+                                                        e.currentTarget.style.color = 'var(--primary-blue)';
+                                                        e.currentTarget.style.borderColor = 'var(--primary-blue)';
+                                                        e.currentTarget.style.background = 'var(--primary-light)';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                                        e.currentTarget.style.borderColor = 'var(--border)';
+                                                        e.currentTarget.style.background = 'var(--card-bg)';
+                                                    }}
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                            )}
+                                            {emp.ctcDetails && (
+                                                <button 
+                                                    onClick={() => navigate(`/admin/payroll/employee-ctc/history/${emp._id}`)}
+                                                    title="View Revision History"
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid var(--border)',
+                                                        background: 'var(--card-bg)',
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseOver={(e) => {
+                                                        e.currentTarget.style.color = 'var(--primary-blue)';
+                                                        e.currentTarget.style.borderColor = 'var(--primary-blue)';
+                                                        e.currentTarget.style.background = 'var(--primary-light)';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                                        e.currentTarget.style.borderColor = 'var(--border)';
+                                                        e.currentTarget.style.background = 'var(--card-bg)';
+                                                    }}
+                                                >
+                                                    <History size={16} />
+                                                </button>
+                                            )}
                                             <button 
-                                                className={`btn-hrm ${emp.workSetup?.salaryGroup ? 'btn-hrm-primary' : 'btn-hrm-secondary'}`}
-                                                style={{ padding: '8px 16px', fontSize: '11px' }}
-                                                onClick={() => handleOpenManage(emp)}
+                                                onClick={() => navigate(`/admin/payroll/employee-ctc/add?employeeId=${emp._id}`)}
                                                 disabled={!emp.workSetup?.salaryGroup}
+                                                title="Edit CTC Details"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    width: '32px',
+                                                    height: '32px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid var(--border)',
+                                                    background: emp.workSetup?.salaryGroup ? 'var(--card-bg)' : 'rgba(0,0,0,0.05)',
+                                                    color: emp.workSetup?.salaryGroup ? 'var(--text-secondary)' : 'var(--text-muted)',
+                                                    cursor: emp.workSetup?.salaryGroup ? 'pointer' : 'not-allowed',
+                                                    transition: 'all 0.2s',
+                                                    opacity: emp.workSetup?.salaryGroup ? 1 : 0.5
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (emp.workSetup?.salaryGroup) {
+                                                        e.currentTarget.style.color = '#10B981';
+                                                        e.currentTarget.style.borderColor = '#10B981';
+                                                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    if (emp.workSetup?.salaryGroup) {
+                                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                                        e.currentTarget.style.borderColor = 'var(--border)';
+                                                        e.currentTarget.style.background = 'var(--card-bg)';
+                                                    }
+                                                }}
                                             >
-                                                <Calculator size={14} /> MANAGE CTC
+                                                <Edit2 size={16} />
                                             </button>
                                         </div>
                                     </td>
@@ -325,145 +295,8 @@ const EmployeeCTC = () => {
                 </div>
             </div>
 
-            {/* CTC Management Modal (Drawer-style) */}
-            {isModalOpen && (
-                <div className="hrm-modal-overlay" onClick={() => setIsModalOpen(false)}>
-                    <div 
-                        className="hrm-modal-content" 
-                        style={{ 
-                            width: '600px', height: '100%', margin: 0, borderRadius: 0, marginLeft: 'auto',
-                            display: 'flex', flexDirection: 'column'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="hrm-modal-header" style={{ background: 'linear-gradient(135deg, var(--primary-blue) 0%, #1E40AF 100%)', color: 'white', padding: '32px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>
-                                    <Calculator size={24} color="white" />
-                                </div>
-                                <div>
-                                    <h3 className="hrm-modal-title" style={{ color: 'white', fontSize: '20px', fontWeight: 900, marginBottom: '2px' }}>CTC Management</h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Structuring compensation for {selectedEmployee.name}</p>
-                                </div>
-                            </div>
-                            <button className="icon-btn" style={{ color: 'white', background: 'rgba(255,255,255,0.1)', border: 'none' }} onClick={() => setIsModalOpen(false)}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="hrm-modal-body" style={{ flex: 1, overflowY: 'auto' }}>
-                            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>Assigning CTC for: <strong>{selectedEmployee.name}</strong></p>
-                            
-                            {/* Summary View */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '32px' }}>
-                                <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: '18px', border: '1px solid var(--border)' }}>
-                                    <p style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Total Annual CTC</p>
-                                    <p style={{ fontSize: '24px', fontWeight: '900', color: 'var(--text-dark)', margin: 0 }}>₹{formData.annualCTC.toLocaleString()}</p>
-                                    <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--primary-blue)', marginTop: '4px' }}>₹{formData.monthlyGross.toLocaleString()} / mo Gross</p>
-                                </div>
-                                <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '20px', borderRadius: '18px', border: '1px solid var(--border)' }}>
-                                    <p style={{ fontSize: '10px', fontWeight: '800', color: 'var(--success)', textTransform: 'uppercase', marginBottom: '8px' }}>Est. Net Salary</p>
-                                    <p style={{ fontSize: '24px', fontWeight: '900', color: 'var(--success)', margin: 0 }}>₹{formData.netSalary.toLocaleString()}</p>
-                                    <p style={{ fontSize: '11px', fontWeight: '700', color: '#10B981', marginTop: '4px' }}>Take-home amount</p>
-                                </div>
-                            </div>
-
-                            {/* Earnings Section */}
-                            <div style={{ marginBottom: '32px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>Earnings Breakdown</h4>
-                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '4px 12px', fontSize: '11px' }} onClick={() => addComponent('earning')}>+ ADD NEW</button>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {formData.earnings.map((item, index) => (
-                                         <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
-                                             <SearchableSelect 
-                                                 options={componentTypes.earnings.map(c => ({ value: c._id, label: c.name }))}
-                                                 value={item.componentId}
-                                                 onChange={(val) => updateComponent('earning', index, 'componentId', val)}
-                                                 placeholder="Select Category"
-                                             />
-                                             <div style={{ position: 'relative' }}>
-                                                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
-                                                 <input 
-                                                     type="number" 
-                                                     className="hrm-input"
-                                                     style={{ paddingLeft: '24px' }}
-                                                     value={item.amount}
-                                                     onChange={(e) => updateComponent('earning', index, 'amount', e.target.value)}
-                                                 />
-                                             </div>
-                                             <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('earning', index)}><Trash2 size={16} /></button>
-                                         </div>
-                                     ))}
-                                 </div>
-                             </div>
-
-                            {/* Deductions Section */}
-                            <div style={{ marginBottom: '32px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', margin: 0 }}>Deductions Breakdown</h4>
-                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '4px 12px', fontSize: '11px' }} onClick={() => addComponent('deduction')}>+ ADD NEW</button>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {formData.deductions.map((item, index) => (
-                                         <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 40px', gap: '10px', alignItems: 'center' }}>
-                                             <SearchableSelect 
-                                                 options={componentTypes.deductions.map(c => ({ value: c._id, label: c.name }))}
-                                                 value={item.componentId}
-                                                 onChange={(val) => updateComponent('deduction', index, 'componentId', val)}
-                                                 placeholder="Select Category"
-                                             />
-                                             <div style={{ position: 'relative' }}>
-                                                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
-                                                 <input 
-                                                     type="number" 
-                                                     className="hrm-input"
-                                                     style={{ paddingLeft: '24px' }}
-                                                     value={item.amount}
-                                                     onChange={(e) => updateComponent('deduction', index, 'amount', e.target.value)}
-                                                 />
-                                             </div>
-                                             <button className="btn-hrm btn-hrm-secondary" style={{ color: 'var(--danger)', padding: '10px' }} onClick={() => removeComponent('deduction', index)}><Trash2 size={16} /></button>
-                                         </div>
-                                     ))}
-                                 </div>
-                             </div>
-
-                            {/* Additional Info */}
-                            <div style={{ padding: '20px', background: 'var(--bg-main)', borderRadius: '18px', border: '1px solid var(--border)' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">EFFECTIVE FROM</label>
-                                        <input type="date" className="hrm-input" value={formData.effectiveDate} onChange={e => setFormData({...formData, effectiveDate: e.target.value})} />
-                                    </div>
-                                    <div className="hrm-form-group">
-                                        <label className="hrm-label">STATUS</label>
-                                        <SearchableSelect 
-                                            options={[
-                                                { value: 'Active', label: 'Active Structure' },
-                                                { value: 'Inactive', label: 'Inactive' }
-                                            ]}
-                                            value={formData.status}
-                                            onChange={val => setFormData({...formData, status: val})}
-                                            placeholder="Select Status"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="hrm-modal-footer">
-                            <button className="btn-hrm btn-hrm-secondary" style={{ flex: 1 }} onClick={() => setIsModalOpen(false)}>DISCARD</button>
-                            <button className="btn-hrm btn-hrm-primary" style={{ flex: 1.5 }} onClick={handleSave}>PUBLISH STRUCTURE</button>
-                        </div>
-                    </div>
-                </div>
-            )}
             <style>
                 {`
-                    @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                     body.dark-mode input[type="date"] { color-scheme: dark; }
                 `}
             </style>

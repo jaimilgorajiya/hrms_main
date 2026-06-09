@@ -54,14 +54,29 @@ const parseTimeToMinutes = (t) => {
 };
 
 // Helper: get employee's shift for today (full shift object + today's schedule)
-const getEmployeeShiftToday = async (userId) => {
+export const getEmployeeShiftToday = async (userId, targetDate = null) => {
     try {
         const user = await User.findById(userId).populate('workSetup.shift').select('workSetup');
         const shift = user?.workSetup?.shift;
         if (!shift) return { shift: null, daySchedule: null, dayName: null, isWeekOff: false };
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const istNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
-        const dayName = days[istNow.getUTCDay()];
+        
+        let dateObj;
+        if (targetDate) {
+            if (typeof targetDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+                // Parse date string (e.g., '2026-06-09') as UTC to avoid local timezone offset shifting the day
+                dateObj = new Date(`${targetDate}T00:00:00Z`);
+            } else {
+                const tDate = new Date(targetDate);
+                // Convert to IST offset
+                dateObj = new Date(tDate.getTime() + (5.5 * 60 * 60 * 1000));
+            }
+        } else {
+            const now = new Date();
+            dateObj = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+        }
+
+        const dayName = days[dateObj.getUTCDay()];
         let daySchedule = shift.schedule?.[dayName] || null;
         const isWeekOff = shift?.weekOffDays?.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1)) || false;
 
@@ -81,9 +96,9 @@ const getEmployeeShiftToday = async (userId) => {
 };
 
 // Helper: get shift duration in minutes for today from employee's assigned shift
-const getShiftDurationMinutes = async (userId) => {
+export const getShiftDurationMinutes = async (userId, targetDate = null) => {
     try {
-        const { daySchedule } = await getEmployeeShiftToday(userId);
+        const { daySchedule } = await getEmployeeShiftToday(userId, targetDate);
         const start = parseTimeToMinutes(daySchedule?.shiftStart);
         const end = parseTimeToMinutes(daySchedule?.shiftEnd);
         if (start !== null && end !== null) {
@@ -100,7 +115,7 @@ export const getTodayAttendance = async (req, res) => {
     try {
         const date = getTodayStr();
         const record = await Attendance.findOne({ employee: req.user._id, date });
-        const shiftDurationMinutes = await getShiftDurationMinutes(req.user._id);
+        const shiftDurationMinutes = await getShiftDurationMinutes(req.user._id, date);
 
         if (!record) {
             return res.status(200).json({
@@ -131,7 +146,7 @@ export const getTodayAttendance = async (req, res) => {
         // Also handles old records that don't have isLate field yet
         let liveLatePenalty = record.lateInPenalty || { amount: 0, isApplied: false };
         if (record.lateInPenalty?.isLate || (record.lateInPenalty?.amount > 0)) {
-            const { shift: empShift, daySchedule: empDaySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id);
+            const { shift: empShift, daySchedule: empDaySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id, record.date);
 
             // Skip if it's a week off and settings say don't apply
             if (empShift && empDaySchedule?.shiftStart && !(isWeekOff && !empShift.lateEarlyApplyOnExtraDay)) {
@@ -260,7 +275,7 @@ export const togglePunch = async (req, res) => {
                 }
                 const distance = getDistance(latitude, longitude, branch.latitude, branch.longitude);
                 const radius = branch.radius || 200;
-                const { shift } = await getEmployeeShiftToday(req.user._id);
+                const { shift } = await getEmployeeShiftToday(req.user._id, date);
                 if (distance > radius) {
                     if (shift?.requireOutOfRangeReason && !geofenceReason) {
                         return res.status(400).json({ success: false, requireOutOfRangeReason: true, message: "You are out of office range. Please provide a reason." });
@@ -280,7 +295,7 @@ export const togglePunch = async (req, res) => {
         if (!record || !lastPunch) {
             let latePenaltyAmount = 0;
             let lateByMins = 0;
-            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id, date);
             let punchStatus = 'Present';
 
             if (shift) {
@@ -291,7 +306,7 @@ export const togglePunch = async (req, res) => {
                     const lateByMinsLocal = nowMins - shiftStartMins;
                     lateByMins = lateByMinsLocal;
 
-                    const { isWeekOff } = await getEmployeeShiftToday(req.user._id);
+                    const { isWeekOff } = await getEmployeeShiftToday(req.user._id, date);
                     const skipOnExtra = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
                     // Calculate effective max allowed based on Shift + Penalty Rules
@@ -312,7 +327,6 @@ export const togglePunch = async (req, res) => {
                     }
 
                     // Check Half-Day penalty
-                    const rule = await PenaltyRule.findOne({ shift: shift._id });
                     const skipOnExtraPenalty = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
                     if (!skipOnExtraPenalty) {
@@ -339,7 +353,7 @@ export const togglePunch = async (req, res) => {
                         }
 
                         // PenaltyRule Slab still takes precedence if specifically configured by admin
-                        const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                        const halfDaySlab = penaltyRule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
                         if (halfDaySlab) {
                             const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
                             if (thresholdMins !== null && nowMins > thresholdMins) {
@@ -436,7 +450,7 @@ export const togglePunch = async (req, res) => {
         const action = 'OUT';
 
         // ── Early-out enforcement on PUNCH OUT ──
-        const { shift, daySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id);
+        const { shift, daySchedule, isWeekOff } = await getEmployeeShiftToday(req.user._id, date);
         if (shift && daySchedule?.shiftEnd) {
             const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
             const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
@@ -454,7 +468,8 @@ export const togglePunch = async (req, res) => {
                     const shiftStartMins = parseTimeToMinutes(daySchedule?.shiftStart);
                     if (firstIn && shiftStartMins !== null) {
                         const inTime = new Date(firstIn.time);
-                        const inMinsTotal = inTime.getHours() * 60 + inTime.getMinutes();
+                        const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                        const inMinsTotal = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
                         const lateMins = Math.max(0, inMinsTotal - shiftStartMins);
                         maxAllowed = Math.max(0, (shift.maxLateInMinutes || 0) - lateMins);
                         console.log(`[PENALTY_DEBUG] Combined late/early. First IN: ${inMinsTotal}m, Shift Start: ${shiftStartMins}m, Late: ${lateMins}m. Adjusted maxEarlyOut: ${maxAllowed}m`);
@@ -484,7 +499,6 @@ export const togglePunch = async (req, res) => {
                 }
 
                 // Check Half-Day penalty on Punch Out
-                const rule = await PenaltyRule.findOne({ shift: shift._id });
                 const skipOnExtraPenaltyOut = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
 
                 if (!skipOnExtraPenaltyOut) {
@@ -508,7 +522,7 @@ export const togglePunch = async (req, res) => {
                         }
                     }
 
-                    const halfDaySlab = rule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                    const halfDaySlab = penaltyRule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
                     if (halfDaySlab) {
                         const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
                         if (thresholdMins !== null && nowMins < thresholdMins) {
@@ -518,7 +532,7 @@ export const togglePunch = async (req, res) => {
                     }
 
                     // Calculate early out penalty if applicable
-                    const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, null, rule, null, 'Early Out Minutes');
+                    const earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, null, penaltyRule, null, 'Early Out Minutes');
                     if (earlyOutPenaltyAmount > 0) {
                         record.earlyOutPenalty = {
                             amount: earlyOutPenaltyAmount,
@@ -541,17 +555,49 @@ export const togglePunch = async (req, res) => {
             longitude,
             geofenceReason,
             workSummary,
-            earlyReason: earlyReason || reason,
+            earlyReason: earlyReason || reason, 
             locationAddress,
             ...(isOfflineSync ? { syncedOffline: true, syncedAt: new Date() } : {})
         });
 
         const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
-        let minFullDayMins = 8 * 60;
+
+        // ── Derive thresholds from the actual day's shift schedule ──────────────────
+        // Priority 1: Admin explicitly set minFullDayHours / minHalfHours on the schedule
+        // Priority 2: Compute from shiftStart/shiftEnd/lunchStart/lunchEnd (handles
+        //             days like Saturday that have a shorter shift than normal days)
+        let minFullDayMins = 8 * 60; // safe fallback
         let minHalfDayMins = 4 * 60;
+
         if (daySchedule) {
-            if (daySchedule.minFullDayHours > 0) minFullDayMins = daySchedule.minFullDayHours * 60;
-            if (daySchedule.minHalfHours > 0) minHalfDayMins = daySchedule.minHalfHours * 60;
+            if (daySchedule.minFullDayHours > 0) {
+                // Admin has explicitly configured these – respect them as-is
+                minFullDayMins = daySchedule.minFullDayHours * 60;
+                if (daySchedule.minHalfHours > 0) minHalfDayMins = daySchedule.minHalfHours * 60;
+                else minHalfDayMins = Math.floor(minFullDayMins / 2);
+            } else if (daySchedule.shiftStart && daySchedule.shiftEnd) {
+                // Auto-derive from the shift times for this specific day
+                const startM = parseTimeToMinutes(daySchedule.shiftStart);
+                const endM   = parseTimeToMinutes(daySchedule.shiftEnd);
+                if (startM !== null && endM !== null) {
+                    // Total shift span (handle overnight shifts)
+                    const shiftSpan = endM > startM ? endM - startM : (endM + 1440 - startM);
+
+                    // Deduct scheduled lunch break if it falls within this shift
+                    let lunchMins = 0;
+                    if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                        const lsM = parseTimeToMinutes(daySchedule.lunchStart);
+                        const leM = parseTimeToMinutes(daySchedule.lunchEnd);
+                        if (lsM !== null && leM !== null && leM > lsM) {
+                            lunchMins = leM - lsM;
+                        }
+                    }
+
+                    const effectiveShiftMins = Math.max(shiftSpan - lunchMins, 1);
+                    minFullDayMins = effectiveShiftMins;          // e.g. Saturday → 330 min
+                    minHalfDayMins = Math.floor(effectiveShiftMins / 2); // 50% of day's own shift
+                }
+            }
         }
 
         let finalStatus = 'Present';
@@ -559,8 +605,13 @@ export const togglePunch = async (req, res) => {
             finalStatus = 'Absent';
         } else if (workingMinutes < minFullDayMins) {
             finalStatus = 'Half Day';
-        } else {
-            finalStatus = 'Present';
+        }
+
+        // Keep the stricter status (never upgrade from Absent -> Half Day/Present, or Half Day -> Present)
+        const statusPriority = { 'Absent': 1, 'Half Day': 2, 'Present': 3 };
+        const oldStatus = record.status || 'Present';
+        if (statusPriority[oldStatus] && statusPriority[oldStatus] < statusPriority[finalStatus]) {
+            finalStatus = oldStatus;
         }
         record.status = finalStatus;
 
@@ -612,7 +663,7 @@ export const toggleBreak = async (req, res) => {
         } else {
             // -- Defined Minutes Enforcement --
             let finalBreakType = breakType;
-            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id);
+            const { shift, daySchedule } = await getEmployeeShiftToday(req.user._id, date);
             if (shift && shift.breakMode === 'Defined Minutes') {
                 const nowMins = now.getHours() * 60 + now.getMinutes();
                 const lunchStartMins = daySchedule?.lunchStart ? parseTimeToMinutes(daySchedule.lunchStart) : null;
@@ -995,7 +1046,7 @@ export const addManualAttendance = async (req, res) => {
         let earlyOutPenalty = { amount: 0, isApplied: false, isEarly: false };
 
         if (status === 'Present' && punches.length > 0) {
-            const { shift: empShift, daySchedule } = await getEmployeeShiftToday(employeeId);
+            const { shift: empShift, daySchedule } = await getEmployeeShiftToday(employeeId, date);
             if (empShift && daySchedule) {
                 // Late In
                 const firstIn = punches.find(p => p.type === 'IN');
@@ -1382,3 +1433,248 @@ export const getSpecificRecord = async (req, res) => {
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
+
+// POST /api/attendance/admin/recalculate-status
+// Retroactively fix Half Day records by recomputing status from the day's actual shift
+export const recalculateHalfDayStatus = async (req, res) => {
+    try {
+        const adminId = req.user._id;
+        const { startDate, endDate } = req.body;
+
+        // Build filter — only Half Day records for this admin in the given date range
+        const filter = { adminId, status: 'Half Day' };
+        if (startDate && endDate) {
+            filter.date = { $gte: startDate, $lte: endDate };
+        } else if (startDate) {
+            filter.date = { $gte: startDate };
+        } else if (endDate) {
+            filter.date = { $lte: endDate };
+        }
+
+        const records = await Attendance.find(filter);
+
+        let fixed = 0;
+        let skipped = 0;
+        const details = [];
+
+        for (const record of records) {
+            // Only process records that have a complete punch cycle (IN + OUT)
+            const firstIn  = record.punches.find(p => p.type === 'IN');
+            const lastOut  = [...record.punches].reverse().find(p => p.type === 'OUT');
+            if (!firstIn || !lastOut) { skipped++; continue; }
+
+            // Load the employee with their shift
+            const employee = await User.findById(record.employee).populate('workSetup.shift');
+            if (!employee?.workSetup?.shift) { skipped++; continue; }
+
+            const shift = employee.workSetup.shift;
+
+            // Determine day of week from the attendance date string (YYYY-MM-DD)
+            const [yr, mo, dy] = record.date.split('-').map(Number);
+            const recordDate = new Date(yr, mo - 1, dy);
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayName  = dayNames[recordDate.getDay()];
+
+            const daySchedule = shift.schedule?.[dayName];
+            if (!daySchedule?.shiftStart || !daySchedule?.shiftEnd) { skipped++; continue; }
+
+            // ── Same dynamic threshold logic as the punch-out fix ──
+            let minFullDayMins = 8 * 60;
+            let minHalfDayMins = 4 * 60;
+
+            if (daySchedule.minFullDayHours > 0) {
+                minFullDayMins = daySchedule.minFullDayHours * 60;
+                minHalfDayMins = daySchedule.minHalfHours > 0
+                    ? daySchedule.minHalfHours * 60
+                    : Math.floor(minFullDayMins / 2);
+            } else {
+                const startM = parseTimeToMinutes(daySchedule.shiftStart);
+                const endM   = parseTimeToMinutes(daySchedule.shiftEnd);
+                if (startM !== null && endM !== null) {
+                    const shiftSpan = endM > startM ? endM - startM : (endM + 1440 - startM);
+                    let lunchMins = 0;
+                    if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                        const lsM = parseTimeToMinutes(daySchedule.lunchStart);
+                        const leM = parseTimeToMinutes(daySchedule.lunchEnd);
+                        if (lsM !== null && leM !== null && leM > lsM) lunchMins = leM - lsM;
+                    }
+                    const effectiveShiftMins = Math.max(shiftSpan - lunchMins, 1);
+                    minFullDayMins = effectiveShiftMins;
+                    minHalfDayMins = Math.floor(effectiveShiftMins / 2);
+                }
+            }
+
+            const workingMinutes = computeWorkingMinutes(record.punches, record.breaks);
+
+            let newStatus = 'Half Day';
+            if (workingMinutes >= minFullDayMins) {
+                newStatus = 'Present';
+            } else if (workingMinutes < minHalfDayMins) {
+                newStatus = 'Absent';
+            }
+
+            if (newStatus !== 'Half Day') {
+                record.status = newStatus;
+                await record.save();
+                fixed++;
+                details.push({
+                    employeeId: employee.employeeId,
+                    name: employee.name,
+                    date: record.date,
+                    day: dayName,
+                    workingMinutes,
+                    minFullDayMins,
+                    oldStatus: 'Half Day',
+                    newStatus
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Fixed ${fixed} record(s). ${skipped} skipped (missing punch data or shift).`,
+            fixed,
+            total: records.length,
+            skipped,
+            details
+        });
+    } catch (error) {
+        console.error('recalculateHalfDayStatus error:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error', error: error.message });
+    }
+};
+
+// GET /api/attendance/admin/employee-monthly-summary
+export const getEmployeeMonthlySummary = async (req, res) => {
+    try {
+        const { employeeId, month } = req.query; // employeeId, month (YYYY-MM)
+        if (!employeeId || !month) {
+            return res.status(400).json({ success: false, message: "employeeId and month (YYYY-MM) are required" });
+        }
+
+        const [year, monthNum] = month.split('-').map(Number);
+        const startDate = `${month}-01`;
+        const endDate = new Date(year, monthNum, 0).toISOString().split('T')[0];
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+
+        const employee = await User.findById(employeeId).populate('workSetup.shift');
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "Employee not found" });
+        }
+
+        const monthAttendance = await Attendance.find({
+            employee: employeeId,
+            date: { $gte: startDate, $lte: endDate }
+        });
+
+        const approvedLeaves = await Request.find({
+            employee: employeeId,
+            requestType: 'Leave',
+            status: 'Approved',
+            $or: [
+                { fromDate: { $lte: endDate }, toDate: { $gte: startDate } },
+                { date: { $gte: startDate, $lte: endDate } }
+            ]
+        });
+
+        let usedPaidLeaves = 0;
+        let usedUnpaidLeaves = 0;
+
+        const limitStart = new Date(startDate);
+        const limitEnd = new Date(endDate);
+
+        approvedLeaves.forEach(l => {
+            const start = new Date(l.fromDate);
+            const end = new Date(l.toDate);
+
+            // Calculate overlapping range within the current month
+            const overlapStart = start > limitStart ? start : limitStart;
+            const overlapEnd = end < limitEnd ? end : limitEnd;
+
+            if (overlapStart <= overlapEnd) {
+                if (l.leaveDuration === "Full Day") {
+                    const diffDays = Math.round((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
+                    if (l.leaveCategory === 'Paid') {
+                        usedPaidLeaves += diffDays;
+                    } else {
+                        usedUnpaidLeaves += diffDays;
+                    }
+                } else {
+                    // Half-day leave is always 0.5 days
+                    if (l.leaveCategory === 'Paid') {
+                        usedPaidLeaves += 0.5;
+                    } else {
+                        usedUnpaidLeaves += 0.5;
+                    }
+                }
+            }
+        });
+
+        const shift = employee.workSetup?.shift;
+        let presentDaysCount = 0;
+        let halfDaysCount = 0;
+        let absentDaysCount = 0;
+        let weekOffsPaid = 0;
+        let holidaysPaid = 0;
+        let extraDaysWorked = 0;
+        let totalShiftWeekOffs = 0;
+
+        const attendanceMap = {};
+        monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
+
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dayStr = `${month}-${String(d).padStart(2, '0')}`;
+            const dateObj = new Date(year, monthNum - 1, d);
+            const dayName = daysOfWeek[dateObj.getDay()];
+            const isWeekOff = shift?.weekOffDays?.includes(dayName);
+
+            if (isWeekOff) {
+                totalShiftWeekOffs++;
+            }
+
+            const record = attendanceMap[dayStr];
+
+            if (record) {
+                if (record.status === 'Present') {
+                    presentDaysCount++;
+                    if (isWeekOff) extraDaysWorked += 1;
+                } else if (record.status === 'Half Day') {
+                    halfDaysCount++;
+                    if (isWeekOff) extraDaysWorked += 0.5;
+                } else if (record.status === 'Absent') {
+                    absentDaysCount++;
+                } else if (record.status === 'Holiday') {
+                    holidaysPaid++;
+                } else if (record.status === 'Week Off') {
+                    weekOffsPaid++;
+                }
+            } else {
+                if (isWeekOff) {
+                    weekOffsPaid++;
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            summary: {
+                present: presentDaysCount,
+                halfDay: halfDaysCount,
+                absent: absentDaysCount,
+                weekOff: weekOffsPaid,
+                holiday: holidaysPaid,
+                paidLeave: usedPaidLeaves,
+                unpaidLeave: usedUnpaidLeaves,
+                extraDays: extraDaysWorked,
+                monthWorkingDays: daysInMonth - totalShiftWeekOffs
+            }
+        });
+    } catch (error) {
+        console.error("getEmployeeMonthlySummary error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+

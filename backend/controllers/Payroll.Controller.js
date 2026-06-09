@@ -10,7 +10,7 @@ import pdfmake from 'pdfmake';
 
 export const getMonthlyPayoutSummary = async (req, res) => {
     try {
-        const { month } = req.query; // YYYY-MM
+        const { month, branch, department } = req.query; // YYYY-MM
         if (!month) return res.status(400).json({ success: false, message: "Month is required (YYYY-MM)" });
 
         const [year, monthNum] = month.split('-').map(Number);
@@ -19,13 +19,17 @@ export const getMonthlyPayoutSummary = async (req, res) => {
         const daysInMonth = new Date(year, monthNum, 0).getDate();
         const adminId = req.user._id;
 
-        const employees = await User.find({ 
+        const employeeQuery = { 
             adminId,
             status: { $in: ['Active', 'Resigned'] } 
-        })
+        };
+        if (branch) employeeQuery.branch = branch;
+        if (department) employeeQuery.department = department;
+
+        const employees = await User.find(employeeQuery)
             .populate('workSetup.shift')
             .populate('workSetup.salaryGroup')
-            .select('name employeeId department designation workSetup role status');
+            .select('name employeeId department designation branch workSetup role status');
 
         const employeeIds = employees.map(emp => emp._id);
         const existingPayouts = await Payout.find({ month, employeeId: { $in: employeeIds } });
@@ -219,9 +223,54 @@ export const initiatePayout = async (req, res) => {
             employeeId, month, attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout 
         } = req.body;
         const adminId = req.user._id;
+
+        // Fetch CTC to snapshot it timezone-safely
+        const ctc = await EmployeeCTC.findOne({ employeeId, status: 'Active' });
+        let earningsSnapshot = [];
+        let deductionsSnapshot = [];
+        let joiningNetSalary = 0;
+        let joiningMonthlyGross = 0;
+
+        if (ctc) {
+            joiningNetSalary = ctc.netSalary || 0;
+            joiningMonthlyGross = ctc.monthlyGross || 0;
+
+            const extraDayAmount = extraDayBenefit?.amount || 0;
+            const adjustedAccrued = systemAccrued - extraDayAmount;
+            const ratio = baseSalary > 0 ? (adjustedAccrued / baseSalary) : 0;
+
+            earningsSnapshot = (ctc.earnings || []).map(e => ({
+                componentName: e.componentName,
+                monthlyAmount: Number(e.amount) || 0,
+                calculatedAmount: Math.round((Number(e.amount) || 0) * ratio * 100) / 100
+            }));
+
+            deductionsSnapshot = (ctc.deductions || []).map(d => ({
+                componentName: d.componentName,
+                amount: Math.round((Number(d.amount) || 0) * ratio * 100) / 100
+            }));
+        }
+
         const payout = await Payout.findOneAndUpdate(
             { employeeId, month },
-            { $set: { attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout, initiatedBy: adminId, initiatedAt: new Date(), status: 'Initiated' } },
+            { 
+                $set: { 
+                    attendance, 
+                    baseSalary, 
+                    systemAccrued, 
+                    penalties, 
+                    adjustments, 
+                    extraDayBenefit, 
+                    finalPayout,
+                    joiningNetSalary,
+                    joiningMonthlyGross,
+                    earnings: earningsSnapshot,
+                    deductions: deductionsSnapshot,
+                    initiatedBy: adminId, 
+                    initiatedAt: new Date(), 
+                    status: 'Initiated' 
+                } 
+            },
             { upsert: true, new: true }
         );
         res.status(200).json({ success: true, message: "Payout initiated successfully", payout });
@@ -303,32 +352,28 @@ export const downloadPayslip = async (req, res) => {
         // Initialize pdfmake instance
         pdfmake.setFonts(fonts);
 
-        // Fetch CTC Breakdown
-        const ctc = await EmployeeCTC.findOne({ employeeId: payout.employeeId._id, status: 'Active' });
-        
-        // Calculate dynamic values based on payout ratio
-        // We subtract extraDayBenefit from systemAccrued to get the "Base" accrued for regular components
-        const adjustedAccrued = payout.systemAccrued - (payout.extraDayBenefit?.amount || 0);
-        const ratio = payout.baseSalary > 0 ? (adjustedAccrued / payout.baseSalary) : 0;
-        
         let earningRows = [];
         let deductionRows = [];
         
-        // Process Dynamic Earnings
-        if (ctc && ctc.earnings && ctc.earnings.length > 0) {
-            earningRows = ctc.earnings.map(e => ([
+        // Process Dynamic Earnings from Snapshot
+        if (payout.earnings && payout.earnings.length > 0) {
+            earningRows = payout.earnings.map(e => ([
                 { text: e.componentName, fontSize: 10 },
-                { text: (e.amount * ratio).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }), fontSize: 10, alignment: 'right' }
+                { text: Math.round(e.calculatedAmount).toLocaleString(), fontSize: 10, alignment: 'right' }
             ]));
         } else {
-            earningRows.push([{ text: 'Basic Salary (Accrued)', fontSize: 10 }, { text: adjustedAccrued.toLocaleString(), fontSize: 10, alignment: 'right' }]);
+            const adjustedAccrued = payout.systemAccrued - (payout.extraDayBenefit?.amount || 0);
+            earningRows.push([
+                { text: 'Basic Salary (Accrued)', fontSize: 10 },
+                { text: Math.round(adjustedAccrued).toLocaleString(), fontSize: 10, alignment: 'right' }
+            ]);
         }
 
-        // Process Dynamic Deductions from CTC
-        if (ctc && ctc.deductions && ctc.deductions.length > 0) {
-            deductionRows = ctc.deductions.map(d => ([
+        // Process Dynamic Deductions from Snapshot
+        if (payout.deductions && payout.deductions.length > 0) {
+            deductionRows = payout.deductions.map(d => ([
                 { text: d.componentName, fontSize: 10 },
-                { text: (d.amount * ratio).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }), fontSize: 10, alignment: 'right' }
+                { text: Math.round(d.amount).toLocaleString(), fontSize: 10, alignment: 'right' }
             ]));
         }
 
