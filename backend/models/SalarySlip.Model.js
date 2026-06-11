@@ -32,7 +32,7 @@ const salarySlipSchema = new mongoose.Schema(
         extraDaysPaid:       { type: Number, default: 0 },
         paidHolidays:        { type: Number, default: 0 },
         paidWeekOff:         { type: Number, default: 0 },
-
+                     
         // Salary figures
         joiningNetSalary:    { type: Number, default: 0 },
         joiningMonthlyGross: { type: Number, default: 0 },

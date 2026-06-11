@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
-import { Search, Calendar, CheckSquare, Square, Send, Eye, Download, X } from 'lucide-react';
+import { 
+    Search, Calendar, CheckSquare, Square, Send, Eye, 
+    Download, X, Wallet, Briefcase, RefreshCw, Layers 
+} from 'lucide-react';
 import Swal from 'sweetalert2';
-
 
 const PublishSalarySlip = () => {
     const today = new Date();
@@ -13,7 +15,6 @@ const PublishSalarySlip = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [previewUrl, setPreviewUrl] = useState(null);
-
 
     const fetchGeneratedPayouts = async () => {
         try {
@@ -45,11 +46,11 @@ const PublishSalarySlip = () => {
         }
     };
 
-    const toggleSelectAll = () => {
-        if (selectedIds.length === filteredPayouts.length) {
+    const toggleSelectAll = (filteredList) => {
+        if (selectedIds.length === filteredList.length) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(filteredPayouts.map(p => p._id));
+            setSelectedIds(filteredList.map(p => p._id));
         }
     };
 
@@ -62,7 +63,13 @@ const PublishSalarySlip = () => {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, Publish!',
-            confirmButtonColor: '#2563eb'
+            confirmButtonColor: '#10B981',
+            cancelButtonColor: 'var(--border)',
+            customClass: {
+                popup: 'premium-swal-popup',
+                title: 'premium-swal-title',
+                confirmButton: 'premium-swal-button'
+            }
         });
 
         if (result.isConfirmed) {
@@ -74,7 +81,16 @@ const PublishSalarySlip = () => {
                 });
                 const data = await res.json();
                 if (data.success) {
-                    Swal.fire('Published!', `Slips have been sent to employees successfully.`, 'success');
+                    Swal.fire({
+                        title: 'Published!',
+                        text: `Salary slips have been made visible to employees.`,
+                        icon: 'success',
+                        customClass: {
+                            popup: 'premium-swal-popup',
+                            title: 'premium-swal-title',
+                            confirmButton: 'premium-swal-button'
+                        }
+                    });
                     fetchGeneratedPayouts();
                     setSelectedIds([]);
                 }
@@ -94,141 +110,284 @@ const PublishSalarySlip = () => {
         window.open(getPdfUrl(payoutId, true), '_blank');
     };
 
+    // Filter payouts based on search and sort alphabetically by employee name
     const filteredPayouts = payouts.filter(p => 
         p.employeeId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.employeeId?.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ).sort((a, b) => (a.employeeId?.name || '').localeCompare(b.employeeId?.name || ''));
+
+    const formatCurrency = (val) => {
+        return val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const monthLabel = () => {
+        const [y, m] = month.split('-').map(Number);
+        return new Date(y, m - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+    };
 
     return (
-        <div className="hrm-container">
-            <div className="hrm-header">
+        <div className="hrm-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 16px' }}>
+            
+            {/* ── Page Header ── */}
+            <div className="hrm-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
                 <div>
-                    <h1 className="hrm-title">Publish Salary Slips</h1>
+                    <h1 className="hrm-title" style={{ fontSize: '28px', marginBottom: '4px' }}>
+                        Publish Salary Slips
+                    </h1>
+                    
+                </div>
+
+            </div>
+
+            {/* ── Filters & Controls Toolbar Card ── */}
+            <div className="hrm-card" style={{ padding: '20px', marginBottom: '28px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', borderRadius: '20px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', flex: 1, minWidth: '320px' }}>
+                        {/* Search bar */}
+                        <div style={{ position: 'relative', flex: 2, minWidth: '240px' }}>
+                            <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                            <input 
+                                type="text" 
+                                placeholder="Search by employee name or ID..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ 
+                                    width: '100%', 
+                                    height: '46px', 
+                                    paddingLeft: '42px', 
+                                    paddingRight: '16px', 
+                                    background: 'var(--bg-base)', 
+                                    border: '1.5px solid var(--border)', 
+                                    borderRadius: '12px', 
+                                    outline: 'none', 
+                                    fontSize: '13px', 
+                                    fontWeight: 600,
+                                    color: 'var(--text-primary)',
+                                    boxSizing: 'border-box',
+                                    transition: 'all 0.2s'
+                                }}
+                            />
+                        </div>
+
+                        {/* Month input */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-base)', border: '1.5px solid var(--border)', padding: '0 14px', borderRadius: '12px', height: '46px', boxSizing: 'border-box', minWidth: '180px', flex: 1 }}>
+                            <Calendar size={16} style={{ color: 'var(--primary-blue)' }} />
+                            <input 
+                                type="month" 
+                                value={month}
+                                onChange={(e) => setMonth(e.target.value)}
+                                onClick={e => { try { e.target.showPicker(); } catch (err) {} }}
+                                style={{ 
+                                    background: 'transparent', 
+                                    color: 'var(--text-primary)', 
+                                    border: 'none', 
+                                    outline: 'none', 
+                                    height: '100%', 
+                                    cursor: 'pointer', 
+                                    flex: 1, 
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    colorScheme: 'dark' 
+                                }}
+                            />
+                        </div>
                     </div>
-                
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <div className="hrm-search-container" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-                        <Search size={18} className="hrm-search-icon" style={{ color: 'var(--text-muted)' }} />
-                        <input 
-                            type="text" 
-                            className="hrm-search-input" 
-                            placeholder="Find employee..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none' }}
-                        />
-                    </div>
-                    <div className="hrm-date-filter" style={{ minWidth: '180px', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 12px', borderRadius: '12px' }}>
-                        <Calendar size={18} style={{ color: 'var(--primary-blue)' }} />
-                        <input 
-                            type="month" 
-                            className="hrm-date-input"
-                            value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                            style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', outline: 'none', height: '42px', cursor: 'pointer', colorScheme: 'dark' }}
-                        />
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <button 
+                            className="btn-hrm btn-hrm-primary" 
+                            onClick={handlePublish}
+                            disabled={selectedIds.length === 0}
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px', 
+                                padding: '0 24px', 
+                                height: '46px', 
+                                borderRadius: '12px',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                opacity: selectedIds.length === 0 ? 0.6 : 1,
+                                cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer',
+                                background: '#10B981',
+                                borderColor: '#10B981',
+                                boxShadow: selectedIds.length > 0 ? '0 4px 14px 0 rgba(16, 185, 129, 0.4)' : 'none'
+                            }}
+                        >
+                            <Send size={16} /> Publish Slips ({selectedIds.length})
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                    {selectedIds.length > 0 && <span>Ready to publish: <strong>{selectedIds.length}</strong> slips</span>}
-                </div>
-                <button 
-                    className="btn-hrm btn-hrm-primary" 
-                    onClick={handlePublish}
-                    disabled={selectedIds.length === 0}
-                    style={{ background: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                    <Send size={18} /> Publish to Mobile App
-                </button>
-            </div>
-
-            <div className="hrm-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div className="hrm-table-container">
-                    <table className="hrm-table">
+            {/* ── Table Container ── */}
+            <div className="hrm-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elevated)', borderRadius: '20px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="hrm-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr>
-                                <th style={{ width: '40px' }}>
-                                    <div style={{ cursor: 'pointer' }} onClick={toggleSelectAll}>
-                                        {selectedIds.length === filteredPayouts.length && filteredPayouts.length > 0 ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="var(--border)" />}
+                            <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border)' }}>
+                                <th style={{ width: '50px', padding: '20px', textAlign: 'left' }}>
+                                    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => toggleSelectAll(filteredPayouts)}>
+                                        {selectedIds.length === filteredPayouts.length && filteredPayouts.length > 0 ? (
+                                            <CheckSquare size={19} color="var(--primary-blue)" style={{ transition: 'transform 0.1s ease' }} />
+                                        ) : (
+                                            <Square size={19} color="var(--text-muted)" style={{ transition: 'transform 0.1s ease' }} />
+                                        )}
                                     </div>
                                 </th>
-                                <th>Employee Details</th>
-                                <th>Generated Period</th>
-                                <th>Final Net</th>
-                                <th>Action</th>
+                                <th style={{ padding: '20px', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Employee Details</th>
+                                <th style={{ padding: '20px', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Generated Period</th>
+                                <th style={{ padding: '20px', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Net Payable Amount</th>
+                                <th style={{ padding: '20px', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px', textAlign: 'center' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px' }}>Loading generated slips...</td></tr>
-                            ) : filteredPayouts.length === 0 ? (
-                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>No generated slips waiting to be published for this month.</td></tr>
-                            ) : filteredPayouts.map((p, i) => (
-                                <tr key={i} onClick={() => toggleSelect(p._id)} style={{ cursor: 'pointer' }}>
-                                    <td onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
-                                        {selectedIds.includes(p._id) ? <CheckSquare size={20} color="#059669" /> : <Square size={20} color="var(--border)" />}
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: 600 }}>{p.employeeId?.name}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{p.employeeId?.employeeId}</div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{p.month}</div>
-                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Slip Prepared</div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>₹{p.finalPayout.toLocaleString()}</div>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <button 
-                                                className="btn-hrm-icon" 
-                                                onClick={(e) => { e.stopPropagation(); setPreviewUrl(getPdfUrl(p._id)); }}
-                                                title="Quick View Payslip"
-                                                style={{ padding: '6px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: '1px solid var(--border)' }}
-                                            >
-                                                <Eye size={16} />
-                                            </button>
-                                            <button 
-                                                className="btn-hrm-icon" 
-                                                onClick={(e) => { e.stopPropagation(); handleDownload(p._id); }}
-                                                title="Download Payslip"
-                                                style={{ padding: '6px', borderRadius: '6px', background: 'rgba(37, 99, 235, 0.15)', color: '#2563eb', border: '1px solid var(--border)' }}
-                                            >
-                                                <Download size={16} />
-                                            </button>
+                                <tr>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '80px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                            <RefreshCw className="animate-spin" size={26} style={{ color: 'var(--primary-blue)' }} />
+                                            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Loading generated slips...</span>
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : filteredPayouts.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                                            <Layers size={44} style={{ opacity: 0.25, color: 'var(--primary-blue)' }} />
+                                            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>No Generated Slips Found</span>
+                                            <span style={{ fontSize: '12px' }}>All slips for this period have either been published or not generated yet.</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredPayouts.map((p, idx) => {
+                                const isSelected = selectedIds.includes(p._id);
+                                return (
+                                    <tr 
+                                        key={p._id} 
+                                        onClick={() => toggleSelect(p._id)} 
+                                        style={{ 
+                                            cursor: 'pointer', 
+                                            borderBottom: idx < filteredPayouts.length - 1 ? '1px solid var(--border)' : 'none',
+                                            transition: 'background 0.25s ease',
+                                            background: isSelected ? 'rgba(195, 192, 255, 0.04)' : 'transparent'
+                                        }}
+                                        onMouseOver={(e) => { if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; }}
+                                        onMouseOut={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                                    >
+                                        <td style={{ padding: '20px' }} onClick={(e) => { e.stopPropagation(); toggleSelect(p._id); }}>
+                                            {isSelected ? (
+                                                <CheckSquare size={19} color="var(--primary-blue)" />
+                                            ) : (
+                                                <Square size={19} color="var(--border)" />
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                                {/* Profile Photo */}
+                                                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '1.5px solid var(--border)', flexShrink: 0 }}>
+                                                    {p.employeeId?.profilePhoto ? (
+                                                        <img src={`${API_URL}/uploads/${p.employeeId.profilePhoto}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                                                            {p.employeeId?.name ? p.employeeId.name.charAt(0) : '?'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', margin: 0 }}>{p.employeeId?.name}</p>
+                                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '3px' }}>
+                                                        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>{p.employeeId?.employeeId || 'N/A'}</span>
+                                                        <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--text-muted)' }}></span>
+                                                        <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--primary-blue)', background: 'rgba(195,192,255,0.12)', padding: '1px 6px', borderRadius: '4px' }}>{p.employeeId?.department || 'Staff'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{p.month}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>Slip Prepared</div>
+                                        </td>
+                                        <td style={{ padding: '20px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Wallet size={14} color="var(--success)" />
+                                                <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--success)' }}>
+                                                    ₹{formatCurrency(p.finalPayout || 0)}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '20px' }} onClick={e => e.stopPropagation()}>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                                                {/* Preview */}
+                                                <button 
+                                                    onClick={() => setPreviewUrl(getPdfUrl(p._id))}
+                                                    style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-blue)'; e.currentTarget.style.color = 'var(--primary-blue)'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                                    title="Quick View payslip"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+
+                                                {/* Download */}
+                                                <button 
+                                                    onClick={() => handleDownload(p._id)}
+                                                    style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.color = '#10B981'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                                                    title="Download payslip"
+                                                >
+                                                    <Download size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
             </div>
 
+            {/* ── Stitch Premium Payslip Preview Modal ── */}
             {previewUrl && (
-                <div className="hrm-modal-overlay" onClick={() => setPreviewUrl(null)}>
-                    <div className="hrm-modal-content" style={{ width: '800px', maxWidth: '95%', height: '85vh', display: 'flex', flexDirection: 'column', padding: '15px', background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>Payslip Quick View</h2>
+                <div 
+                    onClick={() => setPreviewUrl(null)}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 3000, animation: 'fadeIn 0.2s ease' }}
+                >
+                    <div 
+                        onClick={e => e.stopPropagation()}
+                        className="modal-content-premium"
+                        style={{ background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: '24px', width: '900px', maxWidth: '95%', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0, 0, 0, 0.4)', animation: 'zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)', padding: '24px' }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Payslip Quick View</h2>
                             <button 
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} 
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '4px' }} 
                                 onClick={() => setPreviewUrl(null)}
                             >
-                                <X size={20}/>
+                                <X size={22}/>
                             </button>
                         </div>
+                        {/* Modal Body (Iframe) */}
                         <iframe 
                             src={previewUrl} 
-                            style={{ flex: 1, width: '100%', border: '1px solid var(--border)', borderRadius: '8px' }} 
+                            style={{ flex: 1, width: '100%', border: '1px solid var(--border)', borderRadius: '14px', background: '#FFFFFF' }} 
                             title="Payslip Preview" 
                         />
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .animate-spin { animation: spin 1s linear infinite; }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+            `}</style>
         </div>
     );
 };

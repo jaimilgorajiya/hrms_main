@@ -130,4 +130,3 @@ const reorderBranches = async (req, res) => {
 };
 
 export { getBranches, addBranch, updateBranch, deleteBranch, reorderBranches };
-

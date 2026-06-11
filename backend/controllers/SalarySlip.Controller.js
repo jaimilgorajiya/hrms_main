@@ -1,6 +1,7 @@
 import SalarySlip from '../models/SalarySlip.Model.js';
 import User from '../models/User.Model.js';
 import EmployeeCTC from '../models/EmployeeCTC.Model.js';
+import Payout from '../models/Payout.Model.js';
 
 // ──────────────────────────────────────────────────────────────
 // CREATE / UPDATE  (upsert: one slip per employee per month/year)
@@ -48,9 +49,9 @@ const createSalarySlip = async (req, res) => {
         const totalDivisor = Math.max(mwd + pwo + ph, 1);
         const perDaySalary = Math.round((grossMonthly / totalDivisor) * 100) / 100;
         const perDaySalaryExt = perDaySalary;
-        const paidDays = ewd + pl + ph + pwo;
+        const paidDays = ewd + pl + ph + pwo + edp;
         const thisMonthGross = Math.round((perDaySalary * paidDays) * 100) / 100;
-        const extraEarning = Math.round((edp * perDaySalaryExt) * 100) / 100;
+        const extraEarning = 0;
 
         const earnings = (ctc.earnings || []).map(e => ({
             componentName: e.componentName,
@@ -99,6 +100,56 @@ const createSalarySlip = async (req, res) => {
             { employeeId, month: Number(month), year: Number(year) },
             validatedPayload,
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+        );
+
+        // Sync with Payout collection so it shows up in Generate Salary Slips page
+        const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+        await Payout.findOneAndUpdate(
+            { employeeId, month: monthStr },
+            {
+                $set: {
+                    baseSalary: grossMonthly,
+                    attendance: {
+                        present: ewd,
+                        halfDay: 0,
+                        absent: ul,
+                        weekOff: pwo,
+                        holiday: ph,
+                        paidLeave: pl,
+                        unpaidLeave: ul
+                    },
+                    extraDayBenefit: {
+                        days: edp,
+                        amount: edp * perDaySalary
+                    },
+                    joiningNetSalary: netMonthly,
+                    joiningMonthlyGross: grossMonthly,
+                    earnings: earnings.map(e => ({
+                        componentName: e.componentName,
+                        monthlyAmount: e.monthlyAmount,
+                        calculatedAmount: e.calculatedAmount
+                    })),
+                    deductions: deductions.map(d => ({
+                        componentName: d.componentName,
+                        amount: d.amount
+                    })),
+                    systemAccrued: thisMonthGross,
+                    penalties: {
+                        total: od,
+                        lateIn: 0,
+                        earlyOut: 0
+                    },
+                    adjustments: {
+                        bonus: { amount: oe, reason: 'Other Earnings' },
+                        deduction: { amount: 0, reason: '' }
+                    },
+                    finalPayout: netSalary,
+                    status: 'Initiated',
+                    initiatedBy: adminId,
+                    initiatedAt: new Date()
+                }
+            },
+            { upsert: true, new: true }
         );
 
         return res.status(200).json({

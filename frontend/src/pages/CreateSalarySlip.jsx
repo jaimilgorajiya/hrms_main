@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, RefreshCw, Calendar, DollarSign, Briefcase } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, FileText, RefreshCw, Calendar, DollarSign, Briefcase, AlertCircle } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
@@ -46,6 +46,8 @@ const defaultForm = () => ({
 /* ─── Component ───────────────────────────────────────── */
 const CreateSalarySlip = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const state = location.state || {};
     const today = new Date();
     const todayMonthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
 
@@ -56,11 +58,14 @@ const CreateSalarySlip = () => {
     const [loading, setLoading] = useState(true);
     const [ctcLoading, setCtcLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [existingSlips, setExistingSlips] = useState([]);
+    const [earningDeductionTypes, setEarningDeductionTypes] = useState([]);
+    const [missingPunches, setMissingPunches] = useState([]);
 
     /* Filters */
-    const [branch, setBranch] = useState('');
-    const [department, setDepartment] = useState('');
-    const [monthYear, setMonthYear] = useState(todayMonthYear);
+    const [branch, setBranch] = useState(state.branch || '');
+    const [department, setDepartment] = useState(state.department || '');
+    const [monthYear, setMonthYear] = useState(state.monthYear || todayMonthYear);
 
     /* Editable form fields */
     const [form, setForm] = useState(defaultForm());
@@ -70,10 +75,40 @@ const CreateSalarySlip = () => {
         (async () => {
             try {
                 setLoading(true);
+
+                // Fetch Earning & Deduction Types
+                try {
+                    const resTypes = await authenticatedFetch(`${API_URL}/api/earning-deduction-types`);
+                    const dataTypes = await resTypes.json();
+                    if (dataTypes.success) {
+                        setEarningDeductionTypes(dataTypes.earningDeductionTypes || []);
+                    }
+                } catch (err) {
+                    console.error('Fetch earning-deduction-types error:', err);
+                }
+
                 const res = await authenticatedFetch(`${API_URL}/api/employee-ctc/all`);
                 const data = await res.json();     
                 if (data.success) {
-                    setAllEmployees((data.data || []).filter(e => e.ctcDetails));
+                    const emps = (data.data || []).filter(e => e.ctcDetails);
+                    setAllEmployees(emps);
+                    if (state.employeeId) {
+                        const found = emps.find(e => e._id === state.employeeId);
+                        if (found) {
+                            setSelectedEmployee(found);
+                            try {
+                                setCtcLoading(true);
+                                setCtcData(null);
+                                const resCTC = await authenticatedFetch(`${API_URL}/api/employee-ctc/${found._id}`);
+                                const dataCTC = await resCTC.json();
+                                if (dataCTC.success && dataCTC.ctc) setCtcData(dataCTC.ctc);
+                            } catch (e) {
+                                console.error('Fetch CTC error:', e);
+                            } finally {
+                                setCtcLoading(false);
+                            }
+                        }
+                    }
                 }
             } catch (e) {
                 console.error('Fetch employees error:', e);
@@ -94,11 +129,26 @@ const CreateSalarySlip = () => {
             monthWorkingDays: totalDays - wkoffs,
             paidWeekOff: wkoffs
         }));
+
+        (async () => {
+            try {
+                const res = await authenticatedFetch(`${API_URL}/api/salary-slip?month=${mn}&year=${yr}`);
+                const data = await res.json();
+                if (data.success) {
+                    setExistingSlips(data.slips || []);
+                }
+            } catch (e) {
+                console.error('Fetch existing slips error:', e);
+            }
+        })();
     }, [monthYear]);
 
     /* ── Fetch Attendance Summary for Employee & Month ── */
     useEffect(() => {
-        if (!selectedEmployee || !monthYear) return;
+        if (!selectedEmployee || !monthYear) {
+            setMissingPunches([]);
+            return;
+        }
         
         (async () => {
             try {
@@ -106,6 +156,7 @@ const CreateSalarySlip = () => {
                 const data = await res.json();
                 if (data.success && data.summary) {
                     const s = data.summary;
+                    setMissingPunches(s.missingPunches || []);
                     setForm(prev => ({
                         ...prev,
                         employeeWorkingDays: s.present + (s.halfDay * 0.5),
@@ -151,12 +202,20 @@ const CreateSalarySlip = () => {
     }, [allEmployees, branch]);
 
     const filteredEmps = useMemo(() => {
+        const existingEmpIds = existingSlips.map(s => {
+            if (s.employeeId && typeof s.employeeId === 'object') {
+                return s.employeeId._id;
+            }
+            return s.employeeId;
+        });
+
         return allEmployees.filter(e => {
             if (branch && e.branch !== branch) return false;
             if (department && e.department !== department) return false;
+            if (existingEmpIds.includes(e._id)) return false;
             return true;
         });
-    }, [allEmployees, branch, department]);
+    }, [allEmployees, branch, department, existingSlips]);
 
     /* ── Handlers ── */
     const handleBranchChange = (val) => {
@@ -164,18 +223,21 @@ const CreateSalarySlip = () => {
         setDepartment('');
         setSelectedEmployee(null);
         setCtcData(null);
+        setMissingPunches([]);
     };
 
     const handleDeptChange = (val) => {
         setDepartment(val);
         setSelectedEmployee(null);
         setCtcData(null);
+        setMissingPunches([]);
     };
 
     const handleEmployeeChange = (empId) => {
-        if (!empId) { setSelectedEmployee(null); setCtcData(null); return; }
+        if (!empId) { setSelectedEmployee(null); setCtcData(null); setMissingPunches([]); return; }
         const emp = allEmployees.find(e => e._id === empId);
         setSelectedEmployee(emp || null);
+        setMissingPunches([]);
         if (emp) fetchCTC(emp._id);
     };
 
@@ -200,22 +262,80 @@ const CreateSalarySlip = () => {
         const totalDivisor     = Math.max(mwd + pwo + ph, 1);
         const perDaySalary     = round2(grossMonthly / totalDivisor);
         const perDaySalaryExt  = perDaySalary;
-        const paidDays         = ewd + pl + ph + pwo;
+        const paidDays         = ewd + pl + ph + pwo + edp;
         const thisMonthGross   = round2(perDaySalary * paidDays);
-        const extraEarning     = round2(edp * perDaySalaryExt);
+        const extraEarning     = 0;
 
-        const earnings = (ctcData.earnings || []).map(e => ({
-            componentName:    e.componentName,
-            monthlyAmount:    Number(e.amount) || 0,
-            calculatedAmount: grossMonthly > 0
-                ? round2(((e.amount || 0) / grossMonthly) * thisMonthGross)
-                : 0
-        }));
+        const activeTypes = earningDeductionTypes.filter(t => t.status === 'Active');
 
-        const deductions = (ctcData.deductions || []).map(d => ({
-            componentName: d.componentName,
-            amount: Number(d.amount) || 0
-        }));
+        // Build the earnings list
+        const earningsList = [];
+        const seenEarnings = new Set();
+
+        // 1. Add all active earning types from settings
+        activeTypes.filter(t => t.type === 'Earnings').forEach(ae => {
+            const name = ae.name.trim();
+            const matched = (ctcData.earnings || []).find(
+                e => e.componentName.toLowerCase().trim() === name.toLowerCase()
+            );
+            const monthlyAmount = matched ? (Number(matched.amount) || 0) : 0;
+            earningsList.push({
+                componentName: ae.name,
+                monthlyAmount,
+                calculatedAmount: grossMonthly > 0
+                    ? round2((monthlyAmount / grossMonthly) * thisMonthGross)
+                    : 0
+            });
+            seenEarnings.add(name.toLowerCase());
+        });
+
+        // 2. Add any employee-specific CTC earnings that are not in the active settings list
+        (ctcData.earnings || []).forEach(e => {
+            const name = e.componentName.trim();
+            if (!seenEarnings.has(name.toLowerCase())) {
+                const monthlyAmount = Number(e.amount) || 0;
+                earningsList.push({
+                    componentName: e.componentName,
+                    monthlyAmount,
+                    calculatedAmount: grossMonthly > 0
+                        ? round2((monthlyAmount / grossMonthly) * thisMonthGross)
+                        : 0
+                });
+                seenEarnings.add(name.toLowerCase());
+            }
+        });
+
+        // Build the deductions list
+        const deductionsList = [];
+        const seenDeductions = new Set();
+
+        // 1. Add all active deduction types from settings
+        activeTypes.filter(t => t.type === 'Deductions').forEach(ad => {
+            const name = ad.name.trim();
+            const matched = (ctcData.deductions || []).find(
+                d => d.componentName.toLowerCase().trim() === name.toLowerCase()
+            );
+            deductionsList.push({
+                componentName: ad.name,
+                amount: matched ? (Number(matched.amount) || 0) : 0
+            });
+            seenDeductions.add(name.toLowerCase());
+        });
+
+        // 2. Add any employee-specific CTC deductions that are not in the active settings list
+        (ctcData.deductions || []).forEach(d => {
+            const name = d.componentName.trim();
+            if (!seenDeductions.has(name.toLowerCase())) {
+                deductionsList.push({
+                    componentName: d.componentName,
+                    amount: Number(d.amount) || 0
+                });
+                seenDeductions.add(name.toLowerCase());
+            }
+        });
+
+        const earnings = earningsList;
+        const deductions = deductionsList;
 
         const totalEarnings   = round2(earnings.reduce((s, e) => s + e.calculatedAmount, 0) + oe + extraEarning);
         const totalDeductions = round2(deductions.reduce((s, d) => s + d.amount, 0) + od);
@@ -228,7 +348,7 @@ const CreateSalarySlip = () => {
             joiningNetSalary:    ctcData.netSalary     || 0,
             joiningMonthlyGross: grossMonthly
         };
-    }, [ctcData, form]);
+    }, [ctcData, form, earningDeductionTypes]);
 
     /* ── Month date range for title ── */
     const monthDateRange = useMemo(() => {
@@ -250,6 +370,33 @@ const CreateSalarySlip = () => {
         if (!selectedEmployee || !ctcData || !derived) {
             return Swal.fire('Incomplete', 'Please select branch, department, month and employee first.', 'warning');
         }
+
+        if (missingPunches.length > 0) {
+            return Swal.fire('Missing Punch-Outs', 'This employee has missing punch-outs. Please fix them before generating the salary slip.', 'error');
+        }
+
+        const confirmResult = await Swal.fire({
+            title: 'Generate Salary Slip?',
+            html: `<div style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-top: 10px;">
+                You are about to generate the salary slip for <strong>${selectedEmployee.name}</strong> for <strong>${monthLabel}</strong>.<br/>
+                Net Payout: <strong style="color: var(--primary-blue); font-size: 16px;">₹${fmt(derived.netSalary)}</strong>
+            </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Generate',
+            cancelButtonText: 'Cancel',
+            buttonsStyling: false,
+            customClass: {
+                popup: 'premium-swal-popup',
+                title: 'premium-swal-title',
+                confirmButton: 'btn-hrm btn-hrm-primary premium-swal-confirm',
+                cancelButton: 'btn-hrm btn-hrm-secondary premium-swal-cancel',
+                actions: 'premium-swal-actions'
+            }
+        });
+
+        if (!confirmResult.isConfirmed) return;
+
         const [yr, mn] = monthYear.split('-').map(Number);
         const payload = {
             employeeId:           selectedEmployee._id,
@@ -296,8 +443,17 @@ const CreateSalarySlip = () => {
                 await Swal.fire({
                     icon: 'success',
                     title: 'Salary Slip Generated!',
-                    html: `Slip for <strong>${selectedEmployee.name}</strong> — ${monthLabel}<br/>Net Salary: <strong>₹${fmt(derived.netSalary)}</strong>`,
-                    confirmButtonColor: '#3B648B'
+                    html: `<div style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-top: 10px;">
+                        Slip for <strong>${selectedEmployee.name}</strong> — ${monthLabel}<br/>
+                        Net Salary: <strong style="color: var(--success); font-size: 16px;">₹${fmt(derived.netSalary)}</strong>
+                    </div>`,
+                    buttonsStyling: false,
+                    customClass: {
+                        popup: 'premium-swal-popup',
+                        title: 'premium-swal-title',
+                        confirmButton: 'btn-hrm btn-hrm-primary premium-swal-confirm',
+                        actions: 'premium-swal-actions'
+                    }
                 });
                 setSelectedEmployee(null);
                 setCtcData(null);
@@ -353,11 +509,6 @@ const CreateSalarySlip = () => {
                     <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-dark)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.4px' }}>
                         Create Salary Slip
                     </h1>
-                    {selectedEmployee && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                            {monthDateRange}
-                        </p>
-                    )}
                 </div>
             </div>
 
@@ -393,6 +544,11 @@ const CreateSalarySlip = () => {
                                 style={{ ...inp(), cursor: 'pointer' }}
                             />
                         </div>
+                        {monthDateRange && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
+                                {monthDateRange}
+                            </span>
+                        )}
                     </div>
                     <div style={fld}>
                         <label style={lbl}>Employee Name <span style={{ color: 'var(--danger)' }}>*</span></label>
@@ -449,7 +605,7 @@ const CreateSalarySlip = () => {
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Emp Work Days <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.employeeWorkingDays} onChange={e => setField('employeeWorkingDays', e.target.value)} style={inp()} min="0" step="0.5" />
+                                    <input type="number" value={form.employeeWorkingDays} onChange={e => setField('employeeWorkingDays', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Paid Week-Off</label>
@@ -457,18 +613,18 @@ const CreateSalarySlip = () => {
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Extra Days (Paid) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.extraDaysPaid} onChange={e => setField('extraDaysPaid', e.target.value)} style={inp()} min="0" step="0.5" />
+                                    <input type="number" value={form.extraDaysPaid} onChange={e => setField('extraDaysPaid', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
                                 </div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
                                 <div style={fld}>
                                     <label style={lbl}>Paid Leave <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.paidLeave} onChange={e => setField('paidLeave', e.target.value)} style={inp()} min="0" step="0.5" />
+                                    <input type="number" value={form.paidLeave} onChange={e => setField('paidLeave', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Unpaid Leave <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.unpaidLeave} onChange={e => setField('unpaidLeave', e.target.value)} style={inp()} min="0" step="0.5" />
+                                    <input type="number" value={form.unpaidLeave} onChange={e => setField('unpaidLeave', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Total Leaves</label>
@@ -505,6 +661,7 @@ const CreateSalarySlip = () => {
                                             type="number"
                                             value={form.otherEarnings}
                                             onChange={e => setField('otherEarnings', e.target.value)}
+                                            onWheel={(e) => e.target.blur()}
                                             style={inp()}
                                             min="0"
                                             step="any"
@@ -532,6 +689,7 @@ const CreateSalarySlip = () => {
                                             type="number"
                                             value={form.otherDeduction}
                                             onChange={e => setField('otherDeduction', e.target.value)}
+                                            onWheel={(e) => e.target.blur()}
                                             style={inp()}
                                             min="0"
                                             step="any"
@@ -622,11 +780,80 @@ const CreateSalarySlip = () => {
                                 />
                             </div>
 
+                            {/* Missing Punch warning */}
+                            {missingPunches.length > 0 && (
+                                <div style={{
+                                    background: 'var(--bg-elevated)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    marginBottom: '20px',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#EF4444' }}>
+                                        <AlertCircle size={16} />
+                                        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-0.2px' }}>
+                                            Action Required: Missing Punch-Outs
+                                        </span>
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                                        This employee has missing punch-out logs for the dates listed below. Please resolve these records before generating the salary slip.
+                                    </p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                                        {missingPunches.map(d => (
+                                            <button 
+                                                key={d} 
+                                                onClick={() => navigate('/admin/attendance/fix', { 
+                                                    state: { 
+                                                        employeeId: selectedEmployee._id, 
+                                                        date: d,
+                                                        monthYear,
+                                                        branch,
+                                                        department,
+                                                        fromSalarySlip: true
+                                                    } 
+                                                })}
+                                                style={{ 
+                                                    background: 'var(--bg-base)', 
+                                                    color: 'var(--text-primary)', 
+                                                    border: '1.5px solid var(--border)', 
+                                                    padding: '6px 12px', 
+                                                    borderRadius: '8px', 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 700, 
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    transition: 'all 0.2s',
+                                                    fontFamily: "'Inter', sans-serif"
+                                                }}
+                                                onMouseOver={(e) => { 
+                                                    e.currentTarget.style.borderColor = '#EF4444'; 
+                                                    e.currentTarget.style.color = '#EF4444'; 
+                                                }}
+                                                onMouseOut={(e) => { 
+                                                    e.currentTarget.style.borderColor = 'var(--border)'; 
+                                                    e.currentTarget.style.color = 'var(--text-primary)'; 
+                                                }}
+                                                title="Click to resolve this log"
+                                            >
+                                                {new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                <span style={{ fontSize: '10px', opacity: 0.6 }}>→</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Submit Button */}
                             <button
                                 className="btn-hrm btn-hrm-primary"
                                 onClick={handleSubmit}
-                                disabled={submitting}
+                                disabled={submitting || missingPunches.length > 0}
                                 style={{
                                     width: '100%',
                                     display: 'flex',
@@ -635,7 +862,9 @@ const CreateSalarySlip = () => {
                                     gap: '8px',
                                     padding: '12px',
                                     fontSize: '13px',
-                                    fontWeight: 700
+                                    fontWeight: 700,
+                                    opacity: (submitting || missingPunches.length > 0) ? 0.6 : 1,
+                                    cursor: (submitting || missingPunches.length > 0) ? 'not-allowed' : 'pointer'
                                 }}
                             >
                                 <FileText size={16} />
@@ -649,6 +878,53 @@ const CreateSalarySlip = () => {
             {/* ── Inline animation style ── */}
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .premium-swal-popup {
+                    border-radius: 20px !important;
+                    padding: 32px !important;
+                    background: var(--bg-elevated) !important;
+                    border: 1px solid var(--border) !important;
+                    box-shadow: var(--shadow-lg) !important;
+                    font-family: 'Inter', sans-serif !important;
+                }
+                .premium-swal-title {
+                    font-size: 20px !important;
+                    font-weight: 800 !important;
+                    color: var(--text-dark) !important;
+                    margin-bottom: 8px !important;
+                    border: none !important;
+                }
+                .premium-swal-actions {
+                    gap: 12px !important;
+                    margin-top: 24px !important;
+                }
+                .premium-swal-confirm {
+                    padding: 10px 24px !important;
+                    border-radius: 10px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
+                    background: var(--primary-blue) !important;
+                    color: white !important;
+                    border: none !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s !important;
+                }
+                .premium-swal-confirm:hover {
+                    opacity: 0.9 !important;
+                }
+                .premium-swal-cancel {
+                    padding: 10px 24px !important;
+                    border-radius: 10px !important;
+                    font-size: 13px !important;
+                    font-weight: 700 !important;
+                    background: var(--bg-base) !important;
+                    color: var(--text-primary) !important;
+                    border: 1px solid var(--border) !important;
+                    cursor: pointer !important;
+                    transition: all 0.2s !important;
+                }
+                .premium-swal-cancel:hover {
+                    background: var(--bg-main) !important;
+                }
             `}</style>
         </div>
     );

@@ -246,6 +246,23 @@ const MonthlyAttendance = () => {
                                                 </div>
                                             )}
                                             
+                                            {!isSelected && (
+                                                <div style={{ 
+                                                    fontSize: '9px', 
+                                                    fontWeight: 700, 
+                                                    color: st.color, 
+                                                    background: st.bg, 
+                                                    padding: '2px 6px', 
+                                                    borderRadius: '6px', 
+                                                    width: 'fit-content',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.3px',
+                                                    marginTop: '2px'
+                                                }}>
+                                                    {status}
+                                                </div>
+                                            )}
+                                            
                                             {isSelected && (
                                                 <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase' }}>
                                                     {status}

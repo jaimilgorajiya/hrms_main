@@ -1238,6 +1238,61 @@ export const getAbsentEmployees = async (req, res) => {
     }
 };
 
+const getCorrectStatus = (record, shift) => {
+    if (!record) return 'Absent';
+    let status = record.status || 'Present';
+    if (!shift || !['Present', 'Half Day'].includes(status) || !record.punches || record.punches.length === 0) {
+        return status;
+    }
+    
+    // Determine day of week
+    const [yr, mo, dy] = record.date.split('-').map(Number);
+    const recordDate = new Date(yr, mo - 1, dy);
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName  = dayNames[recordDate.getDay()];
+    
+    const daySchedule = shift.schedule?.[dayName];
+    if (!daySchedule) return status;
+    
+    const workingMinutes = computeWorkingMinutes(record.punches, record.breaks || []);
+    
+    let minFullDayMins = 8 * 60;
+    let minHalfDayMins = 4 * 60;
+    
+    if (daySchedule.minFullDayHours > 0) {
+        minFullDayMins = daySchedule.minFullDayHours * 60;
+        if (daySchedule.minHalfHours > 0) {
+            minHalfDayMins = daySchedule.minHalfHours * 60;
+        } else {
+            minHalfDayMins = Math.floor(minFullDayMins / 2);
+        }
+    } else if (daySchedule.shiftStart && daySchedule.shiftEnd) {
+        const startM = parseTimeToMinutes(daySchedule.shiftStart);
+        const endM   = parseTimeToMinutes(daySchedule.shiftEnd);
+        if (startM !== null && endM !== null) {
+            const shiftSpan = endM > startM ? endM - startM : (endM + 1440 - startM);
+            let lunchMins = 0;
+            if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                const lsM = parseTimeToMinutes(daySchedule.lunchStart);
+                const leM = parseTimeToMinutes(daySchedule.lunchEnd);
+                if (lsM !== null && leM !== null && leM > lsM) {
+                    lunchMins = leM - lsM;
+                }
+            }
+            const effectiveShiftMins = Math.max(shiftSpan - lunchMins, 1);
+            minFullDayMins = effectiveShiftMins;
+            minHalfDayMins = Math.floor(effectiveShiftMins / 2);
+        }
+    }
+    
+    if (workingMinutes < minHalfDayMins) {
+        return 'Absent';
+    } else if (workingMinutes < minFullDayMins) {
+        return 'Half Day';
+    }
+    return 'Present';
+};
+
 // GET /api/attendance/admin/monthly-stats?month=YYYY-MM&employeeId=...
 export const getMonthlyAttendanceStats = async (req, res) => {
     try {
@@ -1256,6 +1311,17 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             employee: employeeId,
             date: { $regex: `^${month}` }
         });
+
+        // Auto-heal incorrect status in database
+        if (shift) {
+            for (let r of records) {
+                const corrected = getCorrectStatus(r, shift);
+                if (r.status !== corrected) {
+                    r.status = corrected;
+                    await Attendance.updateOne({ _id: r._id }, { $set: { status: corrected } });
+                }
+            }
+        }
 
         const [year, monthNum] = month.split('-').map(Number);
         const daysInMonth = new Date(year, monthNum, 0).getDate();
@@ -1562,10 +1628,23 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             return res.status(404).json({ success: false, message: "Employee not found" });
         }
 
+        const shift = employee.workSetup?.shift;
+
         const monthAttendance = await Attendance.find({
             employee: employeeId,
             date: { $gte: startDate, $lte: endDate }
         });
+
+        // Auto-heal incorrect status in database
+        if (shift) {
+            for (let r of monthAttendance) {
+                const corrected = getCorrectStatus(r, shift);
+                if (r.status !== corrected) {
+                    r.status = corrected;
+                    await Attendance.updateOne({ _id: r._id }, { $set: { status: corrected } });
+                }
+            }
+        }
 
         const approvedLeaves = await Request.find({
             employee: employeeId,
@@ -1610,7 +1689,6 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             }
         });
 
-        const shift = employee.workSetup?.shift;
         let presentDaysCount = 0;
         let halfDaysCount = 0;
         let absentDaysCount = 0;
@@ -1618,6 +1696,11 @@ export const getEmployeeMonthlySummary = async (req, res) => {
         let holidaysPaid = 0;
         let extraDaysWorked = 0;
         let totalShiftWeekOffs = 0;
+        let elapsedWorkingDays = 0;
+
+        const todayObj = new Date();
+        const isCurrentMonth = todayObj.getFullYear() === year && (todayObj.getMonth() + 1) === monthNum;
+        const maxDayToCount = isCurrentMonth ? todayObj.getDate() : daysInMonth;
 
         const attendanceMap = {};
         monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
@@ -1632,43 +1715,66 @@ export const getEmployeeMonthlySummary = async (req, res) => {
 
             if (isWeekOff) {
                 totalShiftWeekOffs++;
+                weekOffsPaid++;
+            } else {
+                if (d <= maxDayToCount) {
+                    elapsedWorkingDays++;
+                }
             }
 
             const record = attendanceMap[dayStr];
 
             if (record) {
                 if (record.status === 'Present') {
-                    presentDaysCount++;
-                    if (isWeekOff) extraDaysWorked += 1;
+                    if (isWeekOff) {
+                        extraDaysWorked += 1;
+                    } else {
+                        presentDaysCount++;
+                    }
                 } else if (record.status === 'Half Day') {
-                    halfDaysCount++;
-                    if (isWeekOff) extraDaysWorked += 0.5;
+                    if (isWeekOff) {
+                        extraDaysWorked += 0.5;
+                    } else {
+                        halfDaysCount++;
+                    }
                 } else if (record.status === 'Absent') {
-                    absentDaysCount++;
+                    if (!isWeekOff) {
+                        absentDaysCount++;
+                    }
                 } else if (record.status === 'Holiday') {
-                    holidaysPaid++;
-                } else if (record.status === 'Week Off') {
-                    weekOffsPaid++;
-                }
-            } else {
-                if (isWeekOff) {
-                    weekOffsPaid++;
+                    if (!isWeekOff) {
+                        holidaysPaid++;
+                    }
                 }
             }
         }
+
+        // True absent days = elapsed working days minus present, half (as 0.5), leave, and holiday days
+        // True absent days = elapsed working days minus present, half (as 0.5), leave, and holiday days
+        const trueAbsentDays = Math.max(0, elapsedWorkingDays - (presentDaysCount + (halfDaysCount * 0.5) + usedPaidLeaves + usedUnpaidLeaves + holidaysPaid));
+
+        const missingPunches = monthAttendance
+            .filter(a => {
+                const hasIn = a.punches.some(p => p.type === 'IN');
+                const hasOut = a.punches.some(p => p.type === 'OUT');
+                return hasIn && !hasOut;
+            })
+            .map(a => a.date)
+            .sort();
 
         res.status(200).json({
             success: true,
             summary: {
                 present: presentDaysCount,
                 halfDay: halfDaysCount,
-                absent: absentDaysCount,
+                absent: trueAbsentDays,
                 weekOff: weekOffsPaid,
                 holiday: holidaysPaid,
                 paidLeave: usedPaidLeaves,
-                unpaidLeave: usedUnpaidLeaves,
+                unpaidLeave: usedUnpaidLeaves + trueAbsentDays,
                 extraDays: extraDaysWorked,
-                monthWorkingDays: daysInMonth - totalShiftWeekOffs
+                monthWorkingDays: daysInMonth - totalShiftWeekOffs,
+                missingPunches: missingPunches
             }
         });
     } catch (error) {

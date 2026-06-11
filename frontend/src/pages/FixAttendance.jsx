@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { User, Calendar, Clock, Save, RefreshCw, CheckCircle, AlertCircle, Edit3 } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
@@ -23,13 +24,17 @@ const to24hr = (timeStr) => {
 
 const FixAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
+    const location = useLocation();
+    const navigate = useNavigate();
+    const state = location.state || {};
+
     const [employees, setEmployees] = useState([]);
     const [loadingEmployees, setLoadingEmployees] = useState(true);
     const [fetchingRecord, setFetchingRecord] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const [selectedEmp, setSelectedEmp] = useState('');
-    const [selectedDate, setSelectedDate] = useState(today);
+    const [selectedEmp, setSelectedEmp] = useState(state.employeeId || '');
+    const [selectedDate, setSelectedDate] = useState(state.date || today);
     
     // Existing log preview states
     const [existingRecord, setExistingRecord] = useState(null);
@@ -122,14 +127,26 @@ const FixAttendance = () => {
             const json = await res.json();
 
             if (json.success) {
-                Swal.fire({
+                await Swal.fire({
                     title: 'Success!',
                     text: 'Attendance record updated successfully.',
                     icon: 'success',
-                    timer: 2000,
+                    timer: 1500,
                     showConfirmButton: false
                 });
-                handleFetchRecord(); // Refresh preview
+                
+                if (state.fromSalarySlip) {
+                    navigate('/admin/payroll/create-salary-slip', {
+                        state: {
+                            employeeId: state.employeeId,
+                            monthYear: state.monthYear,
+                            branch: state.branch,
+                            department: state.department
+                        }
+                    });
+                } else {
+                    handleFetchRecord(); // Refresh preview
+                }
             } else {
                 Swal.fire('Error', json.message || 'Failed to update record', 'error');
             }

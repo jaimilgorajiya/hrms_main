@@ -24,7 +24,6 @@ const runTests = async () => {
                 role: 'Admin'
             });
         }
-
         // Create a test shift
         let shift = await Shift.findOne({ shiftName: 'Test Shift Fixed' });
         if (!shift) {
