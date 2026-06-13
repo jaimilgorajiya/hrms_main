@@ -604,27 +604,27 @@ const CreateSalarySlip = () => {
                                     <input value={form.monthWorkingDays} disabled readOnly style={inp(true)} />
                                 </div>
                                 <div style={fld}>
-                                    <label style={lbl}>Emp Work Days <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.employeeWorkingDays} onChange={e => setField('employeeWorkingDays', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
+                                    <label style={lbl}>Emp Work Days</label>
+                                    <input value={form.employeeWorkingDays} disabled readOnly style={inp(true)} />
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Paid Week-Off</label>
                                     <input value={form.paidWeekOff} disabled readOnly style={inp(true)} />
                                 </div>
                                 <div style={fld}>
-                                    <label style={lbl}>Extra Days (Paid) <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.extraDaysPaid} onChange={e => setField('extraDaysPaid', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
+                                    <label style={lbl}>Extra Days (Paid)</label>
+                                    <input value={form.extraDaysPaid} disabled readOnly style={inp(true)} />
                                 </div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
                                 <div style={fld}>
-                                    <label style={lbl}>Paid Leave <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.paidLeave} onChange={e => setField('paidLeave', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
+                                    <label style={lbl}>Paid Leave</label>
+                                    <input value={form.paidLeave} disabled readOnly style={inp(true)} />
                                 </div>
                                 <div style={fld}>
-                                    <label style={lbl}>Unpaid Leave <span style={{ color: 'var(--danger)' }}>*</span></label>
-                                    <input type="number" value={form.unpaidLeave} onChange={e => setField('unpaidLeave', e.target.value)} onWheel={(e) => e.target.blur()} style={inp()} min="0" step="0.5" />
+                                    <label style={lbl}>Unpaid Leave</label>
+                                    <input value={form.unpaidLeave} disabled readOnly style={inp(true)} />
                                 </div>
                                 <div style={fld}>
                                     <label style={lbl}>Total Leaves</label>

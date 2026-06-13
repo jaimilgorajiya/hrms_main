@@ -101,13 +101,49 @@ const PublishSalarySlip = () => {
         }
     };
 
-    const getPdfUrl = (payoutId, download = false) => {
-        const token = localStorage.getItem('token');
-        return `${API_URL}/api/payroll/download-slip/${payoutId}?token=${token}${download ? '&download=true' : ''}`;
+    const handlePreview = async (payoutId) => {
+        try {
+            Swal.showLoading();
+            const res = await authenticatedFetch(`${API_URL}/api/payroll/download-slip/${payoutId}`);
+            if (!res.ok) throw new Error("Failed to load PDF preview");
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            Swal.close();
+            setPreviewUrl(url);
+        } catch (err) {
+            Swal.close();
+            console.error(err);
+            Swal.fire('Error', 'Failed to generate PDF preview', 'error');
+        }
     };
 
-    const handleDownload = (payoutId) => {
-        window.open(getPdfUrl(payoutId, true), '_blank');
+    const handleDownload = async (payoutId) => {
+        try {
+            Swal.showLoading();
+            const res = await authenticatedFetch(`${API_URL}/api/payroll/download-slip/${payoutId}`);
+            if (!res.ok) throw new Error("Failed to download slip");
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payslip_${payoutId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            Swal.close();
+        } catch (err) {
+            Swal.close();
+            console.error(err);
+            Swal.fire('Error', 'Failed to download payslip', 'error');
+        }
+    };
+
+    const closePreview = () => {
+        if (previewUrl && previewUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl(null);
     };
 
     // Filter payouts based on search and sort alphabetically by employee name
@@ -158,7 +194,7 @@ const PublishSalarySlip = () => {
                                     paddingRight: '16px', 
                                     background: 'var(--bg-base)', 
                                     border: '1.5px solid var(--border)', 
-                                    borderRadius: '12px', 
+                                    borderRadius: '12px',
                                     outline: 'none', 
                                     fontSize: '13px', 
                                     fontWeight: 600,
@@ -322,7 +358,7 @@ const PublishSalarySlip = () => {
                                             <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                                                 {/* Preview */}
                                                 <button 
-                                                    onClick={() => setPreviewUrl(getPdfUrl(p._id))}
+                                                    onClick={() => handlePreview(p._id)}
                                                     style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1.5px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
                                                     onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary-blue)'; e.currentTarget.style.color = 'var(--primary-blue)'; }}
                                                     onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
@@ -354,7 +390,7 @@ const PublishSalarySlip = () => {
             {/* ── Stitch Premium Payslip Preview Modal ── */}
             {previewUrl && (
                 <div 
-                    onClick={() => setPreviewUrl(null)}
+                    onClick={closePreview}
                     style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 3000, animation: 'fadeIn 0.2s ease' }}
                 >
                     <div 
@@ -367,7 +403,7 @@ const PublishSalarySlip = () => {
                             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Payslip Quick View</h2>
                             <button 
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '4px' }} 
-                                onClick={() => setPreviewUrl(null)}
+                                onClick={closePreview}
                             >
                                 <X size={22}/>
                             </button>

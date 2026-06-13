@@ -43,7 +43,7 @@ const FixAttendance = () => {
     // Edit form states
     const [status, setStatus] = useState('Present');
     const [inTime, setInTime] = useState('09:30');
-    const [outTime, setOutTime] = useState('18:30');
+    const [outTime, setOutTime] = useState('');
     const [remark, setRemark] = useState('');
 
     useEffect(() => {
@@ -81,13 +81,13 @@ const FixAttendance = () => {
                 if (json.record) {
                     setStatus(json.record.status || 'Present');
                     setInTime(json.record.punchIn ? to24hr(json.record.punchIn) : '09:30');
-                    setOutTime(json.record.punchOut ? to24hr(json.record.punchOut) : '18:30');
+                    setOutTime(json.record.punchOut ? to24hr(json.record.punchOut) : '');
                     setRemark(json.record.remark || '');
                 } else {
                     // Reset to defaults for empty logs
                     setStatus('Present');
                     setInTime('09:30');
-                    setOutTime('18:30');
+                    setOutTime('');
                     setRemark('');
                 }
                 setHasLoaded(true);
@@ -301,7 +301,6 @@ const FixAttendance = () => {
                                                 value={outTime}
                                                 onChange={e => setOutTime(e.target.value)}
                                                 className="hrm-input"
-                                                required
                                             />
                                         </div>
                                     </div>

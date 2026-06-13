@@ -218,6 +218,8 @@
 
 .trend-prem.up { color: var(--accent-green); background: rgba(16, 185, 129, 0.1); }
 .trend-prem.down { color: var(--accent-red); background: rgba(244, 63, 94, 0.1); }
+.trend-prem.blue { color: var(--accent-blue); background: rgba(30, 41, 59, 0.1); }
+body.dark-mode .trend-prem.blue { color: #60a5fa !important; background: rgba(59, 130, 246, 0.1) !important; }
 
 /* Main Grids */
 .dashboard-main-grid-three {

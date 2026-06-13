@@ -4,10 +4,13 @@ import User from "../models/User.Model.js";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-const razorpayInstance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_Rya7YN2wKhxeQO',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'eevaOjQnOAz22VKp8Y4HdEyF',
-});
+let razorpayInstance = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpayInstance = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+}
 
 // Create Package
 export const createPackage = async (req, res) => {
@@ -162,6 +165,10 @@ export const purchaseEmployeeAddon = async (req, res) => {
         const totalPrice = Number(quantity) * addonPkg.price;
 
         // Create Razorpay order
+        if (!razorpayInstance) {
+            return res.status(500).json({ success: false, message: "Razorpay payment gateway is not configured on this server." });
+        }
+
         const order = await razorpayInstance.orders.create({
             amount: totalPrice * 100, // in paise
             currency: 'INR',
@@ -192,7 +199,7 @@ export const verifyAddonPayment = async (req, res) => {
         // Verify Razorpay signature
         const body = razorpay_order_id + "|" + razorpay_payment_id;
         const expectedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'eevaOjQnOAz22VKp8Y4HdEyF')
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || '')
             .update(body.toString())
             .digest("hex");
 

@@ -1244,6 +1244,12 @@ const getCorrectStatus = (record, shift) => {
     if (!shift || !['Present', 'Half Day'].includes(status) || !record.punches || record.punches.length === 0) {
         return status;
     }
+
+    const firstIn = record.punches.find(p => p.type === 'IN');
+    const lastOut = [...record.punches].reverse().find(p => p.type === 'OUT');
+    if (firstIn && !lastOut && record.date === getTodayStr()) {
+        return status;
+    }
     
     // Determine day of week
     const [yr, mo, dy] = record.date.split('-').map(Number);

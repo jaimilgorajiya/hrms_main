@@ -156,16 +156,60 @@ const AdminDashboard = () => {
   const absentTrend = trends.absent || [];
   const onLeaveTrend = trends.onLeave || [];
 
-  const workforceTrendInfo = calculateWeekOverWeekTrend(workforceTrend);
-  const presentTrendInfo = calculateTrendString(presentTrend);
-  const absentTrendInfo = calculateTrendString(absentTrend);
-  const onLeaveTrendInfo = calculateTrendString(onLeaveTrend);
+  const activeCount = stats.activeUsers || 0;
+  const presentCount = (stats.presentToday || 0) + (stats.halfDayToday || 0);
+  const absentCount = stats.absentToday || 0;
+  const leaveCount = stats.onLeaveToday || 0;
+
+  const presentRate = activeCount > 0 ? ((presentCount / activeCount) * 100).toFixed(1) : '0.0';
+  const absentRate = activeCount > 0 ? ((absentCount / activeCount) * 100).toFixed(1) : '0.0';
+  const leaveRate = activeCount > 0 ? ((leaveCount / activeCount) * 100).toFixed(1) : '0.0';
 
   const statCards = [
-    { title: 'Total Workforce', value: stats.totalUsers || 0, icon: <Users size={22} />, color: 'blue', link: '/admin/employees/list', trend: workforceTrendInfo.label, up: workforceTrendInfo.up, sparkData: workforceTrend },
-    { title: 'Present Today', value: (stats.presentToday || 0) + (stats.halfDayToday || 0), icon: <UserPlus size={22} />, color: 'green', link: '/admin/attendance/records?status=Present', trend: presentTrendInfo.label, up: presentTrendInfo.up, sparkData: presentTrend },
-    { title: 'Absent Today', value: stats.absentToday || 0, icon: <UserMinus size={22} />, color: 'red', link: '/admin/attendance/absent', trend: absentTrendInfo.label, up: absentTrendInfo.up, sparkData: absentTrend },
-    { title: 'On Leave', value: stats.onLeaveToday || 0, icon: <Calendar size={22} />, color: 'purple', link: '/admin/attendance/records?status=On Leave', trend: onLeaveTrendInfo.label, up: onLeaveTrendInfo.up, sparkData: onLeaveTrend },
+    { 
+      title: 'Total Workforce', 
+      value: stats.totalUsers || 0, 
+      icon: <Users size={22} />, 
+      color: 'blue', 
+      link: '/admin/employees/list', 
+      trendText: `${activeCount} Active`, 
+      trendClass: 'blue', 
+      trendIcon: null, 
+      sparkData: workforceTrend 
+    },
+    { 
+      title: 'Present Today', 
+      value: presentCount, 
+      icon: <UserPlus size={22} />, 
+      color: 'green', 
+      link: '/admin/attendance/records?status=Present', 
+      trendText: `${presentRate}% Rate`, 
+      trendClass: 'up', 
+      trendIcon: null, 
+      sparkData: presentTrend 
+    },
+    { 
+      title: 'Absent Today', 
+      value: absentCount, 
+      icon: <UserMinus size={22} />, 
+      color: 'red', 
+      link: '/admin/attendance/absent', 
+      trendText: `${absentRate}% Rate`, 
+      trendClass: absentCount > 0 ? 'down' : 'up', 
+      trendIcon: null, 
+      sparkData: absentTrend 
+    },
+    { 
+      title: 'On Leave', 
+      value: leaveCount, 
+      icon: <Calendar size={22} />, 
+      color: 'purple', 
+      link: '/admin/attendance/records?status=On Leave', 
+      trendText: `${leaveRate}% Rate`, 
+      trendClass: 'blue', 
+      trendIcon: null, 
+      sparkData: onLeaveTrend 
+    },
   ];
 
   return (
@@ -189,9 +233,9 @@ const AdminDashboard = () => {
                 <div className={`icon-box-prem ${card.color}`}>
                     {card.icon}
                 </div>
-                <div className={`trend-prem ${card.up ? 'up' : 'down'}`}>
-                    {card.up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                    {card.trend}
+                <div className={`trend-prem ${card.trendClass}`}>
+                    {card.trendIcon}
+                    {card.trendText}
                 </div>
              </div>
              <div className="stat-content-prem">

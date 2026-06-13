@@ -35,6 +35,58 @@ const AddEmployeeCTC = () => {
         grossSalary: ''
     });
 
+    // Revision States
+    const [revisionType, setRevisionType] = useState('increment');
+    const [revisionValueType, setRevisionValueType] = useState('percentage');
+    const [revisionValue, setRevisionValue] = useState('');
+
+    const applyRevision = () => {
+        const val = Number(revisionValue);
+        if (!val || val <= 0) {
+            Swal.fire('Warning', 'Please enter a valid positive revision value.', 'warning');
+            return;
+        }
+
+        let factor = 1;
+        if (revisionValueType === 'percentage') {
+            factor = 1 + (revisionType === 'increment' ? val : -val) / 100;
+        } else {
+            const oldGross = earnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            if (oldGross <= 0) {
+                Swal.fire('Error', 'Cannot apply fixed amount revision because current gross salary is zero.', 'error');
+                return;
+            }
+            const newGross = oldGross + (revisionType === 'increment' ? val : -val);
+            if (newGross < 0) {
+                Swal.fire('Error', 'Salary cannot be decremented below zero.', 'error');
+                return;
+            }
+            factor = newGross / oldGross;
+        }
+
+        // Apply factor to earnings components
+        setEarnings(prev => prev.map(item => ({
+            ...item,
+            amount: String(Math.round(Number(item.amount) * factor))
+        })));
+
+        // Apply factor to deductions components
+        setDeductions(prev => prev.map(item => ({
+            ...item,
+            amount: String(Math.round(Number(item.amount) * factor))
+        })));
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: `Applied ${revisionType} of ${revisionValueType === 'percentage' ? val + '%' : '₹' + val}`,
+            showConfirmButton: false,
+            timer: 2500
+        });
+        setRevisionValue('');
+    };
+
     useEffect(() => {
         fetchInitialData();
     }, []);
@@ -360,10 +412,42 @@ const AddEmployeeCTC = () => {
                             )}
                         </div>
                     </div>
-
-                    {/* Earnings & Deductions Breakdown Section (Visible in Edit mode) */}
+                {/* Earnings & Deductions Breakdown Section (Visible in Edit mode) */}
                     {employeeIdParam && (
                         <div style={{ marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '32px', marginBottom: '32px' }}>
+                            {/* Salary Revision Panel */}
+                            <div style={{ background: 'var(--bg-main)', borderRadius: '16px', padding: '24px', border: '1.5px solid var(--border)', marginBottom: '32px' }}>
+                                <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: 'var(--text-dark)' }}>Salary Revision (Increment / Decrement)</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr auto', gap: '20px', alignItems: 'end' }}>
+                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                        <label className="hrm-label" style={{ fontWeight: '700' }}>Revision Type</label>
+                                        <select className="hrm-input" style={{ height: '42px' }} value={revisionType} onChange={e => setRevisionType(e.target.value)}>
+                                            <option value="increment">Increment (+)</option>
+                                            <option value="decrement">Decrement (-)</option>
+                                        </select>
+                                    </div>
+                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                        <label className="hrm-label" style={{ fontWeight: '700' }}>Value Type</label>
+                                        <select className="hrm-input" style={{ height: '42px' }} value={revisionValueType} onChange={e => setRevisionValueType(e.target.value)}>
+                                            <option value="percentage">Percentage (%)</option>
+                                            <option value="fixed">Fixed Amount (₹)</option>
+                                        </select>
+                                    </div>
+                                    <div className="hrm-form-group" style={{ marginBottom: 0 }}>
+                                        <label className="hrm-label" style={{ fontWeight: '700' }}>Value</label>
+                                        <input type="number" className="hrm-input" style={{ height: '42px' }} placeholder="Enter value" value={revisionValue} onChange={e => setRevisionValue(e.target.value)} />
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        className="btn-hrm btn-hrm-primary" 
+                                        style={{ height: '42px', padding: '0 24px', fontWeight: '800' }}
+                                        onClick={applyRevision}
+                                    >
+                                        Apply Revision
+                                    </button>
+                                </div>
+                            </div>
+
                             <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '24px' }}>Salary Components Breakdown</h3>
                             
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '32px' }}>
@@ -392,10 +476,10 @@ const AddEmployeeCTC = () => {
                                                                 <input 
                                                                     type="number" 
                                                                     className="hrm-input" 
-                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'default' }}
                                                                     placeholder="0"
                                                                     value={value}
-                                                                    onChange={(e) => handleComponentAmountChange('earning', comp._id, comp.name, e.target.value)}
+                                                                    readOnly
                                                                 />
                                                             </div>
                                                         </td>
@@ -412,7 +496,7 @@ const AddEmployeeCTC = () => {
                                         </tbody>
                                     </table>
                                 </div>
-
+ 
                                 {/* Deductions Table */}
                                 <div>
                                     <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Deductions</h4>
@@ -438,10 +522,10 @@ const AddEmployeeCTC = () => {
                                                                 <input 
                                                                     type="number" 
                                                                     className="hrm-input" 
-                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'default' }}
                                                                     placeholder="0"
                                                                     value={value}
-                                                                    onChange={(e) => handleComponentAmountChange('deduction', comp._id, comp.name, e.target.value)}
+                                                                    readOnly
                                                                 />
                                                             </div>
                                                         </td>

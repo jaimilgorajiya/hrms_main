@@ -6,12 +6,13 @@ export const initiateOffboarding = async (req, res) => {
     try {
         const { employeeId, exitType, reason, resignationDate, lastWorkingDate, noticePeriodDays, remarks } = req.body;
         
-        // Ensure user is active before initiating offboarding
-        const user = await User.findById(employeeId);
+        // Ensure user is active before initiating offboarding, and belongs to this admin
+        const user = await User.findOne({ _id: employeeId, adminId: req.user._id });
         if (!user || user.status === 'Inactive') return res.status(400).json({ success: false, message: 'Invalid or Inactive User' });
 
         const newOffboarding = new Offboarding({
             employeeId,
+            adminId: req.user._id,
             exitType,
             exitReason: reason,
             resignationDate,
@@ -31,7 +32,7 @@ export const initiateOffboarding = async (req, res) => {
 // 2. Get All Offboardings (With Filters)
 export const getOffboardings = async (req, res) => {
     try {
-        const query = {};
+        const query = { adminId: req.user._id };
         if (req.query.status) query.status = req.query.status;
         if (req.query.exitType) query.exitType = req.query.exitType;
         
@@ -48,7 +49,7 @@ export const getOffboardings = async (req, res) => {
 // 3. Get Single Offboarding Details
 export const getOffboardingDetails = async (req, res) => {
     try {
-        const offboarding = await Offboarding.findById(req.params.id).populate('employeeId', 'name email department designation joiningDate');
+        const offboarding = await Offboarding.findOne({ _id: req.params.id, adminId: req.user._id }).populate('employeeId', 'name email department designation joiningDate');
         if (!offboarding) return res.status(404).json({ success: false, message: 'Record not found' });
         res.status(200).json({ success: true, data: offboarding });
     } catch (error) {
@@ -59,7 +60,7 @@ export const getOffboardingDetails = async (req, res) => {
 // 4. Update Offboarding Stage/Details
 export const updateOffboarding = async (req, res) => {
     try {
-        const offboarding = await Offboarding.findById(req.params.id);
+        const offboarding = await Offboarding.findOne({ _id: req.params.id, adminId: req.user._id });
         if (!offboarding) return res.status(404).json({ success: false, message: 'Record not found' });
 
         const updates = req.body;
@@ -109,9 +110,7 @@ export const updateOffboarding = async (req, res) => {
              });
         }
         
-        // Handle other fields (excluding clearance and status which we handled above)
-        // ... (This part is tricky if we did Object.assign before)
-        // Let's just manually update other common fields if present
+        // Handle other fields
         if (updates.exitInterview) offboarding.exitInterview = { ...offboarding.exitInterview, ...updates.exitInterview };
         if (updates.settlement) offboarding.settlement = { ...offboarding.settlement, ...updates.settlement };
         if (updates.documents) offboarding.documents = { ...offboarding.documents, ...updates.documents };
@@ -128,7 +127,7 @@ export const updateOffboarding = async (req, res) => {
 export const generateDocument = async (req, res) => {
     try {
         const { documentType } = req.body;
-        const offboarding = await Offboarding.findById(req.params.id);
+        const offboarding = await Offboarding.findOne({ _id: req.params.id, adminId: req.user._id });
         
         if (!offboarding) return res.status(404).json({ success: false, message: 'Record not found' });
 
@@ -146,7 +145,6 @@ export const generateDocument = async (req, res) => {
         if (!offboarding.documents) offboarding.documents = {};
 
         // Update document status
-        // In a real scenario, this would generate a PDF and upload it
         const PORT = process.env.PORT || 7000;
         const dummyUrl = `http://localhost:${PORT}/api/offboarding/download-dummy/${key}`; 
         
@@ -179,7 +177,7 @@ export const generateDocument = async (req, res) => {
 export const sendDocument = async (req, res) => {
     try {
         const { documentType } = req.body;
-        const offboarding = await Offboarding.findById(req.params.id).populate('employeeId', 'email name');
+        const offboarding = await Offboarding.findOne({ _id: req.params.id, adminId: req.user._id }).populate('employeeId', 'email name');
         
         if (!offboarding) return res.status(404).json({ success: false, message: 'Record not found' });
 
@@ -198,7 +196,6 @@ export const sendDocument = async (req, res) => {
         const employee = offboarding.employeeId;
         const docUrl = offboarding.documents[key].url;
 
-        // Import dynamically to avoid circular dependency issues if any, or just use the imported one
         const { sendOffboardingDocument } = await import('../utils/emailService.js');
         
         const emailResult = await sendOffboardingDocument(employee.email, employee.name, documentType, docUrl);
@@ -263,7 +260,7 @@ export const downloadDummyDocument = async (req, res) => {
         doc.fontSize(12).text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
         doc.moveDown(2);
 
-        // Body Content (Placeholder text)
+        // Body Content
         doc.fontSize(12).text(`TO WHOM IT MAY CONCERN`, { underline: true });
         doc.moveDown();
         
@@ -295,14 +292,18 @@ export const downloadDummyDocument = async (req, res) => {
 // 5. Finalize Offboarding (Archive)
 export const finalizeOffboarding = async (req, res) => {
     try {
-        const offboarding = await Offboarding.findById(req.params.id);
+        const offboarding = await Offboarding.findOne({ _id: req.params.id, adminId: req.user._id });
         if (!offboarding) return res.status(404).json({ success: false, message: 'Record not found' });
 
         // Update User Status
-        await User.findByIdAndUpdate(offboarding.employeeId, { 
-            status: offboarding.exitType || 'Ex-Employee', 
-            exitDate: offboarding.lastWorkingDate 
-        });
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: offboarding.employeeId, adminId: req.user._id },
+            { 
+                status: offboarding.exitType || 'Ex-Employee', 
+                exitDate: offboarding.lastWorkingDate 
+            }
+        );
+        if (!updatedUser) return res.status(400).json({ success: false, message: 'Failed to update user status or access denied' });
 
         offboarding.status = 'Archived';
         

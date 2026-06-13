@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
     Calendar, Clock, Search, RefreshCw, CheckCircle, XCircle, 
     FileText, User, MessageSquare, Filter, ChevronRight, 
-    Inbox, AlertCircle, ArrowRight, Check, X, LogIn, LogOut
+    Inbox, AlertCircle, ArrowRight, Check, X, LogIn, LogOut,
+    CheckSquare, Square
 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import authenticatedFetch from '../utils/apiHandler';
@@ -127,11 +128,101 @@ const AdminRequests = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [adminRemark, setAdminRemark] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     if (location.pathname.includes('/leave')) setFilterType('Leave');
     else if (location.pathname.includes('/attendance')) setFilterType('Attendance Correction');
   }, [location.pathname]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [filterStatus, filterType, search]);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filtered.length) setSelectedIds([]);
+    else setSelectedIds(filtered.map(r => r._id));
+  };
+
+  const toggleSelect = (id) => {
+    if (selectedIds.includes(id)) setSelectedIds(prev => prev.filter(i => i !== id));
+    else setSelectedIds(prev => [...prev, id]);
+  };
+
+  const handleBulkAction = async (ids, status) => {
+    if (!ids.length) return;
+    
+    let confirmHtml = '';
+    if (ids.length === 1) {
+      const request = requests.find(r => r._id === ids[0]);
+      confirmHtml = `
+        <div style="text-align: left; background: var(--bg-main); padding: 20px; border-radius: 12px; border: 1px solid var(--border); font-family: 'Inter', sans-serif;">
+          <div style="margin-bottom: 12px;">
+            <p style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin: 0 0 2px 0;">Employee</p>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0;">${request?.employee?.name || 'Unknown'}</p>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <p style="font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin: 0 0 2px 0;">Request Type & Reason</p>
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 0;">${request?.requestType} · "${request?.reason || 'No reason'}"</p>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 10px; text-align: center; font-weight: 600;">
+            Are you sure you want to <b>${status.toLowerCase()}</b> this request?
+          </p>
+        </div>
+      `;
+    } else {
+      confirmHtml = `<p style="font-size: 15px; font-weight: 600; color: var(--text-secondary);">Are you sure you want to <b>${status.toLowerCase()}</b> ${ids.length} selected requests?</p>`;
+    }
+    
+    const result = await Swal.fire({
+      title: status === 'Approved' ? 'Approve Request?' : 'Reject Request?',
+      html: confirmHtml,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: status === 'Approved' ? '#10B981' : '#EF4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: `Yes, ${status}`,
+      cancelButtonText: 'Cancel',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    setActionLoading(true);
+    try {
+      const promises = ids.map(id => 
+        authenticatedFetch(`${API_URL}/api/requests/admin/action`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: id, status, adminRemark })
+        })
+      );
+      
+      const responses = await Promise.all(promises);
+      let successCount = 0;
+      for (const res of responses) {
+        const d = await res.json();
+        if (d.success) successCount++;
+      }
+
+      if (successCount > 0) {
+        Swal.fire({
+          title: 'Success!',
+          text: `${successCount} request(s) have been ${status.toLowerCase()}.`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        setSelectedIds([]);
+        fetchRequests();
+      }
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'Action failed for one or more requests', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -231,10 +322,29 @@ const AdminRequests = () => {
       <div className="hrm-header">
         <div>
           <h1 className="hrm-title">Employee Requests</h1>
+        </div>
+        {selectedIds.length > 0 ? (
+          <div style={{ display: 'flex', gap: '12px', animation: 'fadeIn 0.2s ease-out' }}>
+            <button 
+              onClick={() => handleBulkAction(selectedIds, 'Approved')}
+              disabled={actionLoading}
+              style={{ padding: '12px 24px', borderRadius: '14px', border: 'none', background: '#10B981', color: '#fff', fontWeight: '800', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)' }}
+            >
+              <CheckCircle size={18} /> Approve ({selectedIds.length})
+            </button>
+            <button 
+              onClick={() => handleBulkAction(selectedIds, 'Rejected')}
+              disabled={actionLoading}
+              style={{ padding: '12px 24px', borderRadius: '14px', border: 'none', background: '#EF4444', color: '#fff', fontWeight: '800', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.2)' }}
+            >
+              <XCircle size={18} /> Reject
+            </button>
           </div>
-        <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> REFRESH
-        </button>
+        ) : (
+          <button className="btn-hrm btn-hrm-secondary" onClick={fetchRequests} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> REFRESH
+          </button>
+        )}
       </div>
 
       <div className="hrm-card" style={{ marginBottom: '32px', overflow: 'visible' }}>
@@ -302,7 +412,14 @@ const AdminRequests = () => {
             <table className="hrm-table">
               <thead>
                 <tr>
-                  <th style={{ paddingLeft: '24px' }}>Employee</th>
+                  {filterStatus === 'Pending' && (
+                    <th style={{ paddingLeft: '24px', width: '40px' }}>
+                      <button onClick={toggleSelectAll} style={{ background: 'none', border: 'none', cursor: 'pointer', color: selectedIds.length === filtered.length ? 'var(--primary-blue)' : 'var(--border)' }}>
+                        {selectedIds.length === filtered.length ? <CheckSquare size={20} /> : <Square size={20} />}
+                      </button>
+                    </th>
+                  )}
+                  <th style={{ paddingLeft: filterStatus === 'Pending' ? '12px' : '24px' }}>Employee</th>
                   <th>Request Details</th>
                   <th>Period / Date</th>
                   <th>Applied On</th>
@@ -312,8 +429,15 @@ const AdminRequests = () => {
               </thead>
               <tbody>
                 {filtered.map(r => (
-                  <tr key={r._id}>
-                    <td style={{ paddingLeft: '24px' }}>
+                  <tr key={r._id} style={{ background: selectedIds.includes(r._id) ? 'var(--primary-light)' : 'transparent', transition: 'background 0.2s' }}>
+                    {filterStatus === 'Pending' && (
+                      <td style={{ paddingLeft: '24px', textAlign: 'center' }}>
+                         <button onClick={() => toggleSelect(r._id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: selectedIds.includes(r._id) ? 'var(--primary-blue)' : 'var(--border)' }}>
+                            {selectedIds.includes(r._id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                         </button>
+                      </td>
+                    )}
+                    <td style={{ paddingLeft: filterStatus === 'Pending' ? '12px' : '24px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', color: 'var(--primary-blue)', border: '1.5px solid var(--border)' }}>
                             {r.employee?.name?.charAt(0)}

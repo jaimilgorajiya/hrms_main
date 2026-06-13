@@ -7,6 +7,11 @@ const offboardingSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   status: {
     type: String,
     enum: ['Initiated', 'Notice Period Active', 'Clearance Pending', 'Settlement Pending', 'Documents Issued', 'Completed', 'Archived'],

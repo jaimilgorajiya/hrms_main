@@ -4,6 +4,7 @@ import Grade from "../models/Grade.Model.js";
 import Resignation from "../models/Resignation.Model.js";
 import ExitRecord from "../models/ExitRecord.Model.js";
 import Onboarding from "../models/Onboarding.Model.js";
+import RetirementSetting from "../models/RetirementSetting.Model.js";
 
 // MANAGERS LIST
 const getManagers = async (req, res) => {
@@ -133,20 +134,42 @@ const updateOnboardingDetails = async (req, res) => {
 // UPCOMING RETIREMENTS
 const getUpcomingRetirements = async (req, res) => {
     try {
-        // Assuming retirement age is 60
-        const retirementAge = 60;
+        const adminId = req.user._id;
+        
+        // Fetch retirement setting for this admin
+        const setting = await RetirementSetting.findOne({ adminId });
+        const defaultAge = setting ? setting.defaultRetirementAge : 60;
+
         const today = new Date();
         const sixMonthsFromNow = new Date();
         sixMonthsFromNow.setMonth(today.getMonth() + 6);
 
-        // Find users whose 60th birthday is within next 6 months
-        // Note: Logic simplification. In prod, use DOB field + aggregation.
-        // Assuming user has 'dateOfBirth' field.
-        const adminId = req.user._id;
+        // Find users who have date of birth and belong to this admin
         const users = await User.find({ dateOfBirth: { $exists: true }, adminId }).select("-password");
         
         const retiringUsers = users.filter(user => {
             if (!user.dateOfBirth) return false;
+            
+            let retirementAge = defaultAge;
+            
+            if (setting) {
+                // 1. Check Role Override (enableRoleBasedAge)
+                if (setting.enableRoleBasedAge && setting.roleAgeOverrides && setting.roleAgeOverrides.length > 0) {
+                    const roleOverride = setting.roleAgeOverrides.find(o => o.roleName === user.role);
+                    if (roleOverride) {
+                        retirementAge = roleOverride.retirementAge;
+                    }
+                }
+                
+                // 2. Check Department Override (enableDepartmentBasedAge) - taking precedence if both enabled
+                if (setting.enableDepartmentBasedAge && setting.departmentAgeOverrides && setting.departmentAgeOverrides.length > 0 && user.department) {
+                    const deptOverride = setting.departmentAgeOverrides.find(o => o.departmentName === user.department);
+                    if (deptOverride) {
+                        retirementAge = deptOverride.retirementAge;
+                    }
+                }
+            }
+
             const birthDate = new Date(user.dateOfBirth);
             const retirementDate = new Date(birthDate.getFullYear() + retirementAge, birthDate.getMonth(), birthDate.getDate());
             return retirementDate >= today && retirementDate <= sixMonthsFromNow;

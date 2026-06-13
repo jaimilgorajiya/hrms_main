@@ -555,13 +555,18 @@ const bulkUpdateEmployeeIds = async (req, res) => {
                 results.failed.push({ id, reason: 'Empty employee ID' });
                 continue;
             }
-            // Check for duplicate
-            const existing = await User.findOne({ employeeId: employeeId.trim(), _id: { $ne: id } });
+            // Check for duplicate scoped to the current tenant (adminId)
+            const existing = await User.findOne({ employeeId: employeeId.trim(), _id: { $ne: id }, adminId: req.user._id });
             if (existing) {
                 results.failed.push({ id, reason: `ID "${employeeId}" already in use` });
                 continue;
             }
-            await User.findByIdAndUpdate(id, { employeeId: employeeId.trim() });
+            // Ensure the user actually belongs to this tenant
+            const updated = await User.findOneAndUpdate({ _id: id, adminId: req.user._id }, { employeeId: employeeId.trim() });
+            if (!updated) {
+                results.failed.push({ id, reason: `User not found or access denied` });
+                continue;
+            }
             results.success++;
         }
 

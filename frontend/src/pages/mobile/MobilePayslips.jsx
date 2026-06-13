@@ -10,12 +10,19 @@ function getMonthName(monthStr) {
 }
 
 function PayslipCard({ slip }) {
-  const { token } = useMobileAuth();
+  const { apiFetch } = useMobileAuth();
 
-  const handleView = () => {
-    const t = token || localStorage.getItem('mobile_token') || localStorage.getItem('token');
-    const url = `${API_URL}/api/payroll/download-slip/${slip._id}?token=${encodeURIComponent(t)}`;
-    window.open(url, '_blank');
+  const handleView = async () => {
+    try {
+      const res = await apiFetch(`/api/payroll/download-slip/${slip._id}`);
+      if (!res.ok) throw new Error("Failed to download payslip");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert("Failed to view payslip");
+    }
   };
 
   return (

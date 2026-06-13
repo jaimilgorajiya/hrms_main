@@ -43,7 +43,7 @@ const AddAttendance = () => {
         date: today,
         status: 'Present',
         inTime: '09:00',
-        outTime: '18:00',
+        outTime: '',
         remark: ''
     });
 
@@ -74,7 +74,7 @@ const AddAttendance = () => {
                 date: record.date,
                 status: record.punchIn ? 'Present' : 'Present',
                 inTime: record.punchIn ? to24hr(record.punchIn) : '09:00',
-                outTime: record.punchOut ? to24hr(record.punchOut) : '18:00',
+                outTime: record.punchOut ? to24hr(record.punchOut) : '',
                 remark: `Correction for ${record.status} on ${record.date}`
             });
         } else {
@@ -84,7 +84,7 @@ const AddAttendance = () => {
                 date: today,
                 status: 'Present',
                 inTime: '09:00',
-                outTime: '18:00',
+                outTime: '',
                 remark: ''
             });
         }
