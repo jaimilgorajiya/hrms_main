@@ -64,6 +64,7 @@ import UseMobileApp from './pages/employee/UseMobileApp';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import PendingAttendance from "./pages/PendingAttendance";
 import PayoutHistory from './pages/PayoutHistory';
+import PenaltiesList from './pages/PenaltiesList';
 import GenerateSalarySlip from './pages/GenerateSalarySlip';
 import PublishSalarySlip from './pages/PublishSalarySlip';
 import AdminResignation from './pages/AdminResignation';
@@ -163,6 +164,7 @@ function App() {
               <Route path="payroll/generate-slip" element={<GenerateSalarySlip />} />
               <Route path="payroll/publish-slip" element={<PublishSalarySlip />} />
               <Route path="payroll/history" element={<PayoutHistory />} />
+              <Route path="payroll/penalties" element={<PenaltiesList />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />
               <Route path="document/approval" element={<DocumentApproval />} />

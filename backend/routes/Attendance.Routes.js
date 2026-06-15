@@ -1,5 +1,5 @@
 import express from "express";
-import { togglePunch, getTodayAttendance, toggleBreak, getAttendanceHistory, getAdminAttendance, updateApprovalStatus, addManualAttendance, getMissingAttendance, getMonthlyAttendanceStats, getAbsentEmployees, deleteAttendance, getSpecificRecord, recalculateHalfDayStatus, getEmployeeMonthlySummary } from "../controllers/Attendance.Controller.js";
+import { togglePunch, getTodayAttendance, toggleBreak, getAttendanceHistory, getAdminAttendance, updateApprovalStatus, addManualAttendance, getMissingAttendance, getMonthlyAttendanceStats, getAbsentEmployees, deleteAttendance, getSpecificRecord, recalculateHalfDayStatus, getEmployeeMonthlySummary, getAdminPenalties, updateAdminPenalty } from "../controllers/Attendance.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
 
 const router = express.Router();
@@ -22,4 +22,9 @@ router.get("/admin/monthly-stats", verifyToken, isAdmin, getMonthlyAttendanceSta
 router.post("/admin/recalculate-status", verifyToken, isAdmin, recalculateHalfDayStatus);
 router.get("/admin/employee-monthly-summary", verifyToken, isAdmin, getEmployeeMonthlySummary);
 
+// Penalty Routes
+router.get("/admin/penalties", verifyToken, isAdmin, getAdminPenalties);
+router.post("/admin/penalties/update", verifyToken, isAdmin, updateAdminPenalty);
+
 export default router;
+

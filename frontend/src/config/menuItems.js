@@ -126,6 +126,7 @@ export const menuItems = [
           { title: "Generate Salary Slip", path: "/admin/payroll/generate-slip" },
           { title: "Publish Salary Slip", path: "/admin/payroll/publish-slip" },
           { title: "Payroll History", path: "/admin/payroll/history" },
+          { title: "Penalties Management", path: "/admin/payroll/penalties" },
         ],
       },
     ],

@@ -1789,4 +1789,73 @@ export const getEmployeeMonthlySummary = async (req, res) => {
     }
 };
 
+// GET /api/attendance/admin/penalties
+export const getAdminPenalties = async (req, res) => {
+    try {
+        const { month, branch, department, employeeId } = req.query;
+        const adminId = req.user._id;
+
+        let userQuery = { adminId, role: 'Employee', status: { $in: ['Active', 'Resigned'] } };
+        if (branch) userQuery.branch = branch;
+        if (department) userQuery.department = department;
+        if (employeeId) userQuery._id = employeeId;
+
+        const employees = await User.find(userQuery).select('_id');
+        const empIds = employees.map(e => e._id);
+
+        let query = { employee: { $in: empIds }, adminId };
+        if (month) {
+            query.date = { $regex: `^${month}` };
+        }
+
+        query.$or = [
+            { "lateInPenalty.amount": { $gt: 0 } },
+            { "earlyOutPenalty.amount": { $gt: 0 } },
+            { "lateInPenalty.isLate": true },
+            { "earlyOutPenalty.isEarly": true }
+        ];
+
+        const records = await Attendance.find(query)
+            .populate('employee', 'name employeeId department designation branch profilePhoto workSetup')
+            .sort({ date: -1 });
+
+        res.status(200).json({ success: true, records });
+    } catch (error) {
+        console.error("getAdminPenalties error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+// POST /api/attendance/admin/penalties/update
+export const updateAdminPenalty = async (req, res) => {
+    try {
+        const { attendanceId, lateInAmount, earlyOutAmount, waiveLateIn, waiveEarlyOut } = req.body;
+        const record = await Attendance.findById(attendanceId);
+        if (!record) return res.status(404).json({ success: false, message: "Record not found" });
+
+        if (waiveLateIn) {
+            record.lateInPenalty.amount = 0;
+            record.lateInPenalty.isApplied = false;
+        } else if (lateInAmount !== undefined) {
+            record.lateInPenalty.amount = Number(lateInAmount);
+            record.lateInPenalty.isApplied = Number(lateInAmount) > 0;
+        }
+
+        if (waiveEarlyOut) {
+            record.earlyOutPenalty.amount = 0;
+            record.earlyOutPenalty.isApplied = false;
+        } else if (earlyOutAmount !== undefined) {
+            record.earlyOutPenalty.amount = Number(earlyOutAmount);
+            record.earlyOutPenalty.isApplied = Number(earlyOutAmount) > 0;
+        }
+
+        await record.save();
+        res.status(200).json({ success: true, message: "Penalty updated successfully", record });
+    } catch (error) {
+        console.error("updateAdminPenalty error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+
 
