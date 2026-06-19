@@ -168,7 +168,7 @@ const AssignBulkLeave = () => {
             </div>
             <style dangerouslySetInnerHTML={{ __html: `
                 .btn-edit-bulk { background: var(--primary-blue); color: #ffffff; }
-                body.dark-mode .btn-edit-bulk { color: #13121b !important; }
+                body.dark-mode .btn-edit-bulk { color: #0A0A0C !important; }
                 tr:hover { background-color: var(--bg-main) !important; }
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -838,8 +838,8 @@ export const getAdminAttendance = async (req, res) => {
         const { date, department, branch, status, approvalStatus } = req.query;
         const targetDate = date || getTodayStr();
 
-        // 1. Get all active & resigned employees first
-        let userQuery = { role: 'Employee', status: { $in: ['Active', 'Resigned'] }, adminId: req.user._id };
+        // 1. Get all active employees first
+        let userQuery = { role: 'Employee', status: 'Active', adminId: req.user._id };
         if (department) userQuery.department = department;
         if (branch) userQuery['workSetup.location'] = branch;
 
@@ -1186,10 +1186,10 @@ export const getAbsentEmployees = async (req, res) => {
             .filter(r => ['On Leave', 'Holiday'].includes(r.status))
             .map(r => r.employee.toString());
 
-        // 2. Get all active & resigned employees
+        // 2. Get all active employees
         const employees = await User.find({
             role: 'Employee',
-            status: { $in: ['Active', 'Resigned'] },
+            status: 'Active',
             adminId: req.user._id
         })
             .select('name employeeId department designation profilePhoto workSetup phone branch')
@@ -1247,8 +1247,12 @@ const getCorrectStatus = (record, shift) => {
 
     const firstIn = record.punches.find(p => p.type === 'IN');
     const lastOut = [...record.punches].reverse().find(p => p.type === 'OUT');
-    if (firstIn && !lastOut && record.date === getTodayStr()) {
-        return status;
+    if (firstIn && !lastOut) {
+        const now = new Date();
+        const startTime = new Date(firstIn.time);
+        if (now - startTime < 20 * 3600 * 1000) {
+            return status;
+        }
     }
     
     // Determine day of week
@@ -1795,7 +1799,7 @@ export const getAdminPenalties = async (req, res) => {
         const { month, branch, department, employeeId } = req.query;
         const adminId = req.user._id;
 
-        let userQuery = { adminId, role: 'Employee', status: { $in: ['Active', 'Resigned'] } };
+        let userQuery = { adminId, role: 'Employee', status: 'Active' };
         if (branch) userQuery.branch = branch;
         if (department) userQuery.department = department;
         if (employeeId) userQuery._id = employeeId;

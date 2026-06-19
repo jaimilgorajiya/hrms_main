@@ -163,7 +163,7 @@
    ========================================== */
 
 body.dark-mode .premium-loader-overlay {
-  background: #13121b !important;
+  background: #0A0A0C !important;
 }
 
 body.dark-mode .premium-loader-overlay::before {

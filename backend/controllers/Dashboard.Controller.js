@@ -19,11 +19,12 @@ export const getAdminStats = async (req, res) => {
         // Basic Stats
         const adminFilter = {
             role: { $ne: 'Admin' },
-            adminId
+            adminId,
+            status: { $nin: ['Ex-Employee', 'Resigned', 'Terminated', 'Absconding', 'Retired'] }
         };
 
         const totalUsers = await User.countDocuments(adminFilter);
-        const activeEmployees = await User.find({ ...adminFilter, status: { $in: ['Active', 'Resigned'] } }).select('_id');
+        const activeEmployees = await User.find({ ...adminFilter, status: 'Active' }).select('_id');
         const activeEmpIds = activeEmployees.map(e => e._id);
         const activeUsersCount = activeEmpIds.length;
 

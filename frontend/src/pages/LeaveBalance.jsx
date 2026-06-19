@@ -343,13 +343,13 @@ const getStatusStyle = (status) => {
                 .card-remaining-icon { background: rgba(255,255,255,0.2); }
                 .card-remaining-icon svg { stroke: white; }
 
-                body.dark-mode .emp-item-selected { color: #13121b !important; }
-                body.dark-mode .emp-item-selected .emp-avatar { background: rgba(19, 18, 27, 0.2) !important; color: #13121b !important; }
-                body.dark-mode .emp-item-selected .emp-badge { background: rgba(19, 18, 27, 0.15) !important; color: #13121b !important; }
+                body.dark-mode .emp-item-selected { color: #0A0A0C !important; }
+                body.dark-mode .emp-item-selected .emp-avatar { background: rgba(10, 10, 12, 0.2) !important; color: #0A0A0C !important; }
+                body.dark-mode .emp-item-selected .emp-badge { background: rgba(10, 10, 12, 0.15) !important; color: #0A0A0C !important; }
                 
-                body.dark-mode .card-remaining-balance { color: #13121b !important; }
-                body.dark-mode .card-remaining-balance .card-remaining-icon { background: rgba(19, 18, 27, 0.15) !important; }
-                body.dark-mode .card-remaining-balance .card-remaining-icon svg { stroke: #13121b !important; }
+                body.dark-mode .card-remaining-balance { color: #0A0A0C !important; }
+                body.dark-mode .card-remaining-balance .card-remaining-icon { background: rgba(10, 10, 12, 0.15) !important; }
+                body.dark-mode .card-remaining-balance .card-remaining-icon svg { stroke: #0A0A0C !important; }
 
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-spin { animation: spin 1s linear infinite; }

@@ -26,9 +26,9 @@ export const initCronJobs = () => {
             const todayStr = getTodayStr();
             const dayName = getDayName(todayStr);
 
-            // 1. Get all active and resigned employees with their shifts populated
+            // 1. Get all active employees with their shifts populated
             const employees = await User.find({
-                status: { $in: ['Active', 'Resigned'] },
+                status: 'Active',
                 role: 'Employee'
             }).populate('workSetup.shift');
 
