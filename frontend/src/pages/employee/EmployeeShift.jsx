@@ -101,7 +101,7 @@ const EmployeeShift = () => {
               </div>
               {todayDur && (
                 <div className="ep-shift-today-dur">
-                  <Clock size={13} color="#2563EB" />
+                  <Clock size={13} color="#3b82f6" />
                   {fmtDur(todayDur)}
                 </div>
               )}

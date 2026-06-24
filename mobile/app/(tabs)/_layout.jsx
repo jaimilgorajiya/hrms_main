@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabIcon({ name, focused }) {
   const { colors } = useTheme();
@@ -15,6 +16,10 @@ function TabIcon({ name, focused }) {
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const adjustedPadding = insets.bottom > 0 ? insets.bottom - 4 : 6;
+  const adjustedHeight = 58 + adjustedPadding;
   
   return (
     <Tabs
@@ -23,8 +28,13 @@ export default function TabsLayout() {
         tabBarShowLabel: true,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 6 },
-        tabBarStyle: [styles.tabBar, { backgroundColor: colors.bgCard, borderTopColor: colors.borderLight }],
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginBottom: 4 },
+        tabBarStyle: [styles.tabBar, { 
+          backgroundColor: colors.bgCard, 
+          borderTopColor: colors.borderLight,
+          height: adjustedHeight,
+          paddingBottom: adjustedPadding
+        }],
         tabBarBackground: () => (
           Platform.OS === 'ios' ? (
             <BlurView intensity={80} tint={colors.statusBar === 'light' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
@@ -79,15 +89,13 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 64,
     borderTopWidth: 1,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 18,
   },
 });

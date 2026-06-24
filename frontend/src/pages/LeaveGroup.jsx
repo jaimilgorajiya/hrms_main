@@ -57,7 +57,7 @@ const LeaveGroup = () => {
 
     const toggleStatus = async (id, currentStatus) => {
         const isActive = currentStatus === 'Active';
-        const result = await Swal.fire({ title: isActive ? 'Deactivate?' : 'Activate?', icon: 'question', showCancelButton: true, confirmButtonColor: '#2563EB', confirmButtonText: `Yes, ${isActive ? 'deactivate' : 'activate'}!` });
+        const result = await Swal.fire({ title: isActive ? 'Deactivate?' : 'Activate?', icon: 'question', showCancelButton: true, confirmButtonColor: '#0052ff', confirmButtonText: `Yes, ${isActive ? 'deactivate' : 'activate'}!` });
         if (result.isConfirmed) {
             const res = await authenticatedFetch(`${API_URL}/api/leave-groups/${id}/toggle-status`, { method: 'POST' });
             const data = await res.json();

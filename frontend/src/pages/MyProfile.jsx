@@ -150,7 +150,7 @@ const MyProfile = () => {
                 title: 'Purchase Successful!',
                 text: verifyData.message,
                 icon: 'success',
-                confirmButtonColor: '#2563EB',
+                confirmButtonColor: '#0052ff',
                 timer: 3000,
                 showConfirmButton: false
               });
@@ -164,7 +164,7 @@ const MyProfile = () => {
             Swal.fire('Error', 'Payment verification failed', 'error');
           }
         },
-        theme: { color: '#2563EB' }
+        theme: { color: '#0052ff' }
       };
 
       const rzp = new window.Razorpay(options);

@@ -222,7 +222,7 @@ const AddEmployee = () => {
                     title: 'Employee Limit Reached',
                     text: resData.message,
                     icon: 'warning',
-                    confirmButtonColor: '#2563EB'
+                    confirmButtonColor: '#0052ff'
                 });
             } else {
                 Swal.fire('Error', resData.message || 'Failed to add employee', 'error');
@@ -265,7 +265,7 @@ const AddEmployee = () => {
                             <div style={{ 
                                 width: `${Math.min((employeeUsage.currentCount / employeeUsage.totalAllowed) * 100, 100)}%`, 
                                 height: '100%', 
-                                background: employeeUsage.remaining <= 3 ? '#EF4444' : '#2563EB', 
+                                background: employeeUsage.remaining <= 3 ? '#EF4444' : '#10B981', 
                                 borderRadius: '4px',
                                 transition: 'width 0.3s ease' 
                             }} />

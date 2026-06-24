@@ -356,7 +356,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
                 <span style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <button onClick={handleMarkAllRead} style={{ fontSize: 12, color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
+                  <button onClick={handleMarkAllRead} style={{ fontSize: 12, color: '#0052ff', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Mark all read</button>
                 )}
               </div>
               <div style={{ maxHeight: 380, overflowY: 'auto' }}>
@@ -366,7 +366,7 @@ const Header = ({ title, toggleSidebar, isCollapsed }) => {
                   <div key={n._id} onClick={() => handleMarkRead(n._id)}
                     style={{ padding: '12px 16px', borderBottom: '1px solid #f8fafc', background: n.isRead ? '#fff' : '#EFF6FF', cursor: 'pointer', transition: 'background 0.15s' }}>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.isRead ? '#cbd5e1' : '#2563EB', marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.isRead ? '#cbd5e1' : '#0052ff', marginTop: 5, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{n.title}</div>
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{n.message}</div>

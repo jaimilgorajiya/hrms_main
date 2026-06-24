@@ -6,7 +6,7 @@ import API_URL from '../config/api';
 import SearchableSelect from '../components/SearchableSelect';
 
 const STATUS_COLORS = {
-    Upcoming:   { bg: '#EFF6FF', color: '#2563EB' },
+    Upcoming:   { bg: '#EFF6FF', color: '#0052ff' },
     Notified:   { bg: '#FFF7ED', color: '#C2410C' },
     'In Process': { bg: '#FEF9C3', color: '#A16207' },
     Completed:  { bg: '#F0FDF4', color: '#16A34A' },
@@ -104,7 +104,7 @@ const UpcomingRetirement = () => {
             title: `Initiate Exit for ${name}?`,
             text: 'This will mark the retirement as In Process.',
             icon: 'question', showCancelButton: true,
-            confirmButtonColor: '#2563EB', confirmButtonText: 'Yes, Initiate'
+            confirmButtonColor: '#0052ff', confirmButtonText: 'Yes, Initiate'
         });
         if (!result.isConfirmed) return;
         const res = await authenticatedFetch(`${API_URL}/api/retirement/${id}/initiate-exit`, { method: 'PUT' });
@@ -285,7 +285,7 @@ const UpcomingRetirement = () => {
                                     <tr key={r._id}>
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#2563EB', flexShrink: 0 }}>
+                                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#0052ff', flexShrink: 0 }}>
                                                     {r.name?.charAt(0)?.toUpperCase()}
                                                 </div>
                                                 <div>
@@ -318,7 +318,7 @@ const UpcomingRetirement = () => {
                                         <td>
                                             <div style={{ display: 'flex', gap: 6 }}>
                                                 <button title="View Details" onClick={() => setViewRecord(r)}
-                                                    style={{ background: '#EFF6FF', border: 'none', borderRadius: 7, padding: '6px 8px', cursor: 'pointer', color: '#2563EB' }}>
+                                                    style={{ background: '#EFF6FF', border: 'none', borderRadius: 7, padding: '6px 8px', cursor: 'pointer', color: '#0052ff' }}>
                                                     <Eye size={14} />
                                                 </button>
                                                 {r.status !== 'Completed' && r.status !== 'In Process' && (
@@ -391,7 +391,7 @@ const UpcomingRetirement = () => {
                                 <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 8 }}>Notifications Sent</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                     {viewRecord.notificationsSent.map((n, i) => (
-                                        <span key={i} style={{ fontSize: 11, background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                                        <span key={i} style={{ fontSize: 11, background: '#EFF6FF', color: '#0052ff', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
                                             {n.days}d — {fmt(n.sentAt)}
                                         </span>
                                     ))}

@@ -19,7 +19,7 @@ const statusColors = {
 
 const typeColors = {
   'Leave': { color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.15)' },
-  'Attendance Correction': { color: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.15)' },
+  'Attendance Correction': { color: '#0052ff', backgroundColor: 'rgba(37, 99, 235, 0.15)' },
 };
 
 const parseLocalDate = (dateStr) => {

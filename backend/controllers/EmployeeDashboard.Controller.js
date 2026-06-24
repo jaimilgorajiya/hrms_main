@@ -268,6 +268,110 @@ export const getEmployeeStats = async (req, res) => {
                 unpaidLeaveDeduction = parseFloat(unpaidLeaveDeduction.toFixed(2));
             }
         }
+        // --- Calculate Expected Days and Hours in Backend ---
+        let expectedDaysMTD = 0;
+        let expectedHoursMTD = 0;
+        let expectedDaysTotal = 0;
+        let expectedHoursTotal = 0;
+
+        if (shift) {
+            const woDays = shift.weekOffDays || [];
+            const joiningDate = emp.dateJoined ? new Date(emp.dateJoined) : null;
+
+            const parseTime = (timeStr) => {
+                if (!timeStr) return 0;
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            let effectiveStart = new Date(cycleStart);
+            if (joiningDate && joiningDate > effectiveStart) {
+                effectiveStart = new Date(joiningDate);
+                effectiveStart.setUTCHours(0,0,0,0);
+            }
+
+            const mtdEnd = new Date(istNow);
+            mtdEnd.setUTCHours(23,59,59,999);
+
+            const cycleEnd = new Date(cycleStart);
+            cycleEnd.setUTCMonth(cycleEnd.getUTCMonth() + 1);
+            cycleEnd.setUTCDate(cycleEnd.getUTCDate() - 1);
+            cycleEnd.setUTCHours(23,59,59,999);
+
+            const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+            let expectedMinsMTD = 0;
+            let curr = new Date(effectiveStart);
+            while (curr <= mtdEnd) {
+                const dayIndex = curr.getUTCDay();
+                const dayName = daysOfWeek[dayIndex];
+                const isWO = woDays.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                if (!isWO) {
+                    expectedDaysMTD++;
+
+                    const daySchedule = shift.schedule?.[dayName];
+                    const dayStart = daySchedule?.shiftStart;
+                    const dayEnd = daySchedule?.shiftEnd;
+
+                    if (dayStart && dayEnd) {
+                        let diff = parseTime(dayEnd) - parseTime(dayStart);
+                        if (diff < 0) diff += 24 * 60; // Overnight
+                        
+                        let breakMins = 0;
+                        if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                            const d = parseTime(daySchedule.lunchEnd) - parseTime(daySchedule.lunchStart);
+                            if (d > 0) breakMins += d;
+                        }
+                        if (daySchedule.teaStart && daySchedule.teaEnd) {
+                            const d = parseTime(daySchedule.teaEnd) - parseTime(daySchedule.teaStart);
+                            if (d > 0) breakMins += d;
+                        }
+                        diff = Math.max(0, diff - breakMins);
+                        expectedMinsMTD += diff;
+                    } else {
+                        expectedMinsMTD += 8 * 60;
+                    }
+                }
+                curr.setUTCDate(curr.getUTCDate() + 1);
+            }
+            expectedHoursMTD = Math.round(expectedMinsMTD / 60);
+
+            let expectedMinsTotal = 0;
+            curr = new Date(effectiveStart);
+            while (curr <= cycleEnd) {
+                const dayIndex = curr.getUTCDay();
+                const dayName = daysOfWeek[dayIndex];
+                const isWO = woDays.includes(dayName.charAt(0).toUpperCase() + dayName.slice(1));
+                if (!isWO) {
+                    expectedDaysTotal++;
+
+                    const daySchedule = shift.schedule?.[dayName];
+                    const dayStart = daySchedule?.shiftStart;
+                    const dayEnd = daySchedule?.shiftEnd;
+
+                    if (dayStart && dayEnd) {
+                        let diff = parseTime(dayEnd) - parseTime(dayStart);
+                        if (diff < 0) diff += 24 * 60; // Overnight
+                        
+                        let breakMins = 0;
+                        if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                            const d = parseTime(daySchedule.lunchEnd) - parseTime(daySchedule.lunchStart);
+                            if (d > 0) breakMins += d;
+                        }
+                        if (daySchedule.teaStart && daySchedule.teaEnd) {
+                            const d = parseTime(daySchedule.teaEnd) - parseTime(daySchedule.teaStart);
+                            if (d > 0) breakMins += d;
+                        }
+                        diff = Math.max(0, diff - breakMins);
+                        expectedMinsTotal += diff;
+                    } else {
+                        expectedMinsTotal += 8 * 60;
+                    }
+                }
+                curr.setUTCDate(curr.getUTCDate() + 1);
+            }
+            expectedHoursTotal = Math.round(expectedMinsTotal / 60);
+        }
 
         res.status(200).json({
             success: true,
@@ -319,6 +423,10 @@ export const getEmployeeStats = async (req, res) => {
                 accruedNet,
                 penaltyHistory,
                 presentDays,
+                expectedDaysMTD,
+                expectedHoursMTD,
+                expectedDaysTotal,
+                expectedHoursTotal,
                 salaryCycle: {
                     start: cycleStart.toISOString().split('T')[0],
                     today: istNow.toISOString().split('T')[0]

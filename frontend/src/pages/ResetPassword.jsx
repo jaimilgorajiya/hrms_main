@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import API_URL from '../config/api';
 
@@ -14,10 +14,25 @@ const ResetPassword = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
+    // On-change validation
+    useEffect(() => {
+        if (!password && !confirm) {
+            setError('');
+            return;
+        }
+        if (password.length > 0 && password.length < 8) {
+            setError('Password must be at least 8 characters');
+        } else if (confirm.length > 0 && password !== confirm) {
+            setError('Passwords do not match');
+        } else {
+            setError('');
+        }
+    }, [password, confirm]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
         if (password !== confirm) { setError('Passwords do not match'); return; }
-        if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
         setLoading(true); setError('');
         try {
             const res = await fetch(`${API_URL}/api/auth/reset-password`, {
@@ -169,7 +184,7 @@ const ResetPassword = () => {
                 .auth-input:focus {
                     outline: none;
                     background: #FFFFFF;
-                    border-color: #2563EB;
+                    border-color: #0052ff;
                     box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
                 }
 
@@ -193,7 +208,7 @@ const ResetPassword = () => {
 
                 .auth-submit-btn {
                     width: 100%;
-                    background: #2563EB;
+                    background: #0052ff;
                     color: #FFFFFF;
                     border: none;
                     border-radius: 12px;
@@ -224,7 +239,7 @@ const ResetPassword = () => {
                 }
 
                 .auth-redirect a {
-                    color: #2563EB;
+                    color: #0052ff;
                     font-weight: 600;
                     text-decoration: none;
                     cursor: pointer;
@@ -237,7 +252,7 @@ const ResetPassword = () => {
                 <div></div>
                 <div className="banner-content">
                     <div className="banner-logo" style={{ marginBottom: '32px' }}>
-                        <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" style={{ width: '260px', height: 'auto', objectFit: 'contain' }} />
+                        <img src="/iipl-logo.png" alt="IIPL Logo" style={{ width: '90px', height: '90px', borderRadius: '24px', objectFit: 'cover' }} />
                     </div>
                     <h1 className="hrm-title">Reset your access.</h1>
                     </div>
@@ -249,8 +264,8 @@ const ResetPassword = () => {
             {/* RIGHT SIDE - FORM CONTAINER */}
             <div className="auth-form-section">
                 <div className="auth-form-container">
-                    <div className="mobile-logo">
-                        <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" style={{ width: '220px' }} />
+                    <div className="mobile-logo" style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+                        <img src="/iipl-logo.png" alt="IIPL Logo" style={{ width: '90px', height: '90px', borderRadius: '24px', objectFit: 'cover' }} />
                     </div>
 
                     {!token ? (
@@ -258,7 +273,6 @@ const ResetPassword = () => {
                             <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
                             <h2 className="form-title">Invalid Link</h2>
                             <p className="form-subtitle">The password reset token is missing or has expired.</p>
-                            <button className="auth-submit-btn" style={{ marginTop: '32px' }} onClick={() => navigate('/login')}>Back to Login</button>
                         </div>
                     ) : !done ? (
                         <>
@@ -328,14 +342,10 @@ const ResetPassword = () => {
                                     </div>
                                 </div>
 
-                                <button type="submit" className="auth-submit-btn" disabled={loading} style={{ marginTop: '16px' }}>
+                                <button type="submit" className="auth-submit-btn" disabled={loading || !!error || password.length < 8 || password !== confirm} style={{ marginTop: '16px' }}>
                                     {loading ? 'Updating Password...' : 'Reset Password'}
                                 </button>
                             </form>
-
-                            <div className="auth-redirect">
-                                <a onClick={() => navigate('/login')}>← Back to login</a>
-                            </div>
                         </>
                     ) : (
                         <div style={{ textAlign: 'center' }}>
@@ -346,9 +356,9 @@ const ResetPassword = () => {
                             </div>
                             <h2 className="form-title">Password Reset!</h2>
                             <p className="form-subtitle">Your password has been successfully updated. You can now use your new password to access your account.</p>
-                            <button className="auth-submit-btn" style={{ marginTop: '32px' }} onClick={() => navigate('/login')}>
-                                Login Now
-                            </button>
+                            <div style={{ marginTop: '32px', color: '#64748B', fontWeight: '600', fontSize: '15px', lineHeight: '1.6' }}>
+                                You can now close this browser window and log in to the mobile application using your new password.
+                            </div>
                         </div>
                     )}
                 </div>

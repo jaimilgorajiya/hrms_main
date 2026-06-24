@@ -17,7 +17,7 @@ const ModulePlaceholder = ({ title }) => {
     }}>
       <div style={{
         background: '#EFF6FF',
-        color: '#2563EB',
+        color: '#0052ff',
         width: '80px',
         height: '80px',
         borderRadius: '24px',

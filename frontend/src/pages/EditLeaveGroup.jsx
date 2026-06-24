@@ -143,7 +143,7 @@ const EditLeaveGroup = () => {
     );
 
     return (
-        <div className="hrm-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 16px' }}>
+        <div className="hrm-container" style={{ margin: '0 auto', padding: '24px 16px' }}>
             <div className="hrm-header" style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <button type="button" className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'white', border: '1px solid #E2E8F0', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>

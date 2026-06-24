@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [todayActivities, setTodayActivities] = useState([]);
+  const [performance, setPerformance] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const navigate = useNavigate();
 
@@ -28,7 +29,8 @@ const AdminDashboard = () => {
     await Promise.all([
         fetchStats(),
         fetchTodayActivities(),
-        fetchPendingRequests()
+        fetchPendingRequests(),
+        fetchPerformance()
     ]);
     setLoading(false);
   };
@@ -105,6 +107,14 @@ const AdminDashboard = () => {
       const response = await authenticatedFetch(`${API_URL}/api/dashboard/admin/stats`);
       const result = await response.json();
       if (result.success) setData(result);
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchPerformance = async () => {
+    try {
+      const response = await authenticatedFetch(`${API_URL}/api/dashboard/admin/employee-performance`);
+      const result = await response.json();
+      if (result.success) setPerformance(result.performance || []);
     } catch (error) { console.error(error); }
   };
 
@@ -499,6 +509,59 @@ const AdminDashboard = () => {
             </div>
          </div>
       </div>
+
+       {/* Employee Performance Leaderboard */}
+       <div className="card-prem" style={{ marginTop: '32px' }}>
+          <div className="card-header-prem">
+              <h2>Employee Performance Leaderboard</h2>
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '800', letterSpacing: '0.1em' }}>BY PRODUCTIVITY</div>
+          </div>
+          <div className="card-body-prem">
+              <div className="performance-leaderboard-prem">
+                 {performance.map((emp, index) => {
+                    let statusText = 'Needs Effort';
+                    let statusClass = 'danger';
+                    if (emp.productivity >= 95) {
+                       statusText = 'Outstanding';
+                       statusClass = 'success';
+                    } else if (emp.productivity >= 85) {
+                       statusText = 'Good';
+                       statusClass = 'primary';
+                    } else if (emp.productivity >= 75) {
+                       statusText = 'On Track';
+                       statusClass = 'warning';
+                    }
+
+                    return (
+                       <div key={emp._id} className="performance-item-prem">
+                          <div className="rank-badge-prem">#{index + 1}</div>
+                          <div className="user-avatar-prem">
+                             {emp.profilePhoto ? (
+                               <img src={`${API_URL}/uploads/${emp.profilePhoto}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                             ) : emp.name[0]}
+                          </div>
+                          <div className="emp-details-prem">
+                             <span className="user-name-prem">{emp.name}</span>
+                             <span className="role-chip-prem">{emp.designation} • {emp.department}</span>
+                          </div>
+                          <div className="emp-progress-container-prem">
+                             <div className="progress-bar-prem">
+                                <div className={`progress-fill-prem ${statusClass}`} style={{ width: `${Math.min(100, emp.productivity)}%` }} />
+                             </div>
+                             <span className="progress-hours-prem">{emp.actualHours} / {emp.expectedHours} hrs worked</span>
+                          </div>
+                          <div className="emp-score-prem">
+                             <span className="score-val-prem">{emp.productivity}%</span>
+                             <span className={`status-badge-prem ${statusClass}`}>{statusText}</span>
+                          </div>
+                       </div>
+                    );
+                 })}
+                 {performance.length === 0 && <div className="empty-state-prem">No employee performance data available.</div>}
+              </div>
+          </div>
+       </div>
+
     </div>
   );
 };

@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import '../../styles/EmployeePanel.css';
 
 const mockLeaveBalance = [
-  { type: 'Casual Leave', total: 12, used: 4, color: '#2563EB' },
+  { type: 'Casual Leave', total: 12, used: 4, color: '#3b82f6' },
   { type: 'Sick Leave', total: 8, used: 2, color: '#10B981' },
   { type: 'Earned Leave', total: 15, used: 6, color: '#8B5CF6' },
   { type: 'Compensatory Off', total: 3, used: 1, color: '#F59E0B' },
@@ -32,10 +32,10 @@ const EmployeeLeaves = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.type || !form.from || !form.to || !form.reason) {
-      return Swal.fire({ title: 'Error', text: 'Please fill all fields.', icon: 'error', confirmButtonColor: '#2563EB' });
+      return Swal.fire({ title: 'Error', text: 'Please fill all fields.', icon: 'error', confirmButtonColor: '#3b82f6' });
     }
     if (new Date(form.to) < new Date(form.from)) {
-      return Swal.fire({ title: 'Error', text: 'End date cannot be before start date.', icon: 'error', confirmButtonColor: '#2563EB' });
+      return Swal.fire({ title: 'Error', text: 'End date cannot be before start date.', icon: 'error', confirmButtonColor: '#3b82f6' });
     }
     setSubmitting(true);
     await new Promise(r => setTimeout(r, 800));

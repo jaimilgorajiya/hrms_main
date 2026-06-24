@@ -11,7 +11,7 @@ const statusColors = {
 
 const typeColors = {
   'Leave': { color: '#8B5CF6', bg: '#F5F3FF' },
-  'Attendance Correction': { color: '#2563EB', bg: '#EFF6FF' },
+  'Attendance Correction': { color: '#0052ff', bg: '#EFF6FF' },
 };
 
 const LeaveHistory = () => {
@@ -53,7 +53,7 @@ const LeaveHistory = () => {
   });
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+    <div style={{ padding: '32px', margin: '0 auto', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px' }}>
         <div>
           <h2 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 8px' }}>Leave Request History</h2>
@@ -180,7 +180,7 @@ const LeaveHistory = () => {
                           <span>Correction: {r.date}</span>
                         )}
                       </div>
-                      <div style={{ fontSize: '11px', color: r.requestType === 'Leave' ? '#7C3AED' : '#2563EB', fontWeight: '800', textTransform: 'uppercase', marginTop: '4px' }}>
+                      <div style={{ fontSize: '11px', color: r.requestType === 'Leave' ? '#7C3AED' : '#0052ff', fontWeight: '800', textTransform: 'uppercase', marginTop: '4px' }}>
                         {r.requestType}
                       </div>
                     </td>

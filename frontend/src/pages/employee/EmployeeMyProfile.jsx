@@ -37,10 +37,10 @@ const EmployeeMyProfile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (passwords.newPassword !== passwords.confirmPassword) {
-      return Swal.fire({ title: 'Error', text: 'Passwords do not match.', icon: 'error', confirmButtonColor: '#2563EB' });
+      return Swal.fire({ title: 'Error', text: 'Passwords do not match.', icon: 'error', confirmButtonColor: '#3b82f6' });
     }
     if (passwords.newPassword.length < 6) {
-      return Swal.fire({ title: 'Error', text: 'Password must be at least 6 characters.', icon: 'error', confirmButtonColor: '#2563EB' });
+      return Swal.fire({ title: 'Error', text: 'Password must be at least 6 characters.', icon: 'error', confirmButtonColor: '#3b82f6' });
     }
     setSavingPwd(true);
     try {
@@ -53,10 +53,10 @@ const EmployeeMyProfile = () => {
         Swal.fire({ title: 'Success!', text: 'Password updated.', icon: 'success', timer: 2000, showConfirmButton: false });
         setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
       } else {
-        Swal.fire({ title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#2563EB' });
+        Swal.fire({ title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#3b82f6' });
       }
     } catch {
-      Swal.fire({ title: 'Error', text: 'Something went wrong.', icon: 'error', confirmButtonColor: '#2563EB' });
+      Swal.fire({ title: 'Error', text: 'Something went wrong.', icon: 'error', confirmButtonColor: '#3b82f6' });
     } finally { setSavingPwd(false); }
   };
 
@@ -68,7 +68,7 @@ const EmployeeMyProfile = () => {
     if (/[0-9]/.test(pwd)) s++;
     if (/[^A-Za-z0-9]/.test(pwd)) s++;
     const map = ['Very Weak', 'Weak', 'Medium', 'Strong', 'Strong'];
-    const colors = ['#EF4444', '#F59E0B', '#10B981', '#2563EB', '#2563EB'];
+    const colors = ['#EF4444', '#F59E0B', '#10B981', '#3b82f6', '#3b82f6'];
     return { label: map[s], color: colors[s], width: `${(s / 4) * 100}%` };
   };
 

@@ -20,7 +20,7 @@ const UseMobileApp = () => {
     <div className="use-app-container">
       <div className="use-app-card">
         <div className="use-app-icon">
-          <Smartphone size={64} color="#2563EB" />
+          <Smartphone size={64} color="#3b82f6" />
         </div>
         <h1>Move to Mobile</h1>
         <p>The Employee Panel has moved to our mobile application for a better experience.</p>

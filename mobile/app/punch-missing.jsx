@@ -168,6 +168,12 @@ export default function PunchMissingScreen() {
                     setSelectedDay(day);
                     const match = day.punchIn?.match(/(\d{1,2}):(\d{2})/);
                     if (match) day.punchInRaw = `${match[1].padStart(2, '0')}:${match[2]}`;
+                    
+                    // Reset form state for the new day to prevent old data persistence
+                    setReason('');
+                    setWorkReport('');
+                    setManualOut('18:00');
+                    
                     setStep(2);
                   }}
                 >

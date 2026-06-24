@@ -258,7 +258,7 @@ const MapPicker = ({ latitude, longitude, address, onLocationSelect, radius }) =
                                 pathOptions={{
                                     fillColor: '#3B82F6',
                                     fillOpacity: 0.15,
-                                    color: '#2563EB',
+                                    color: '#0052ff',
                                     weight: 2,
                                     dashArray: '5, 8'
                                 }}

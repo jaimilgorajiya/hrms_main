@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Animated, RefreshControl, Image, Platform, LayoutAnimation, UIManager, Alert, TextInput, Modal,
-  ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable,
+  ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable, PanResponder,
 } from 'react-native';
 import { Svg, Circle, G, Defs, LinearGradient as SvgGradient, Stop, Path, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -562,6 +562,341 @@ const PunchSystem = ({ punchData, onPunch, onBreak, pendingCount, isOnline }) =>
   );
 };
 
+const ProductivityWidget = ({ stats, dateJoined, missingPunches, absentDaysList, router, colors, gradients, isDarkMode }) => {
+  const [showExplanation, setShowExplanation] = React.useState(false);
+  const anim = React.useRef(new Animated.Value(0)).current;
+  const panY = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.spring(anim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }).start();
+  }, []);
+
+  const resetPositionAnim = Animated.timing(panY, {
+    toValue: 0,
+    duration: 300,
+    useNativeDriver: true,
+  });
+
+  const closeAnim = Animated.timing(panY, {
+    toValue: 600,
+    duration: 300,
+    useNativeDriver: true,
+  });
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return gestureState.dy > 5;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 120 || gestureState.vy > 0.5) {
+          closeAnim.start(() => {
+            setShowExplanation(false);
+            panY.setValue(0);
+          });
+        } else {
+          resetPositionAnim.start();
+        }
+      },
+    })
+  ).current;
+
+  React.useEffect(() => {
+    if (showExplanation) {
+      panY.setValue(600);
+      Animated.spring(panY, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showExplanation]);
+
+  const handleClose = () => {
+    closeAnim.start(() => {
+      setShowExplanation(false);
+      panY.setValue(0);
+    });
+  };
+
+  const translateY = panY.interpolate({
+    inputRange: [0, 600],
+    outputRange: [0, 600],
+    extrapolate: 'clamp',
+  });
+
+  const backdropOpacity = panY.interpolate({
+    inputRange: [0, 600],
+    outputRange: [0.75, 0],
+    extrapolate: 'clamp',
+  });
+
+  const expectedDaysMTD = stats?.expectedDaysMTD || 1;
+  const expectedDaysTotal = stats?.expectedDaysTotal || 1;
+  const expectedHours = stats?.expectedHoursTotal || 0;
+  const actualHours = stats?.monthHours || 0;
+
+  const productivity = expectedHours > 0 ? Math.round((actualHours / expectedHours) * 100) : 0;
+  
+  const presentDays = stats?.presentDays || 0;
+  const halfDays = stats?.halfDays || 0;
+  const attendanceRate = Math.round(((presentDays + 0.5 * halfDays) / expectedDaysTotal) * 100);
+
+  let statusText = 'Needs Effort';
+  let statusColor = colors.danger || '#EF4444';
+  let statusBg = colors.dangerLight || '#FEE2E2';
+  let statusIcon = 'alert-circle';
+  let statusDescription = 'Try to log full shifts and check on-time arrivals to boost score.';
+
+  if (productivity >= 95) {
+    statusText = 'Outstanding';
+    statusColor = colors.success || '#10B981';
+    statusBg = colors.successLight || '#D1FAE5';
+    statusIcon = 'ribbon';
+    statusDescription = 'Excellent efficiency! Keep up the brilliant working hours.';
+  } else if (productivity >= 85) {
+    statusText = 'Good';
+    statusColor = colors.primary || '#4F46E5';
+    statusBg = colors.primaryLight || '#E0E7FF';
+    statusIcon = 'checkmark-done-circle';
+    statusDescription = 'Solid attendance and consistent logged hours. Well done!';
+  } else if (productivity >= 75) {
+    statusText = 'On Track';
+    statusColor = colors.warning || '#F59E0B';
+    statusBg = colors.warningLight || '#FEF3C7';
+    statusIcon = 'trending-up';
+    statusDescription = 'On target. Minimal late punch-ins or short shifts will maximize it.';
+  }
+
+  const size = 90;
+  const stroke = 8;
+  const center = size / 2;
+  const radius = (size - stroke) / 2;
+  const circum = 2 * Math.PI * radius;
+  const fillPercent = Math.min(100, Math.max(0, productivity)) / 100;
+
+  return (
+    <Animated.View style={{ opacity: anim, transform: [{ scale: anim }], marginBottom: 20 }}>
+      <TouchableOpacity 
+        style={{
+          backgroundColor: colors.bgCard,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: colors.borderLight,
+          padding: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          ...SHADOW.soft
+        }}
+        activeOpacity={0.9}
+        onPress={() => setShowExplanation(true)}
+      >
+        <View style={{ flex: 1, paddingRight: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="sparkles" size={16} color={colors.primary} />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.6 }}>Productivity Score</Text>
+          </View>
+          
+          <Text style={{ fontSize: 24, fontWeight: '900', color: colors.textDark, marginBottom: 6 }}>
+            {productivity}%
+          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: statusBg, marginBottom: 12 }}>
+            <Ionicons name={statusIcon} size={14} color={statusColor} style={{ marginRight: 4 }} />
+            <Text style={{ fontSize: 11, fontWeight: '800', color: statusColor }}>{statusText}</Text>
+          </View>
+
+          <Text style={{ fontSize: 12, color: colors.textLight, lineHeight: 18 }} numberOfLines={2}>
+            {statusDescription}
+          </Text>
+        </View>
+
+        <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+          <Svg width={size} height={size}>
+            <Defs>
+              <SvgGradient id="prodGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor={colors.primary} />
+                <Stop offset="100%" stopColor={statusColor} />
+              </SvgGradient>
+            </Defs>
+            <G rotation="-90" origin={`${center}, ${center}`}>
+              <Circle cx={center} cy={center} r={radius} stroke={colors.borderLight} strokeWidth={stroke} fill="none" />
+              <Circle
+                cx={center}
+                cy={center}
+                r={radius}
+                stroke="url(#prodGrad)"
+                strokeWidth={stroke}
+                fill="none"
+                strokeDasharray={circum}
+                strokeDashoffset={circum * (1 - fillPercent)}
+                strokeLinecap="round"
+              />
+            </G>
+          </Svg>
+          <View style={{ position: 'absolute', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="speedometer-outline" size={24} color={colors.textDark} />
+            <Text style={{ fontSize: 9, fontWeight: '700', color: colors.textMuted, marginTop: 2 }}>SCORE</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      <Modal visible={showExplanation} transparent animationType="none">
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Animated.View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'black', opacity: backdropOpacity }} />
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
+          <Animated.View 
+            style={{
+              backgroundColor: colors.bgCardElevated,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: colors.borderLight,
+              transform: [{ translateY }],
+              ...SHADOW.medium
+            }}
+            {...panResponder.panHandlers}
+          >
+            <View style={{ width: 40, height: 4, backgroundColor: colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 20 }} />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' }}>
+                <Ionicons name="analytics" size={22} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 20, fontWeight: '800', color: colors.textDark, letterSpacing: -0.3 }}>Productivity Breakdown</Text>
+                <Text style={{ fontSize: 13, color: colors.textMuted }}>How your score is calculated</Text>
+              </View>
+            </View>
+
+            <View style={{ gap: 12, marginBottom: 24 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: colors.bgMain, borderRadius: 20, borderWidth: 1, borderColor: colors.borderLight + '80' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                   <Ionicons name="time-outline" size={20} color={colors.primary} />
+                  <View>
+                    <Text style={{ fontSize: 11, color: colors.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Total Working Hours</Text>
+                    <Text style={{ fontSize: 15, color: colors.textDark, fontWeight: '800', marginTop: 2 }}>{actualHours} hrs / {expectedHours} hrs expected</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: colors.primary }}>{productivity}%</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: colors.bgMain, borderRadius: 20, borderWidth: 1, borderColor: colors.borderLight + '80' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                  <Ionicons name="calendar-clear-outline" size={20} color={colors.purple} />
+                  <View>
+                    <Text style={{ fontSize: 11, color: colors.textLight, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>Total Cycle Working Days</Text>
+                    <Text style={{ fontSize: 15, color: colors.textDark, fontWeight: '800', marginTop: 2 }}>{expectedDaysTotal} days in full month cycle</Text>
+                  </View>
+                </View>
+                <Ionicons name="information-circle-outline" size={18} color={colors.purple} />
+              </View>
+            </View>
+
+            {/* Score Analysis & Insights */}
+            <View style={{ backgroundColor: colors.bgMain, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: colors.borderLight + '80', marginBottom: 20 }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textLight, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>Score Analysis & Insights</Text>
+              
+              <View style={{ gap: 12 }}>
+                {(() => {
+                  const insightsList = [];
+                  
+                  // 1. Missing Punches
+                  if (missingPunches > 0) {
+                    insightsList.push({
+                      icon: 'alert-circle-outline',
+                      color: colors.danger || '#EF4444',
+                      title: `${missingPunches} Missing Out-Punch${missingPunches > 1 ? 'es' : ''}`,
+                      desc: 'You forgot to punch out on some days. These are counted as 0 working hours, reducing your score.',
+                      actionLabel: 'Resolve Missing Punches →',
+                      action: () => {
+                        setShowExplanation(false);
+                        router.push('/punch-missing');
+                      }
+                    });
+                  }
+
+                  // 2. Unexcused Absences
+                  if (absentDaysList && absentDaysList.length > 0) {
+                    const formattedDates = absentDaysList.map(dStr => {
+                      const parts = dStr.split('-');
+                      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                      return format(d, 'MMM d');
+                    }).join(', ');
+
+                    insightsList.push({
+                      icon: 'calendar-outline',
+                      color: colors.warning || '#F59E0B',
+                      title: `${absentDaysList.length} Unexcused Absence${absentDaysList.length > 1 ? 's' : ''}`,
+                      desc: `No check-ins logged on: ${formattedDates}. Submit leave requests to exclude these days.`,
+                      actionLabel: 'Request Leave →',
+                      action: () => {
+                        setShowExplanation(false);
+                        router.push('/(tabs)/leaves');
+                      }
+                    });
+                  }
+
+                  // 3. Timing Penalties
+                  if (stats?.monthPenalty > 0) {
+                    insightsList.push({
+                      icon: 'time-outline',
+                      color: colors.warning || '#F59E0B',
+                      title: `₹${stats.monthPenalty} Timing Penalties`,
+                      desc: 'Late punch-ins or early departures are reducing your productive hours.',
+                      actionLabel: 'View Penalty Log →',
+                      action: () => {
+                        setShowExplanation(false);
+                        router.push('/penalties');
+                      }
+                    });
+                  }
+
+                  if (insightsList.length === 0) {
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="sparkles" size={18} color={colors.success || '#10B981'} />
+                        <Text style={{ fontSize: 13, color: colors.textDark, fontWeight: '700' }}>No warnings! Your logs are perfect.</Text>
+                      </View>
+                    );
+                  }
+
+                  return insightsList.map((item, idx) => (
+                    <View key={idx} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderBottomWidth: idx < insightsList.length - 1 ? 1 : 0, borderBottomColor: colors.borderLight + '50', paddingBottom: idx < insightsList.length - 1 ? 12 : 0 }}>
+                      <Ionicons name={item.icon} size={18} color={item.color} style={{ marginTop: 2 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, color: colors.textDark, fontWeight: '700' }}>{item.title}</Text>
+                        <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2, lineHeight: 16 }}>{item.desc}</Text>
+                        {item.action && (
+                          <TouchableOpacity onPress={item.action} style={{ marginTop: 6, alignSelf: 'flex-start' }}>
+                            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.primary }}>{item.actionLabel}</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  ));
+                })()}
+              </View>
+            </View>
+
+            <TouchableOpacity style={{ backgroundColor: colors.primary, height: 56, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 10 }} onPress={handleClose}>
+              <Text style={{ color: colors.white, fontSize: 16, fontWeight: '800' }}>Got it</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+    </Animated.View>
+  );
+};
+
 export default function Dashboard() {
   const { colors, gradients, theme, isDarkMode } = useTheme();
   const styles = createStyles(colors, gradients, isDarkMode);
@@ -621,6 +956,7 @@ export default function Dashboard() {
   };
 
   const [missingPunches, setMissingPunches] = useState(0);
+  const [absentDaysList, setAbsentDaysList] = useState([]);
 
   const loadData = async () => {
     try {
@@ -687,6 +1023,7 @@ export default function Dashboard() {
         const jDate = histJson.joiningDate;
         
         let mCount = 0;
+        const absentList = [];
         days.forEach(day => {
           const dateStr = format(day, 'yyyy-MM-dd');
           if (dateStr >= todayStr) return; 
@@ -702,8 +1039,13 @@ export default function Dashboard() {
           if (r && r.punchIn && !r.punchOut) {
             mCount++;
           }
+          
+          if (!r || !r.punchIn) {
+            absentList.push(dateStr);
+          }
         });
         setMissingPunches(mCount);
+        setAbsentDaysList(absentList);
       }
     } catch (e) {
       console.error('Dashboard loadData error:', e);
@@ -1068,6 +1410,7 @@ export default function Dashboard() {
         contentContainerStyle={{ paddingBottom: 60 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.primary} />}
       >
+        {/* Gradient Header */}
         <LinearGradient
           colors={theme === 'dark' ? ['#3c328f', '#1d1a3b'] : [colors.primary, colors.primaryDark]}
           start={{ x: 0, y: 0 }}
@@ -1099,6 +1442,9 @@ export default function Dashboard() {
 
         <View style={styles.body}>
           <PunchSystem punchData={punchData} onPunch={handlePunch} onBreak={handleBreak} pendingCount={pendingCount} isOnline={isOnline} />
+          
+          <ProductivityWidget stats={stats} dateJoined={emp.dateJoined} missingPunches={missingPunches} absentDaysList={absentDaysList} router={router} colors={colors} gradients={gradients} isDarkMode={isDarkMode} />
+
           <Text style={[styles.sectionTitle, { color: colors.textDark }]}>Monthly Overview</Text>
           <View style={{ position: 'relative' }}>
             {/* Elegant Premium Nocturnal Background Vector Trace Element Behind the Grid */}
@@ -1638,23 +1984,26 @@ function createStyles(colors, gradients, isDarkMode) {
   safe: { flex: 1, backgroundColor: colors.bgMain },
   scroll: { flex: 1, backgroundColor: colors.bgMain },
   header: {
-    marginHorizontal: 16,
-    marginTop: 10,
+    marginHorizontal: 0,
+    marginTop: 0,
     paddingHorizontal: 20, paddingVertical: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderRadius: 24,
     zIndex: 10,
-    borderWidth: 1, borderColor: isDarkMode ? 'rgba(195, 192, 255, 0.15)' : 'rgba(79, 70, 229, 0.15)',
+    borderBottomWidth: 1, borderColor: isDarkMode ? 'rgba(195, 192, 255, 0.15)' : 'rgba(79, 70, 229, 0.15)',
+  },
+  headerLeft: {
+    flex: 1,
+    paddingRight: 12,
   },
   greeting: { fontSize: SIZES.lg, fontWeight: '800', color: colors.white },
   subtext: { fontSize: SIZES.sm, color: colors.white + 'CC', marginTop: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
-  notifDot: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: isDarkMode ? '#3c328f' : colors.primary },
-  avatarBorder: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.primaryLight, padding: 2, overflow: 'hidden' },
-  avatar: { width: '100%', height: '100%', borderRadius: 24 },
-  avatarPlaceholder: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderRadius: 24 },
-  avatarText: { fontSize: 18, fontWeight: '800', color: colors.white },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
+  notifDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger, borderWidth: 1.5, borderColor: isDarkMode ? '#3c328f' : colors.primary },
+  avatarBorder: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: colors.primaryLight, padding: 1.5, overflow: 'hidden' },
+  avatar: { width: '100%', height: '100%', borderRadius: 20 },
+  avatarPlaceholder: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderRadius: 20 },
+  avatarText: { fontSize: 15, fontWeight: '800', color: colors.white },
   body: { padding: 20, paddingBottom: 20 },
   heroSection: { alignItems: 'center', marginVertical: 20 },
   ringWrapper: { 

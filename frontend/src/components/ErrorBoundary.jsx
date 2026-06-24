@@ -23,7 +23,7 @@ class ErrorBoundary extends React.Component {
           <p>We apologize for the inconvenience. Please try refreshing the page.</p>
           <button 
             onClick={() => window.location.reload()}
-            style={{ padding: '10px 20px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}
+            style={{ padding: '10px 20px', background: '#0052ff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginTop: '20px' }}
           >
             Reload Page
           </button>

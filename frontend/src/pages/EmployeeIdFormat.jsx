@@ -91,7 +91,7 @@ const EmployeeIdFormat = () => {
                 <h1 className="hrm-title">Employee ID Format</h1>
             </div>
 
-            <div className="hrm-card" style={{ maxWidth: 800, margin: '0 auto' }}>
+            <div className="hrm-card" style={{ width: '100%' }}>
                 <div style={{ padding: '32px' }}>
                     {/* Live Preview */}
                     <div style={{ 

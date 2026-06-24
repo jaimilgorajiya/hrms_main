@@ -30,20 +30,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const res = await apiFetch(ENDPOINTS.login, {
-      method: 'POST',
-      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-    });
-    const data = await res.json();
+    try {
+      const res = await apiFetch(ENDPOINTS.login, {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      const data = await res.json();
 
-    if (data.success) {
-      await storage.set('token', data.user.token);
-      await storage.set('user', data.user);
-      setToken(data.user.token);
-      setUser(data.user);
-      return { success: true };
+      if (data.success) {
+        await storage.set('token', data.user.token);
+        await storage.set('user', data.user);
+        setToken(data.user.token);
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, message: data.message || 'Login failed' };
+    } catch (error) {
+      console.error('Login request error:', error);
+      return { success: false, message: 'Server unreachable or connection error' };
     }
-    return { success: false, message: data.message || 'Login failed' };
   };
 
   const loginWithOTP = async (idToken) => {
@@ -80,6 +85,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const requestPasswordReset = async (email) => {
+    try {
+      const res = await apiFetch(ENDPOINTS.forgotPassword, {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      return { success: false, message: 'Server unreachable' };
+    }
+  };
+
   const logout = async () => {
     await storage.clear();
     setToken(null);
@@ -87,7 +105,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, loginWithOTP, logout, checkPhoneStatus }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginWithOTP, logout, checkPhoneStatus, requestPasswordReset }}>
       {children}
     </AuthContext.Provider>
   );

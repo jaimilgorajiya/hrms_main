@@ -333,7 +333,7 @@ const Login = () => {
         .auth-input:focus {
             outline: none;
             background: #FFFFFF !important;
-            border-color: #2563EB !important;
+            border-color: #0052ff !important;
             box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
         }
 
@@ -351,7 +351,7 @@ const Login = () => {
         }
 
         .auth-input:focus + .input-icon {
-            color: #2563EB;
+            color: #0052ff;
         }
 
         .eye-btn {
@@ -391,7 +391,7 @@ const Login = () => {
             border-radius: 4px;
             border: 2px solid #CBD5E1;
             cursor: pointer;
-            accent-color: #2563EB;
+            accent-color: #0052ff;
         }
 
         .checkbox-label {
@@ -404,7 +404,7 @@ const Login = () => {
         .forgot-password {
             font-size: 14px;
             font-weight: 600;
-            color: #2563EB;
+            color: #0052ff;
             text-decoration: none;
             cursor: pointer;
         }
@@ -415,7 +415,7 @@ const Login = () => {
 
         .auth-submit-btn {
             width: 100%;
-            background: #2563EB;
+            background: #0052ff;
             color: #FFFFFF;
             border: none;
             border-radius: 12px;
@@ -449,7 +449,7 @@ const Login = () => {
         }
 
         .auth-redirect a {
-            color: #2563EB;
+            color: #0052ff;
             font-weight: 600;
             text-decoration: none;
             cursor: pointer;
@@ -646,7 +646,7 @@ const Login = () => {
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ width: '64px', height: '64px', background: '#EFF6FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0052ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                 </div>
                 <h3 className="modal-title">Check your email</h3>
                 <p className="modal-subtitle">We have sent a password reset link to <strong>{forgotEmail}</strong>.</p>

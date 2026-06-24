@@ -162,7 +162,7 @@ const EmployeeAttendance = () => {
                 )}
                 {selected.workingFormatted && (
                   <div className="ep-att-detail-row">
-                    <Clock size={16} color="#2563EB" />
+                    <Clock size={16} color="#3b82f6" />
                     <div><label>Working Hours</label><span>{selected.workingFormatted}</span></div>
                   </div>
                 )}

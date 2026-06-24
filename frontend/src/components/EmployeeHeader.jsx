@@ -63,7 +63,7 @@ const EmployeeHeader = ({ toggleSidebar, isCollapsed }) => {
       text: 'You will be logged out of your session!',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#2563EB',
+      confirmButtonColor: '#3b82f6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, logout!',
     }).then((result) => {

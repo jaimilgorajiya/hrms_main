@@ -211,7 +211,7 @@ const PunchWidget = () => {
           await fetchToday();
           Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
         } else {
-          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#2563EB' });
+          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
         }
         return;
       }
@@ -241,7 +241,7 @@ const PunchWidget = () => {
           await fetchToday();
           Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
         } else {
-          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#2563EB' });
+          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
         }
         return;
       }
@@ -273,7 +273,7 @@ const PunchWidget = () => {
             await fetchToday();
             Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
           } else {
-            Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#2563EB' });
+            Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
           }
         } else {
           // Hard blocked — too early, no reason option
@@ -281,13 +281,13 @@ const PunchWidget = () => {
             title: 'Early Punch Out Not Allowed',
             html: `You are <b>${json.earlyByMins} min</b> early.<br>Maximum allowed early out is <b>${json.maxAllowedMins} min</b>.`,
             icon: 'warning',
-            confirmButtonColor: '#2563EB',
+            confirmButtonColor: '#3b82f6',
           });
         }
         return;
       }
 
-      Swal.fire({ title: 'Error', text: json.message, icon: 'error', confirmButtonColor: '#2563EB' });
+      Swal.fire({ title: 'Error', text: json.message, icon: 'error', confirmButtonColor: '#3b82f6' });
     } catch { Swal.fire({ title: 'Error', text: 'Server error', icon: 'error' }); }
     finally { setActionLoading(false); }
   };
@@ -322,7 +322,7 @@ const PunchWidget = () => {
     ? { ring: '#F59E0B', glow: '#F59E0B', label: 'On Break',       labelBg: '#FFFBEB', labelColor: '#D97706' }
     : isPunchedIn
     ? { ring: '#10B981', glow: '#10B981', label: 'Working',         labelBg: '#ECFDF5', labelColor: '#059669' }
-    : { ring: '#2563EB', glow: '#2563EB', label: 'Not Punched In',  labelBg: '#EFF6FF', labelColor: '#2563EB' };
+    : { ring: '#3b82f6', glow: '#3b82f6', label: 'Not Punched In',  labelBg: '#EFF6FF', labelColor: '#3b82f6' };
 
   return (
     <div className="pw-card-v2">

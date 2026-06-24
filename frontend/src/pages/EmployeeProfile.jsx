@@ -4,7 +4,7 @@ import {
     ArrowLeft, Mail, Phone, MapPin, Building2, Briefcase, 
     Calendar, User, ShieldCheck, Clock, Award, FileText,
     Check, X, Camera, ChevronDown, Search, GraduationCap, RotateCcw,
-    History, AlertCircle, StickyNote, Plus, Trash2, Edit2, Eye
+    History, AlertCircle, StickyNote, Plus, Trash2, Edit2, Eye, Key
 } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -832,6 +832,56 @@ const EmployeeProfile = () => {
         }
     };
 
+    const handleResendCredentials = async () => {
+        const result = await Swal.fire({
+            title: '<span style="font-size: 22px; font-weight: 800; color: #1E293B;">Resend Credentials?</span>',
+            html: '<p style="color: #64748B; font-size: 14.5px; line-height: 1.6; margin-top: 10px;">This will generate a new secure password for <b>' + formData.name + '</b> and send their login details to their email address (<b>' + formData.email + '</b>).</p>',
+            icon: 'question',
+            iconColor: '#3B82F6',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Send Credentials',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#3B82F6',
+            cancelButtonColor: '#F1F5F9',
+            customClass: {
+                popup: 'premium-swal-popup',
+                confirmButton: 'premium-swal-confirm',
+                cancelButton: 'premium-swal-cancel'
+            }
+        });
+
+        if (result.isConfirmed) {
+            try {
+                setSaving(true);
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/api/users/${id}/resend-credentials`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const resData = await response.json();
+                if (resData.success) {
+                    Swal.fire({
+                        title: 'Sent!',
+                        text: 'A new secure password has been generated and sent to the employee.',
+                        icon: 'success',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('Error', resData.message || 'Failed to send credentials', 'error');
+                }
+            } catch (error) {
+                console.error("Resend credentials error:", error);
+                Swal.fire('Error', error.message, 'error');
+            } finally {
+                setSaving(false);
+            }
+        }
+    };
+
     if (loading) return <div className="loading-container">Loading Profile...</div>;
     if (!employee) return <div className="loading-container">Employee not found.</div>;
 
@@ -970,36 +1020,69 @@ const EmployeeProfile = () => {
 
                         {/* Mark as Ex-Emp Button */}
                         {!['Ex-Employee', 'Resigned', 'Terminated', 'Absconding', 'Retired'].includes(formData.status) ? (
-                            <button 
-                                onClick={handleMarkExEmployee}
-                                style={{
-                                    marginTop: '25px',
-                                    width: '100%',
-                                    padding: '12px',
-                                    background: 'rgba(239, 68, 68, 0.08)',
-                                    color: '#EF4444',
-                                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                                    borderRadius: '12px',
-                                    fontSize: '14px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px',
-                                    transition: 'all 0.2s'
-                                }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.background = '#EF4444';
-                                    e.currentTarget.style.color = 'white';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
-                                    e.currentTarget.style.color = '#EF4444';
-                                }}
-                            >
-                                <X size={16} /> Mark as Ex-Emp
-                            </button>
+                            <>
+                                <button 
+                                    onClick={handleMarkExEmployee}
+                                    style={{
+                                        marginTop: '25px',
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: 'rgba(239, 68, 68, 0.08)',
+                                        color: '#EF4444',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: '12px',
+                                        fontSize: '14px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.background = '#EF4444';
+                                        e.currentTarget.style.color = 'white';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                                        e.currentTarget.style.color = '#EF4444';
+                                    }}
+                                >
+                                    <X size={16} /> Mark as Ex-Emp
+                                </button>
+
+                                <button 
+                                    onClick={handleResendCredentials}
+                                    style={{
+                                        marginTop: '15px',
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: 'rgba(59, 130, 246, 0.08)',
+                                        color: '#3B82F6',
+                                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                                        borderRadius: '12px',
+                                        fontSize: '14px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.background = '#3B82F6';
+                                        e.currentTarget.style.color = 'white';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+                                        e.currentTarget.style.color = '#3B82F6';
+                                    }}
+                                >
+                                    <Key size={16} /> Send Credentials
+                                </button>
+                            </>
                         ) : (
                             <div style={{ marginTop: '25px', borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

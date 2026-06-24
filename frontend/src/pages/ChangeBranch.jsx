@@ -114,7 +114,7 @@ const ChangeBranch = () => {
     };
 
     return (
-        <div className="hrm-container" style={{ maxWidth: '1200px' }}>
+        <div className="hrm-container">
             <div className="hrm-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <button className="icon-btn" onClick={() => navigate(-1)} style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>

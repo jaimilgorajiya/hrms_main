@@ -117,7 +117,7 @@ const RetirementSettings = () => {
     };
 
     const handleReset = () => {
-        Swal.fire({ title: 'Reset?', text: 'Discard unsaved changes?', icon: 'question', showCancelButton: true, confirmButtonColor: '#2563EB' })
+        Swal.fire({ title: 'Reset?', text: 'Discard unsaved changes?', icon: 'question', showCancelButton: true, confirmButtonColor: '#0052ff' })
             .then(r => { if (r.isConfirmed) fetchAll(); });
     };
 

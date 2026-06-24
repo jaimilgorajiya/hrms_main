@@ -464,7 +464,7 @@ const login = async (req, res) => {
     }
 
     // Role-based web restriction
-    if (user.role === 'Employee') {
+    if (user.role === 'Employee' && req.headers['x-platform'] !== 'mobile') {
         return res.status(403).json({
             success: false,
             message: "Employees can only access the HRMS via the Mobile App."

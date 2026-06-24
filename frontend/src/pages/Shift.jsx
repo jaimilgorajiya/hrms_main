@@ -75,7 +75,7 @@ const Shift = () => {
                 title: 'No Selection',
                 text: 'Please select at least one shift to delete.',
                 icon: 'info',
-                confirmButtonColor: '#2563EB'
+                confirmButtonColor: '#0052ff'
             });
             return;
         }

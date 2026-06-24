@@ -112,7 +112,7 @@ const Signup = () => {
                             title: 'Payment Successful!',
                             text: 'Your workspace is active. Please check your email for login credentials.',
                             icon: 'success',
-                            confirmButtonColor: '#2563EB',
+                            confirmButtonColor: '#0052ff',
                             confirmButtonText: 'Proceed to Login'
                         }).then(() => {
                             navigate('/login');
@@ -122,7 +122,7 @@ const Signup = () => {
                             title: 'Verification Failed',
                             text: verifyData.message || 'Payment verification failed. Please contact support.',
                             icon: 'error',
-                            confirmButtonColor: '#2563EB'
+                            confirmButtonColor: '#0052ff'
                         });
                         setError('Payment verification failed. Contact support.');
                     }
@@ -132,7 +132,7 @@ const Signup = () => {
                     email: formData.email,
                     contact: formData.phoneNumber
                 },
-                theme: { color: '#2563EB' },
+                theme: { color: '#0052ff' },
                 modal: {
                     ondismiss: function() {
                         setLoading(false);
@@ -338,7 +338,7 @@ const Signup = () => {
                 .auth-input:focus {
                     outline: none;
                     background: #FFFFFF !important;
-                    border-color: #2563EB !important;
+                    border-color: #0052ff !important;
                     box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
                 }
 
@@ -408,7 +408,7 @@ const Signup = () => {
                 .package-price {
                     font-size: 20px;
                     font-weight: 800;
-                    color: #2563EB;
+                    color: #0052ff;
                     margin: 0;
                 }
 
@@ -421,7 +421,7 @@ const Signup = () => {
 
                 .auth-submit-btn {
                     width: 100%;
-                    background: #2563EB;
+                    background: #0052ff;
                     color: #FFFFFF;
                     border: none;
                     border-radius: 12px;
@@ -455,7 +455,7 @@ const Signup = () => {
                 }
 
                 .auth-redirect a {
-                    color: #2563EB;
+                    color: #0052ff;
                     font-weight: 600;
                     text-decoration: none;
                     cursor: pointer;
@@ -572,7 +572,7 @@ const Signup = () => {
                                     <h4 className="package-price">₹{selectedPackage.price}</h4>
                                 </div>
                                 <p className="package-desc">Billed for {selectedPackage.duration.value} {selectedPackage.duration.unit}(s)</p>
-                                <p className="package-desc" style={{ marginTop: '6px', color: '#2563EB', fontWeight: 600 }}>
+                                <p className="package-desc" style={{ marginTop: '6px', color: '#0052ff', fontWeight: 600 }}>
                                     Up to {selectedPackage.maxEmployees || 10} employees
                                 </p>
                             </div>

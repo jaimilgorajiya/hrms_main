@@ -289,7 +289,7 @@ const ManageRoles = () => {
                 </div>
             </div>
 
-            <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
+            <div style={{ margin: '0 auto', paddingBottom: '40px' }}>
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     {/* Card Header */}
                     <div className="card-header" style={{ justifyContent: 'space-between' }}>

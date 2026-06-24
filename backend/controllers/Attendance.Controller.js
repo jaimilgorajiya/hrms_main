@@ -1027,7 +1027,7 @@ export const addManualAttendance = async (req, res) => {
             punches.push({
                 time: createISTDate(date, inTime),
                 type: "IN",
-                locationAddress: "Admin Manual Entry",
+                locationAddress: "-",
                 lateReason: remark
             });
         }
@@ -1086,7 +1086,7 @@ export const addManualAttendance = async (req, res) => {
                     punches,
                     lateInPenalty,
                     earlyOutPenalty,
-                    approvalStatus: "Approved",
+                    approvalStatus: "Pending",
                     remark: remark || "Manual entry by admin",
                     adminId: req.user._id
                 }

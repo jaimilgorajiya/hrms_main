@@ -853,4 +853,36 @@ const reviewUserDocument = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument };
+const resendCredentials = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Generate new temporary password
+        const temporaryPassword = generatePassword();
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+        user.password = hashedPassword;
+        user.forcePasswordReset = true;
+        await user.save();
+
+        // Send welcome email with credentials
+        const emailResult = await sendWelcomeEmail(user.email, user.name, user.employeeId, temporaryPassword);
+
+        res.status(200).json({ 
+            success: true, 
+            message: emailResult.success 
+                ? "Credentials sent successfully to employee's email" 
+                : "New credentials saved, but email failed to send",
+            emailSent: emailResult.success
+        });
+    } catch (error) {
+        console.error("Error in resendCredentials controller:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    }
+};
+
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials };

@@ -15,8 +15,9 @@
 
 .dashboard-container {
   padding: 40px;
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
   min-height: 100vh;
   background-color: #f1f5f9;
   background-image: 
@@ -505,7 +506,7 @@ body.dark-mode .icon-btn-prem:hover {
 }
 
 body.dark-mode .btn-primary-prem {
-  background: #2563EB !important;
+  background: #3b82f6 !important;
   color: #FFFFFF !important;
   box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.4) !important;
 }
@@ -558,3 +559,106 @@ body.dark-mode .role-chip-prem,
 body.dark-mode .dist-info-prem span:last-child {
   color: #9ca3af !important;
 }
+
+/* Leaderboard Styles */
+.performance-leaderboard-prem {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.performance-item-prem {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.performance-item-prem:hover {
+  background: rgba(255, 255, 255, 0.7);
+  transform: translateY(-2px);
+  border-color: rgba(30, 41, 59, 0.1);
+  box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.05);
+}
+
+.rank-badge-prem {
+  font-family: 'Sora', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent-blue);
+  width: 36px;
+  text-align: center;
+}
+
+.emp-details-prem {
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.emp-progress-container-prem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.emp-progress-container-prem .progress-bar-prem {
+  flex: 1;
+  height: 8px;
+}
+
+.progress-fill-prem.success { background: linear-gradient(90deg, #34d399, #10b981) !important; }
+.progress-fill-prem.primary { background: linear-gradient(90deg, #818cf8, #4f46e5) !important; }
+.progress-fill-prem.warning { background: linear-gradient(90deg, #fbbf24, #f59e0b) !important; }
+.progress-fill-prem.danger { background: linear-gradient(90deg, #f87171, #ef4444) !important; }
+
+.progress-hours-prem {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 140px;
+  text-align: right;
+  font-family: 'Sora', sans-serif;
+}
+
+.emp-score-prem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.score-val-prem {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+/* Dark Mode Overrides for Leaderboard */
+body.dark-mode .performance-item-prem {
+  background: rgba(26, 26, 26, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.dark-mode .performance-item-prem:hover {
+  background: rgba(26, 26, 26, 0.7) !important;
+}
+
+body.dark-mode .rank-badge-prem {
+  color: #60a5fa !important;
+}
+
+body.dark-mode .score-val-prem {
+  color: #ffffff !important;
+}
+

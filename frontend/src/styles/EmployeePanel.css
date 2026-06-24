@@ -2280,3 +2280,7 @@
 }
 
 
+/* Overrides to prevent layout from shrinking on wide viewports */
+.ep-page, .ep-dashboard, .ep-profile-page {
+  max-width: 100% !important;
+}

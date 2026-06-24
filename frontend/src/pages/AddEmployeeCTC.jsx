@@ -322,7 +322,7 @@ const AddEmployeeCTC = () => {
             </div>
 
             {/* Form Card */}
-            <div className="hrm-card" style={{ maxWidth: '900px', margin: '0 auto', padding: '32px' }}>
+            <div className="hrm-card" style={{ margin: '0 auto', padding: '32px' }}>
                 <form onSubmit={handleAddCTC}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '32px' }}>
                         {/* Salary Group */}

@@ -312,7 +312,7 @@ const ViewEmployeeCTC = () => {
                     .view-ctc-wrapper {
                         font-family: 'Inter', sans-serif;
                         padding-bottom: 60px;
-                        max-width: 1200px;
+                        max-width: 100%;
                         margin: 0 auto;
                     }
 

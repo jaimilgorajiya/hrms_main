@@ -195,7 +195,7 @@ const BulkEmployeeId = () => {
             html: `This will generate new IDs using format <b>${buildId(empIdFormat, 1)}, ${buildId(empIdFormat, 2)}...</b> for <b>${checkedFiltered.length}</b> selected employee(s) and save directly to the database.`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#2563EB',
+            confirmButtonColor: '#0052ff',
             confirmButtonText: 'Yes, Apply & Save',
         });
 
@@ -244,7 +244,7 @@ const BulkEmployeeId = () => {
                     <h1 className="hrm-title">Update Bulk Employee ID</h1>
                     {empIdFormat && (
                         <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                            Current format: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563EB' }}>{buildId(empIdFormat, 1)}</span>, <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#2563EB' }}>{buildId(empIdFormat, 2)}</span>...
+                            Current format: <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0052ff' }}>{buildId(empIdFormat, 1)}</span>, <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0052ff' }}>{buildId(empIdFormat, 2)}</span>...
                         </p>
                     )}
                 </div>
@@ -341,7 +341,7 @@ const BulkEmployeeId = () => {
                                             checked={allFilteredSelected}
                                             ref={el => { if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected; }}
                                             onChange={toggleSelectAll}
-                                            style={{ cursor: 'pointer', width: 15, height: 15, accentColor: '#2563EB' }}
+                                            style={{ cursor: 'pointer', width: 15, height: 15, accentColor: '#0052ff' }}
                                         />
                                     </th>
                                     <th>Employee ID</th>

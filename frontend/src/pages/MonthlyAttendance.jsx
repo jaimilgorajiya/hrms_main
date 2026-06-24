@@ -16,6 +16,7 @@ const STATUS_STYLE = {
     'Week Off':   { color: '#64748B', bg: '#F1F5F9', dot: '#94A3B8', icon: <MinusCircle size={14} /> },
     'Extra Day':  { color: '#0EA5E9', bg: '#E0F2FE', dot: '#0EA5E9', icon: <TrendingUp size={14} /> },
     'Missing':    { color: '#F97316', bg: '#FFF7ED', dot: '#F97316', icon: <AlertCircle size={14} /> },
+    '—':          { color: '#64748B', bg: '#F1F5F9', dot: '#94A3B8', icon: null },
 };
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -110,7 +111,7 @@ const MonthlyAttendance = () => {
     const currentEmp = employees.find(e => e._id === selectedEmp);
 
     return (
-        <div className="hrm-container" style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div className="hrm-container" style={{ margin: '0 auto' }}>
             <div className="hrm-header" style={{ marginBottom: '32px' }}>
                 <div>
                     <h1 className="hrm-title" style={{ fontSize: '28px', marginBottom: '4px' }}>Monthly Attendance</h1>
@@ -200,11 +201,12 @@ const MonthlyAttendance = () => {
                                 {cells.map((cell, i) => {
                                     if (!cell) return <div key={`empty-${i}`} style={{ height: '90px' }} />;
                                     
+                                    const isFuture = cell.date > todayStr;
                                     const isMissingPunch = cell.rec && cell.rec.punchIn && !cell.rec.punchOut;
                                     const status = cell.isExtraDay ? 'Extra Day' : 
                                                   isMissingPunch ? 'Missing' :
                                                   cell.isWeekOff ? 'Week Off' : 
-                                                  (cell.rec?.status || 'Absent');
+                                                  (cell.rec?.status || (isFuture ? '—' : 'Absent'));
 
                                     const st = STATUS_STYLE[status] || STATUS_STYLE['Absent'];
                                     const isToday = cell.date === todayStr;
@@ -272,7 +274,7 @@ const MonthlyAttendance = () => {
                                             {!isSelected && (
                                                 <div style={{ 
                                                     height: '4px', width: '100%', borderRadius: '2px', 
-                                                    background: st.dot, opacity: status === 'Absent' ? 0.2 : 1
+                                                    background: st.dot, opacity: status === '—' ? 0 : status === 'Absent' ? 0.2 : 1
                                                 }} />
                                             )}
                                         </div>

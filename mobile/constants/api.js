@@ -12,6 +12,7 @@ export const ENDPOINTS = {
   checkPhone: '/api/auth/check-phone',
   verify: '/api/auth/verify',
   changePassword: '/api/auth/change-password',
+  forgotPassword: '/api/auth/forgot-password',
   employeeStats: '/api/employee-dashboard/stats',
   company: '/api/company',
   attendanceToday: '/api/attendance/today',

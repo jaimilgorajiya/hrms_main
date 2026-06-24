@@ -159,7 +159,7 @@ const FixAttendance = () => {
     };
 
     return (
-        <div className="hrm-container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
+        <div className="hrm-container">
             <div className="hrm-header" style={{ marginBottom: '32px' }}>
                 <div>
                     <h1 className="hrm-title" style={{ fontSize: '28px', marginBottom: '4px' }}>Fix Attendance</h1>
@@ -225,7 +225,7 @@ const FixAttendance = () => {
                         <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontWeight: '600' }}>Fetching existing record...</p>
                     </div>
                 ) : (
-                    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+                    <div style={{ margin: '0 auto' }}>
                         <form onSubmit={handleUpdate}>
                             {/* Existing Record Indicator */}
                             <div style={{ 

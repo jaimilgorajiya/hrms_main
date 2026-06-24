@@ -49,7 +49,7 @@ const AbsentEmployees = () => {
       html: `
         <style>
           .swal-custom-field:focus {
-            border-color: #2563EB !important;
+            border-color: #0052ff !important;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
           }
           .custom-select-option:hover {
@@ -72,7 +72,7 @@ const AbsentEmployees = () => {
             <input type="hidden" id="swal-status" value="Present" />
             
             <div id="custom-select-menu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background-color: #fff; border: 1px solid #E2E8F0; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05); z-index: 99999; overflow: hidden; padding: 6px 0; box-sizing: border-box;">
-              <div class="custom-select-option" data-value="Present" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #2563EB; background-color: #EFF6FF; cursor: pointer; transition: background 0.15s;">Present</div>
+              <div class="custom-select-option" data-value="Present" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #0052ff; background-color: #EFF6FF; cursor: pointer; transition: background 0.15s;">Present</div>
               <div class="custom-select-option" data-value="On Leave" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">On Leave</div>
               <div class="custom-select-option" data-value="Half Day" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">Half Day</div>
               <div class="custom-select-option" data-value="Absent" style="padding: 10px 16px; font-size: 14px; font-weight: 600; color: #1E293B; cursor: pointer; transition: background 0.15s;">Absent</div>
@@ -97,7 +97,7 @@ const AbsentEmployees = () => {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Submit Entry',
-      confirmButtonColor: '#2563EB',
+      confirmButtonColor: '#0052ff',
       cancelButtonColor: '#64748B',
       didOpen: () => {
         const trigger = document.getElementById('custom-select-trigger');
@@ -112,7 +112,7 @@ const AbsentEmployees = () => {
           e.stopPropagation();
           const isOpen = menu.style.display === 'block';
           menu.style.display = isOpen ? 'none' : 'block';
-          trigger.style.borderColor = isOpen ? '#E2E8F0' : '#2563EB';
+          trigger.style.borderColor = isOpen ? '#E2E8F0' : '#0052ff';
           trigger.style.boxShadow = isOpen ? '0 1px 2px rgba(0,0,0,0.05)' : '0 0 0 3px rgba(37, 99, 235, 0.15)';
         });
 
@@ -135,7 +135,7 @@ const AbsentEmployees = () => {
               o.style.color = '#1E293B';
             });
             opt.style.backgroundColor = '#EFF6FF';
-            opt.style.color = '#2563EB';
+            opt.style.color = '#0052ff';
 
             if (val === 'On Leave' || val === 'Absent') {
               timeInputs.style.display = 'none';
@@ -218,7 +218,7 @@ const AbsentEmployees = () => {
   });
 
   const departments = ['All', ...new Set(absentees.map(a => a.department).filter(Boolean))];  return (
-    <div style={{ padding: '32px', maxWidth: '1450px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ padding: '32px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       {/* Header & Stats Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
         <div>

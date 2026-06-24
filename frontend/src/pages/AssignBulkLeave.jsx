@@ -40,9 +40,10 @@ const AssignBulkLeave = () => {
             return matchesSearch;
         });
     }, [employees, searchTerm]);
+    
 
     return (
-        <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
+         <div style={{ padding: '32px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
@@ -122,6 +123,7 @@ const AssignBulkLeave = () => {
                                                 <Edit size={14} /> {emp.leaveGroup ? 'EDIT' : 'ASSIGN BULK'}
                                             </button>
                                         </td>
+                                        
                                         <td style={{ padding: '16px 24px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                                 <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--bg-main)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '13px', color: 'var(--accent)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>

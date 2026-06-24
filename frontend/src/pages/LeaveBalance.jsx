@@ -74,7 +74,7 @@ const getStatusStyle = (status) => {
     };
 
     return (
-        <div style={{ padding: '35px', maxWidth: '1400px', margin: '0 auto', minHeight: '100vh' }}>
+        <div style={{ padding: '35px', margin: '0 auto', minHeight: '100vh' }}>
             {/* Header */}
             <div style={{ marginBottom: '40px' }}>
                 <h1 className="hrm-title" style={{ fontSize: '32px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Individual Leave Portfolio</h1>

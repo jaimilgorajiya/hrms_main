@@ -20,6 +20,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 
   const headers = {
     'Content-Type': 'application/json',
+    'x-platform': 'mobile',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };

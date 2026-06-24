@@ -111,6 +111,11 @@ export default function AttendanceScreen() {
         setLeavePolicy(json.leavePolicy || 'Default (Multiple of 0.5)');
         processAttendance(json.records, m, json.joiningDate, json.requests, json.weekOffDays || []);
       }
+
+      // Refetch Leave Types
+      const ltRes = await apiFetch(ENDPOINTS.leaveTypes);
+      const ltJson = await ltRes.json();
+      if (ltJson.success) setLeaveTypes(ltJson.leaveTypes || ltJson.data || []);
     } catch (e) {
       console.error(e);
       Toast.show({ type: 'error', text1: 'Network error' });
@@ -223,7 +228,7 @@ export default function AttendanceScreen() {
   const isIncomplete = selectedRecord && (selectedRecord.status === 'Incomplete' || selectedRecord.status === 'Half Day' || selectedRecord.status === 'Late' || selectedRecord.status === 'Absent');
   const isPastDate = selectedDate < todayStr;
   const isFutureDate = selectedDate > todayStr;
-  const canRequest = !currentRequest && (isRedDate || isMissingPunchOut || (isPastDate && isIncomplete) || isFutureDate || (selectedDate === todayStr && !selectedRecord));
+  const canRequest = !currentRequest && (isRedDate || isMissingPunchOut || (isPastDate && isIncomplete) || (selectedDate === todayStr && !selectedRecord));
 
 
 
@@ -337,6 +342,13 @@ export default function AttendanceScreen() {
 
   const openRequest = () => {
     setReqDate(selectedDate);
+    
+    // Reset form states to prevent old request data persistence
+    setReason('');
+    setWorkSummary('');
+    setManualOut('18:00');
+    setSelectedLeaveType('');
+
     const filteredForThisDate = leaveTypes.filter(lt => {
       if (userProfile?.gender) {
         if (lt.applicableFor === 'Male Only' && userProfile.gender !== 'Male') return false;
@@ -543,6 +555,16 @@ export default function AttendanceScreen() {
                           <View style={styles.sentRequestRow}>
                             <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Report:</Text>
                             <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>{currentRequest.workSummary}</Text>
+                          </View>
+                        )}
+                        {currentRequest.type === 'Attendance Correction' && (
+                          <View style={styles.sentRequestRow}>
+                            <Text style={[styles.sentRequestLabel, { color: colors.textLight }]}>Time:</Text>
+                            <Text style={[styles.sentRequestValue, { color: colors.textDark }]}>
+                              {(currentRequest.manualIn || currentRequest.inTime) ? new Date(currentRequest.manualIn || currentRequest.inTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} 
+                              {' - '} 
+                              {(currentRequest.manualOut || currentRequest.outTime) ? new Date(currentRequest.manualOut || currentRequest.outTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                            </Text>
                           </View>
                         )}
                         {currentRequest.adminRemark && (

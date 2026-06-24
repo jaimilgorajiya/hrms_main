@@ -118,12 +118,12 @@ const Employees = () => {
                             min-height: 140px;
                         }
                         .custom-file-upload:hover {
-                            border-color: var(--primary-blue, #2563EB);
+                            border-color: var(--primary-blue, #0052ff);
                             background: var(--primary-light, #F0F7FF);
                         }
                         #file-name-display {
                             font-weight: 700;
-                            color: var(--primary-blue, #2563EB);
+                            color: var(--primary-blue, #0052ff);
                             margin-top: 12px;
                             display: none;
                             font-size: 13px;
@@ -190,7 +190,7 @@ const Employees = () => {
             `,
             showCancelButton: true,
             confirmButtonText: 'Run Deployment',
-            confirmButtonColor: '#2563EB',
+            confirmButtonColor: '#0052ff',
             cancelButtonColor: '#F1F5F9',
             customClass: {
                 title: 'premium-swal-title',

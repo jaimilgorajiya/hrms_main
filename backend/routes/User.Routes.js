@@ -1,5 +1,5 @@
 import express from "express";
-import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument } from "../controllers/User.Controller.js";
+import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials } from "../controllers/User.Controller.js";
 import { downloadSample, importEmployees } from "../controllers/ImportEmployee.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
 import { checkEmployeeLimit } from "../middleware/EmployeeLimit.Middleware.js";
@@ -27,5 +27,6 @@ router.delete("/:id/documents/:docId", verifyToken, isAdmin, deleteUserDocument)
 router.put("/:id/documents/:docId/review", verifyToken, isAdmin, reviewUserDocument);
 router.put("/:id/change-branch", verifyToken, isAdmin, changeBranch);
 router.delete("/:id/profile-photo", verifyToken, isAdmin, deleteProfilePhoto);
+router.post("/:id/resend-credentials", verifyToken, isAdmin, resendCredentials);
 
 export default router;

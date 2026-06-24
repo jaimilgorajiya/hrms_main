@@ -76,6 +76,10 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                                     <span class="credential-label">Email:</span>
                                     <span class="credential-value">${userEmail}</span>
                                 </div>
+                                <div class="credential-item">
+                                    <span class="credential-label">Password:</span>
+                                    <span class="credential-value">${temporaryPassword}</span>
+                                </div>
                             </div>
                             
                             <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
@@ -92,9 +96,9 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                             </div>
 
                             <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; margin: 20px 0; border-left: 4px solid #f59e0b; border-radius: 5px;">
-                                <strong>🔑 Secure OTP Sign In:</strong>
+                                <strong>🔑 Secure Account Sign In:</strong>
                                 <p style="margin: 5px 0 0 0; font-size: 13.5px; color: #92400e; line-height: 1.5;">
-                                    There is no password required for your account. You can securely log in to the employee dashboard or mobile application at any time using your registered mobile number and a one-time verification code (OTP) sent directly to your phone.
+                                    Use your registered email and the temporary password listed above to securely log in to the employee dashboard or mobile application. Please change your password after logging in.
                                 </p>
                             </div>
                             

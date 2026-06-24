@@ -162,7 +162,7 @@ const PublishSalarySlip = () => {
     };
 
     return (
-        <div className="hrm-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '24px 16px' }}>
+        <div className="hrm-container" style={{ margin: '0 auto', padding: '24px 16px' }}>
             
             {/* ── Page Header ── */}
             <div className="hrm-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '32px' }}>
