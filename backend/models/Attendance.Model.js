@@ -43,6 +43,11 @@ const attendanceSchema = new mongoose.Schema({
         enum: ["Paid", "Unpaid"],
         default: null
     },
+    leaveDuration: {
+        type: String,
+        enum: ["Full Day", "First Half", "Second Half"],
+        default: null
+    },
     lateInPenalty: {
         amount: { type: Number, default: 0 },
         isApplied: { type: Boolean, default: false },

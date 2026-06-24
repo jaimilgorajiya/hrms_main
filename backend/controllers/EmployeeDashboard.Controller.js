@@ -100,7 +100,8 @@ export const getEmployeeStats = async (req, res) => {
         }
         const monthHours = Math.floor(monthWorkMins / 60);
         const presentDays = monthAttendance.filter(a => a.status === 'Present').length;
-        const halfDays = monthAttendance.filter(a => a.status === 'Half Day').length;
+        // Exclude leave-based half-days — those are already counted in usedPaidLeaves/usedUnpaidLeaves
+        const halfDays = monthAttendance.filter(a => a.status === 'Half Day' && !a.leaveCategory).length;
         const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
         const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
 

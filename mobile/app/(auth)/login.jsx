@@ -22,6 +22,7 @@ export default function LoginScreen() {
   // State for Email/Password login & Forgot Password flow
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isForgotPage, setIsForgotPage] = useState(false);
 
@@ -193,19 +194,26 @@ export default function LoginScreen() {
                   <>
                     <View style={styles.inputGroup}>
                       <Text style={[styles.label, { color: colors.textDark }]}>Password</Text>
-                      <View style={[styles.inputWrap, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }]}>
+                    <View style={[styles.inputWrap, { backgroundColor: colors.bgMain, borderColor: colors.borderLight }]}>
                         <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
-                            <TextInput
-                              style={[styles.input, { color: colors.textDark }]}
-                              placeholder="Enter Password"
-                              value={password}
-                              onChangeText={setPassword}
-                              secureTextEntry
-                              autoCapitalize="none"
-                              autoCorrect={false}
-                              placeholderTextColor={colors.textMuted}
-                            />
-                          </View>
+                        <TextInput
+                          style={[styles.input, { color: colors.textDark }]}
+                          placeholder="Enter Password"
+                          value={password}
+                          onChangeText={setPassword}
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          placeholderTextColor={colors.textMuted}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                          <Ionicons
+                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={colors.textMuted}
+                          />
+                        </TouchableOpacity>
+                      </View>
                         </View>
 
                         {/* Forgot Password Link */}

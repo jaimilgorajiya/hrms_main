@@ -167,12 +167,11 @@ const checkPhone = async (req, res) => {
 };
 
 const generateTokenAndSetCookie = (userId, res) => {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: "30d", // 30 days
-    });
+    // Token does not expire — valid until the employee explicitly logs out
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET);
 
     res.cookie("jwt", token, {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
+        maxAge: 10 * 365 * 24 * 60 * 60 * 1000, // 10 years (effectively permanent)
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: "lax",

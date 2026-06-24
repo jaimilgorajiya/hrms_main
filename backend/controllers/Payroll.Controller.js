@@ -58,8 +58,12 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 date: { $gte: startDate, $lte: endDate }
             });
 
-            const usedPaidLeaves = approvedLeaves.filter(l => l.leaveCategory === 'Paid').length;
-            const usedUnpaidLeaves = approvedLeaves.filter(l => l.leaveCategory === 'Unpaid').length;
+            const usedPaidLeaves = approvedLeaves
+                .filter(l => l.leaveCategory === 'Paid')
+                .reduce((sum, l) => sum + (l.leaveDuration === 'Full Day' ? 1 : 0.5), 0);
+            const usedUnpaidLeaves = approvedLeaves
+                .filter(l => l.leaveCategory === 'Unpaid')
+                .reduce((sum, l) => sum + (l.leaveDuration === 'Full Day' ? 1 : 0.5), 0);
 
             // --- ADVANCED PAYROLL ENGINE ---
             const shift = emp.workSetup?.shift;
@@ -92,8 +96,14 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                         presentDaysCount++;
                         if (isWeekOff) extraDaysWorked += 1;
                     } else if (record.status === 'Half Day') {
-                        halfDaysCount++;
-                        if (isWeekOff) extraDaysWorked += 0.5;
+                        // Only count as a worked half-day if it was NOT a leave-based half-day.
+                        // Leave-based half-days (leaveCategory set) are already counted in
+                        // usedPaidLeaves / usedUnpaidLeaves below to avoid double-counting.
+                        const isLeaveHalfDay = !!record.leaveCategory;
+                        if (!isLeaveHalfDay) {
+                            halfDaysCount++;
+                            if (isWeekOff) extraDaysWorked += 0.5;
+                        }
                     } else if (record.status === 'Absent') {
                         absentDaysCount++;
                     } else if (record.status === 'Holiday') {

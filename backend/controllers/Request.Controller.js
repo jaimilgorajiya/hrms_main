@@ -292,6 +292,12 @@ export const updateRequestStatus = async (req, res) => {
                 // Loop through all dates from fromDate to toDate
                 const start = new Date(request.fromDate);
                 const end = new Date(request.toDate);
+
+                // Half-day leaves mark attendance as "Half Day" so payroll correctly
+                // counts 0.5 days via halfDaysCount instead of treating it as a full
+                // "On Leave" day. Full-day leaves remain "On Leave".
+                const isHalfDay = request.leaveDuration === "First Half" || request.leaveDuration === "Second Half";
+                const attendanceStatus = isHalfDay ? "Half Day" : "On Leave";
                 
                 for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                     const dateStr = d.toISOString().split('T')[0];
@@ -300,9 +306,10 @@ export const updateRequestStatus = async (req, res) => {
                         {
                             $set: {
                                 adminId: request.adminId,
-                                status: "On Leave",
+                                status: attendanceStatus,
                                 approvalStatus: "Approved",
                                 leaveCategory: request.leaveCategory, // Pass Paid/Unpaid to attendance
+                                leaveDuration: request.leaveDuration, // Track which half for reporting
                                 punches: [] // Clear punches for leave day
                             }
                         },

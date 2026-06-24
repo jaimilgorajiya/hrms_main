@@ -76,8 +76,15 @@ export const MobileAuthProvider = ({ children }) => {
     try {
       const response = await fetch(url, { ...options, headers, signal: controller.signal });
       clearTimeout(tid);
-      if (response.status === 401 || response.status === 403) {
-        logout();
+      // Only force logout if token is invalid (no token / bad signature).
+      // Account-blocked (403) or other errors should NOT clear the session.
+      if (response.status === 401) {
+        const json = await response.clone().json().catch(() => ({}));
+        const msg = json?.message || '';
+        // Only logout if the token itself is bad — not for other 401 reasons
+        if (msg.includes('Invalid Token') || msg.includes('No Token')) {
+          logout();
+        }
       }
       return response;
     } catch (err) {

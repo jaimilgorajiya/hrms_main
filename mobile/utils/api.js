@@ -43,10 +43,17 @@ export const apiFetch = async (endpoint, options = {}) => {
     
     clearTimeout(timeoutId);
 
-    if (response.status === 401 || response.status === 403) {
-      await storage.remove('token');
-      await storage.remove('user');
-      // Navigation handled by auth context
+    if (response.status === 401) {
+      // Clone the response to read the body without consuming it
+      const json = await response.clone().json().catch(() => ({}));
+      const msg = json?.message || '';
+      // Only clear session if the token itself is invalid (bad signature / missing)
+      // Do NOT clear on account-blocked or other 401 reasons
+      if (msg.includes('Invalid Token') || msg.includes('No Token')) {
+        await storage.remove('token');
+        await storage.remove('user');
+        // Navigation handled by auth context
+      }
     }
 
     return response;

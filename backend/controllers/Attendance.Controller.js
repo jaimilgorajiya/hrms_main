@@ -1745,7 +1745,12 @@ export const getEmployeeMonthlySummary = async (req, res) => {
                     if (isWeekOff) {
                         extraDaysWorked += 0.5;
                     } else {
-                        halfDaysCount++;
+                        // Only count as a worked half-day if it's not leave-based.
+                        // Leave half-days are already counted in usedPaidLeaves/usedUnpaidLeaves.
+                        const isLeaveHalfDay = !!record.leaveCategory;
+                        if (!isLeaveHalfDay) {
+                            halfDaysCount++;
+                        }
                     }
                 } else if (record.status === 'Absent') {
                     if (!isWeekOff) {
