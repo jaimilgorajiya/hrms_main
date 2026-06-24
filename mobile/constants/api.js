@@ -29,5 +29,6 @@ export const ENDPOINTS = {
   myResignation: '/api/resignation/my',
   mySlips: '/api/payroll/my-slips',
   downloadSlip: (id) => `/api/payroll/download-slip/${id}`,
+  myHolidays: (year) => `/api/holidays/my?year=${year}`,
 };
-
+

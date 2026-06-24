@@ -83,6 +83,7 @@ export default function TabsLayout() {
       {/* Hide these from tab bar but keep routes active */}
       <Tabs.Screen name="shift" options={{ href: null }} />
       <Tabs.Screen name="documents" options={{ href: null }} />
+      <Tabs.Screen name="holidays" options={{ href: null }} />
     </Tabs>
   );
 }

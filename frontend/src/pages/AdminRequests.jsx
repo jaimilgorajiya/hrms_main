@@ -38,11 +38,24 @@ const parseLocalDate = (dateStr) => {
   return d;
 };
 
-const MiniCalendar = ({ fromDate, toDate }) => {
+const durationBadgeStyle = {
+  'Full Day':    { color: '#3B82F6', bg: 'rgba(59,130,246,0.12)' },
+  'First Half':  { color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' },
+  'Second Half': { color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' },
+};
+
+const MiniCalendar = ({ fromDate, toDate, leaveDuration }) => {
   const start = parseLocalDate(fromDate);
   const end = parseLocalDate(toDate || fromDate);
   
   if (!start || !end) return null;
+
+  const isHalfDay = leaveDuration === 'First Half' || leaveDuration === 'Second Half';
+  // For half-day: always a single day, count as 0.5
+  // For full day: count calendar days in range
+  const dayCount = isHalfDay
+    ? 0.5
+    : Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
   const month = start.getMonth();
   const year = start.getFullYear();
@@ -64,15 +77,15 @@ const MiniCalendar = ({ fromDate, toDate }) => {
 
   const isStart = (day) => {
     if (!day) return false;
-    const current = new Date(year, month, day);
-    return current.getTime() === start.getTime();
+    return new Date(year, month, day).getTime() === start.getTime();
   };
 
   const isEnd = (day) => {
     if (!day) return false;
-    const current = new Date(year, month, day);
-    return current.getTime() === end.getTime();
+    return new Date(year, month, day).getTime() === end.getTime();
   };
+
+  const dStyle = durationBadgeStyle[leaveDuration] || durationBadgeStyle['Full Day'];
 
   return (
     <div style={{ background: 'var(--card-bg)', borderRadius: '16px', padding: '16px', border: '1px solid var(--border)', marginTop: '12px' }}>
@@ -84,9 +97,9 @@ const MiniCalendar = ({ fromDate, toDate }) => {
           <div key={d} style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textAlign: 'center', padding: '4px' }}>{d}</div>
         ))}
         {days.map((d, i) => {
-          const active = isInRange(d);
+          const active   = isInRange(d);
           const startDay = isStart(d);
-          const endDay = isEnd(d);
+          const endDay   = isEnd(d);
           
           return (
             <div 
@@ -102,7 +115,13 @@ const MiniCalendar = ({ fromDate, toDate }) => {
                 color: active ? 'white' : d ? 'var(--text-secondary)' : 'transparent',
                 background: active ? 'var(--primary-blue)' : 'transparent',
                 opacity: d ? 1 : 0,
-                border: startDay || endDay ? '2px solid rgba(255,255,255,0.5)' : 'none'
+                border: startDay || endDay ? '2px solid rgba(255,255,255,0.5)' : 'none',
+                // Half-day: show a diagonal split visual on the active day
+                backgroundImage: (isHalfDay && active)
+                  ? leaveDuration === 'First Half'
+                    ? 'linear-gradient(135deg, var(--primary-blue) 50%, rgba(139,92,246,0.4) 50%)'
+                    : 'linear-gradient(135deg, rgba(139,92,246,0.4) 50%, var(--primary-blue) 50%)'
+                  : 'none',
               }}
             >
               {d}
@@ -110,8 +129,20 @@ const MiniCalendar = ({ fromDate, toDate }) => {
           );
         })}
       </div>
-      <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>
-         Duration: {Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1} Day(s) Selected
+
+      {/* Duration summary row */}
+      <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>
+          Duration: <strong style={{ color: 'var(--text-primary)' }}>{dayCount} Day{dayCount !== 1 ? 's' : ''}</strong>
+        </div>
+        {leaveDuration && (
+          <span style={{
+            fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px',
+            background: dStyle.bg, color: dStyle.color, letterSpacing: '0.3px'
+          }}>
+            {leaveDuration.toUpperCase()}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -465,6 +496,11 @@ const AdminRequests = () => {
                           ? `${r.fromDate} to ${r.toDate}` 
                           : (r.date || r.fromDate)}
                       </div>
+                      {r.requestType === 'Leave' && r.leaveDuration && r.leaveDuration !== 'Full Day' && (
+                        <span style={{ display: 'inline-block', marginTop: '4px', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139,92,246,0.12)', color: '#8B5CF6' }}>
+                          ½ {r.leaveDuration}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{new Date(r.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -551,14 +587,31 @@ const AdminRequests = () => {
 
                     {selectedRequest.leaveType && (
                         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px' }}>Leave Category</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '800', textTransform: 'uppercase', marginBottom: '8px' }}>Leave Details</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                {/* Leave type name */}
                                 <span style={{ padding: '6px 12px', background: 'rgba(124, 92, 246, 0.15)', color: '#8B5CF6', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
                                     {selectedRequest.leaveType.name}
                                 </span>
+                                {/* Paid / Unpaid */}
                                 <span style={{ padding: '6px 12px', background: selectedRequest.leaveCategory === 'Paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: selectedRequest.leaveCategory === 'Paid' ? '#10B981' : '#F59E0B', borderRadius: '10px', fontWeight: '800', fontSize: '12px' }}>
                                     {selectedRequest.leaveCategory || 'Paid'}
                                 </span>
+                                {/* Duration — Full Day / First Half / Second Half */}
+                                {selectedRequest.leaveDuration && (
+                                    <span style={{
+                                        padding: '6px 12px',
+                                        background: selectedRequest.leaveDuration === 'Full Day'
+                                            ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)',
+                                        color: selectedRequest.leaveDuration === 'Full Day'
+                                            ? '#3B82F6' : '#8B5CF6',
+                                        borderRadius: '10px', fontWeight: '800', fontSize: '12px',
+                                        display: 'inline-flex', alignItems: 'center', gap: '4px'
+                                    }}>
+                                        {selectedRequest.leaveDuration !== 'Full Day' && '½ '}
+                                        {selectedRequest.leaveDuration}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
@@ -588,7 +641,7 @@ const AdminRequests = () => {
                         </div>
                         
                         {selectedRequest.requestType === 'Leave' ? (
-                            <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} />
+                            <MiniCalendar fromDate={selectedRequest.fromDate} toDate={selectedRequest.toDate} leaveDuration={selectedRequest.leaveDuration} />
                         ) : (
                             <div style={{ padding: '24px', background: 'var(--bg-main)', borderRadius: '24px', border: '1px solid var(--border)' }}>
                                 <div style={{ display: 'grid', gap: '20px' }}>

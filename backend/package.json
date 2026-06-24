@@ -37,5 +37,9 @@
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "jest": "^30.4.2"
   }
 }

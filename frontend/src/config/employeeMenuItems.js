@@ -41,4 +41,9 @@ export const employeeMenuItems = [
     icon: "M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1",
     path: "/employee/resignation",
   },
+  {
+    title: "Holidays",
+    icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+    path: "/employee/holidays",
+  },
 ];

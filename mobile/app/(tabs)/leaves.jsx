@@ -7,6 +7,7 @@ import { Calendar } from 'react-native-calendars';
 import { format, addDays, isBefore, isSameDay } from 'date-fns';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { apiFetch } from '../../utils/api';
 import { ENDPOINTS } from '../../constants/api';
 import { SIZES, RADIUS, SHADOW } from '../../constants/theme';
@@ -73,6 +74,7 @@ const RequestCard = ({ request }) => {
 
 export default function LeavesScreen() {
   const { colors, isDarkMode } = useTheme();
+  const router = useRouter();
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -262,6 +264,13 @@ export default function LeavesScreen() {
                <Text style={[styles.title, { color: colors.textDark }]}>Leave Management</Text>
                <Text style={[styles.subTitle, { color: colors.textLight }]}>Check entitlement and apply for leave</Text>
             </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/holidays')}
+              style={[styles.holidayBtn, { backgroundColor: colors.primaryLight, borderColor: colors.primary + '30' }]}
+            >
+              <Ionicons name="calendar" size={14} color={colors.primary} />
+              <Text style={[styles.holidayBtnText, { color: colors.primary }]}>Holidays</Text>
+            </TouchableOpacity>
         </View>
 
         <View style={styles.body}>
@@ -503,7 +512,9 @@ export default function LeavesScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { padding: 24, paddingBottom: 10 },
+  header: { padding: 24, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  holidayBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1, marginTop: 4 },
+  holidayBtnText: { fontSize: 12, fontWeight: '800' },
   title: { fontSize: SIZES.xxl, fontWeight: '800' },
   subTitle: { fontSize: SIZES.sm, marginTop: 4 },
   body: { padding: 20 },

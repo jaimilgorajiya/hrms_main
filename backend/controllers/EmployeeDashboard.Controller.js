@@ -6,6 +6,7 @@ import Attendance from "../models/Attendance.Model.js";
 import Request from "../models/Request.Model.js";
 import EmployeeCTC from "../models/EmployeeCTC.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
+import Holiday from "../models/Holiday.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
@@ -103,7 +104,21 @@ export const getEmployeeStats = async (req, res) => {
         // Exclude leave-based half-days — those are already counted in usedPaidLeaves/usedUnpaidLeaves
         const halfDays = monthAttendance.filter(a => a.status === 'Half Day' && !a.leaveCategory).length;
         const weekOffs = monthAttendance.filter(a => a.status === 'Week Off').length;
-        const holidays = monthAttendance.filter(a => a.status === 'Holiday').length;
+
+        // Load holiday pay config for the cycle's date range so we only count paid holidays
+        const cycleStartStr = cycleStart.toISOString().split('T')[0];
+        const adminId = employee.adminId;
+        const holidayRecords = await Holiday.find({
+            adminId,
+            date: { $gte: cycleStartStr },
+            status: 'Active'
+        });
+        const holidayPaidMap = {};
+        holidayRecords.forEach(h => { holidayPaidMap[h.date] = h.isPaid !== false; });
+
+        const holidays = monthAttendance.filter(a =>
+            a.status === 'Holiday' && holidayPaidMap[a.date] !== false
+        ).length;
 
         // Get day name (IST)
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

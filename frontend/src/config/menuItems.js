@@ -138,6 +138,7 @@ export const menuItems = [
     subItems: [
       { title: "Assign Bulk Leave", path: "/admin/leave/bulk-assign" },
       { title: "Leave Balance", path: "/admin/leave/balance" },
+      { title: "Holiday Calendar", path: "/admin/leave/holidays" },
       { title: "Leave Request", path: "/admin/leave/request" },
       { title: "Leave Request History", path: "/admin/leave/history" },
       { title: "Auto Leaves", path: "/admin/leave/auto" },

@@ -80,6 +80,8 @@ import EmployeeShift from './pages/employee/EmployeeShift';
 import EmployeeResignation from './pages/employee/EmployeeResignation';
 import ResetPassword from './pages/ResetPassword';
 import AdminPackages from './pages/AdminPackages';
+import HolidayCalendar from './pages/HolidayCalendar';
+import EmployeeHolidays from './pages/employee/EmployeeHolidays';
 
 // ─── Mobile-first Web App ───────────────────────────────────
 import { MobileAuthProvider } from './pages/mobile/context/MobileAuthContext';
@@ -149,6 +151,7 @@ function App() {
               <Route path="leave/balance" element={<LeaveBalance />} />
               <Route path="leave/request" element={<AdminRequests />} />
               <Route path="leave/history" element={<LeaveHistory />} />
+              <Route path="leave/holidays" element={<HolidayCalendar />} />
               <Route path="leave/auto" element={<ModulePlaceholder title="Auto Leaves" />} />
               <Route path="leave/payout" element={<ModulePlaceholder title="Leave Pay Out" />} />
               <Route path="leave/*" element={<ModulePlaceholder title="Leave Management" />} />
@@ -216,6 +219,7 @@ function App() {
               <Route path="documents" element={<EmployeeDocuments />} />
               <Route path="shift" element={<EmployeeShift />} />
               <Route path="resignation" element={<EmployeeResignation />} />
+              <Route path="holidays" element={<EmployeeHolidays />} />
             </Route>
             <Route path="/employee-dashboard" element={<Navigate to="/employee/dashboard" replace />} />
           </Route>

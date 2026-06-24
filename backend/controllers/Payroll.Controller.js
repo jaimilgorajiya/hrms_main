@@ -2,6 +2,7 @@ import User from "../models/User.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import Request from "../models/Request.Model.js";
 import EmployeeCTC from "../models/EmployeeCTC.Model.js";
+import Holiday from "../models/Holiday.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import PenaltyRule from "../models/PenaltyRule.Model.js";
 import Payout from "../models/Payout.Model.js";
@@ -36,6 +37,19 @@ export const getMonthlyPayoutSummary = async (req, res) => {
         const initiatedMap = {};
         existingPayouts.forEach(p => {
             initiatedMap[p.employeeId.toString()] = p;
+        });
+
+        // Pre-fetch holidays for this month — build a date→isPaid lookup
+        // used inside the payroll loop to determine if a Holiday day is paid
+        const monthHolidays = await Holiday.find({
+            adminId,
+            year: year,
+            date: { $gte: startDate, $lte: endDate },
+            status: 'Active'
+        });
+        const holidayPaidMap = {};   // "YYYY-MM-DD" → true/false
+        monthHolidays.forEach(h => {
+            holidayPaidMap[h.date] = h.isPaid !== false; // default true if field missing
         });
 
         const summary = [];
@@ -107,7 +121,12 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     } else if (record.status === 'Absent') {
                         absentDaysCount++;
                     } else if (record.status === 'Holiday') {
-                        holidaysPaid++;
+                        // Only count as a paid holiday if the Holiday master record says isPaid
+                        if (holidayPaidMap[dayStr] !== false) {
+                            holidaysPaid++;
+                        } else {
+                            absentDaysCount++; // unpaid holiday — treated like absent for salary
+                        }
                     } else if (record.status === 'Week Off') {
                         weekOffsPaid++;
                     }
