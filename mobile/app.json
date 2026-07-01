@@ -1,27 +1,52 @@
 {
   "expo": {
-    "name": "",
+    "name": "HRMS Employee",
     "slug": "hrms-employee-app",
     "version": "1.0.0",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0052ff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+
+     
+
     "sdkVersion": "54.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/2cd9afca-b9e7-4979-bb01-75a69001d509",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": "1.0.0",
     "web": {
       "bundler": "metro",
       "output": "single"
     },
     "android": {
       "package": "com.hrms.employee",
+      "versionCode": 1,
+      "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#13121b"
-      }
+        "backgroundColor": "#0052ff"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.hrms.employee",
@@ -32,13 +57,24 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "HRMS needs your location to verify attendance and geofence compliance.",
         "NSCameraUsageDescription": "HRMS may use the camera for document uploads.",
         "NSPhotoLibraryUsageDescription": "HRMS may access your photo library for profile photo and document uploads.",
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "plugins": [
       "expo-router",
-      "expo-location",
-      "expo-secure-store"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HRMS needs your location to verify attendance.",
+          "locationWhenInUsePermission": "HRMS needs your location to verify attendance."
+        }
+      ],
+      "expo-secure-store",
+      "expo-updates",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": false

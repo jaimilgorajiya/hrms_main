@@ -21,16 +21,19 @@ export const MobileAuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-platform': 'mobile'
+      },
+      body: JSON.stringify({ email, password, platform: 'mobile' }),
     });
     const json = await res.json();
-    if (json.success && json.token) {
-      localStorage.setItem('mobile_token', json.token);
+    if (json.success && json.user?.token) {
+      localStorage.setItem('mobile_token', json.user.token);
       localStorage.setItem('mobile_user', JSON.stringify(json.user));
-      localStorage.setItem('token', json.token);
+      localStorage.setItem('token', json.user.token);
       localStorage.setItem('user', JSON.stringify(json.user));
-      setToken(json.token);
+      setToken(json.user.token);
       setUser(json.user);
     }
     return json;

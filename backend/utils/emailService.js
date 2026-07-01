@@ -88,7 +88,7 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                                     Access your attendance, punch in/out, check leave requests, and view pay details directly on the go. Get the Android application using the one-click download button below:
                                 </p>
                                 <center style="text-align: left;">
-                                    <a href="https://expo.dev/accounts/jaimilgorajiya/projects/hrms-employee-app/builds/8a55d650-5008-4a66-8d61-de9a764c6802" 
+                                    <a href="https://drive.google.com/drive/folders/1s8qm4dIP69mCDoLktQjNb74L7O9SDE6a?usp=sharing" 
                                        style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
                                         📥 Download Android App (APK)
                                     </a>

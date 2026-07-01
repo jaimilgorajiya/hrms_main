@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
-  ActivityIndicator, RefreshControl, Modal, TouchableOpacity, TextInput, Pressable, Keyboard
+  ActivityIndicator, RefreshControl, Modal, TouchableOpacity, TextInput, Pressable, Keyboard, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { format, addDays, isBefore, isSameDay } from 'date-fns';
@@ -354,16 +354,19 @@ export default function LeavesScreen() {
         </TouchableOpacity>
       )}
 
-      {/* New Request Modal */}
       <Modal visible={showApply} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
-          <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
+            <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.borderLight }]}>
               <Text style={[styles.modalTitle, { color: colors.textDark }]}>Apply for Leave</Text>
               <TouchableOpacity onPress={() => setShowApply(false)}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView style={[styles.modalBody, { flexGrow: 0 }]} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
               
               <View style={{ marginBottom: 20 }}>
                 <Text style={[styles.inputLabel, { color: colors.textDark }]}>Select Period</Text>
@@ -505,6 +508,7 @@ export default function LeavesScreen() {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -562,7 +566,7 @@ const styles = StyleSheet.create({
   remarkText: { fontSize: 12 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, height: '85%', borderWidth: 1 },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, maxHeight: '85%', borderWidth: 1 },
   modalHeader: { padding: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
   modalBody: { padding: 24 },

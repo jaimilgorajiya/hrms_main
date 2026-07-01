@@ -314,7 +314,7 @@ const Signup = () => {
 
                 .input-label {
                     display: block;
-                    font-size: 13px;
+                    font-size: 14px;
                     font-weight: 600;
                     color: #334155;
                     margin-bottom: 8px;
@@ -326,7 +326,7 @@ const Signup = () => {
                     background: #F8FAFC !important;
                     border: 1px solid #E2E8F0 !important;
                     border-radius: 12px;
-                    padding: 14px 16px;
+                    padding: 16px;
                     font-size: 15px;
                     color: #0F172A !important;
                     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -353,6 +353,7 @@ const Signup = () => {
                     background-repeat: no-repeat;
                     background-position: right 16px center;
                     padding-right: 48px;
+                    height: 56px !important;
                 }
 
                 body.dark-mode .modern-auth-layout .select-input option,
@@ -474,8 +475,9 @@ const Signup = () => {
                     <div className="banner-logo" style={{ marginBottom: '32px' }}>
                         <img src="/iipl-horizontal-logo.png" alt="IIPL Logo" style={{ width: '260px', height: 'auto', objectFit: 'contain' }} />
                     </div>
-                    <h1 className="hrm-title">Build a stronger workforce.</h1>
-                    </div>
+                    <h1 className="banner-title">Welcome to your HR Ecosystem.</h1>
+                    <p className="banner-text">Seamlessly manage your workforce, automate payroll, and drive productivity from one unified command center.</p>
+                </div>
                 <div className="banner-footer">
                     © {new Date().getFullYear()} Iflora Info Pvt. Ltd. All rights reserved.
                 </div>

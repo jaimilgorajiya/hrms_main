@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await apiFetch(ENDPOINTS.login, {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password, platform: 'mobile' }),
       });
       const data = await res.json();
 

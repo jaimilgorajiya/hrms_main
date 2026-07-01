@@ -885,4 +885,56 @@ const resendCredentials = async (req, res) => {
     }
 };
 
-export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials };
+const sendAllCredentials = async (req, res) => {
+    try {
+        const adminId = req.user._id;
+        const users = await User.find({
+            role: { $ne: 'Admin' },
+            adminId,
+            status: { $in: ['Active', 'Onboarding'] }
+        });
+
+        if (users.length === 0) {
+            return res.status(404).json({ success: false, message: "No active or onboarding employees found to send credentials." });
+        }
+
+        // Send all concurrently and collect outcomes
+        const results = await Promise.allSettled(users.map(async (user) => {
+            const temporaryPassword = generatePassword();
+            const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+            user.password = hashedPassword;
+            user.forcePasswordReset = true;
+            await user.save();
+
+            const emailResult = await sendWelcomeEmail(user.email, user.name, user.employeeId, temporaryPassword);
+            if (!emailResult.success) {
+                throw new Error(emailResult.error || "Email failed to send");
+            }
+            return user.email;
+        }));
+
+        let successCount = 0;
+        let failCount = 0;
+        results.forEach(r => {
+            if (r.status === 'fulfilled') {
+                successCount++;
+            } else {
+                failCount++;
+                console.error("Failed to send credentials for an employee:", r.reason);
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Credentials sent successfully to ${successCount} employees.${failCount > 0 ? ` Failed for ${failCount} employees.` : ''}`,
+            details: { successCount, failCount }
+        });
+    } catch (error) {
+        console.error("Error in sendAllCredentials controller:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    }
+};
+
+export { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials, sendAllCredentials };
+

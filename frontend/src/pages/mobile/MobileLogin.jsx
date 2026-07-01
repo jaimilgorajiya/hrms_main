@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Phone, ArrowRight, Shield, RefreshCw } from 'lucide-react';
+import { Phone, ArrowRight, Shield, RefreshCw, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useMobileAuth } from './context/MobileAuthContext';
 import { useMobileTheme } from './context/MobileThemeContext';
 import API_URL from '../../config/api';
@@ -9,10 +9,14 @@ import { signOut } from 'firebase/auth';
 import '../../styles/MobileApp.css';
 
 export default function MobileLogin() {
-  const { loginWithOTP, isAuthenticated } = useMobileAuth();
+  const { login, loginWithOTP, isAuthenticated } = useMobileAuth();
   const { isDark } = useMobileTheme();
   const navigate = useNavigate();
 
+  const [loginMode, setLoginMode] = useState('password'); // 'password' or 'otp'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [confirm, setConfirm] = useState(null);
@@ -22,6 +26,31 @@ export default function MobileLogin() {
 
   const recaptchaContainerRef = useRef(null);
   const recaptchaVerifierRef = useRef(null);
+
+  const handlePasswordLogin = async (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await login(email.trim().toLowerCase(), password);
+      if (res.success) {
+        navigate('/mobile/dashboard', { replace: true });
+      } else {
+        setError(res.message || 'Invalid credentials.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Failed to connect to the server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setTimeout(() => setAnimate(true), 50);
@@ -205,48 +234,51 @@ export default function MobileLogin() {
             </h1>
             <div style={{ width: 48, height: 4, background: '#8b5cf6', borderRadius: 2, margin: '0 auto 16px auto' }} />
             <p style={{ fontSize: 14, color: '#8c8a9e', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
-              Join using your secure mobile gateway
+              Sign in using your account credentials
             </p>
           </div>
 
-          <form onSubmit={confirm ? handleVerifyOTP : handleSendOTP} style={{ width: '100%' }}>
-            {!confirm ? (
-              /* Mobile Number Input */
-              <div className="m-input-group" style={{ marginBottom: 24 }}>
-                <label className="m-input-label" style={{ color: '#8c8a9e', fontSize: 11, fontWeight: 800, letterSpacing: '0.8px', marginBottom: 8, display: 'block' }}>MOBILE NUMBER</label>
-                <div className="m-input-wrap" style={{ background: '#14131f', borderColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 16 }}>
-                  <Phone size={18} color="#8b5cf6" strokeWidth={2} />
-                  <input
-                    type="tel"
-                    placeholder="Registered Contact"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    maxLength={10}
-                    autoComplete="tel"
-                    style={{ color: '#ffffff' }}
-                    required
-                  />
-                </div>
+          <form onSubmit={handlePasswordLogin} style={{ width: '100%' }}>
+            {/* Email Address Input */}
+            <div className="m-input-group" style={{ marginBottom: 20 }}>
+              <label className="m-input-label" style={{ color: '#8c8a9e', fontSize: 11, fontWeight: 800, letterSpacing: '0.8px', marginBottom: 8, display: 'block' }}>EMAIL ADDRESS</label>
+              <div className="m-input-wrap" style={{ background: '#14131f', borderColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 16 }}>
+                <Mail size={18} color="#8b5cf6" strokeWidth={2} />
+                <input
+                  type="email"
+                  placeholder="employee@company.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                  style={{ color: '#ffffff' }}
+                  required
+                />
               </div>
-            ) : (
-              /* 6-Digit OTP Pin Input */
-              <div className="m-input-group" style={{ marginBottom: 24 }}>
-                <label className="m-input-label" style={{ color: '#8c8a9e', fontSize: 11, fontWeight: 800, letterSpacing: '0.8px', marginBottom: 8, display: 'block' }}>ENTER 6-DIGIT PIN</label>
-                <div className="m-input-wrap" style={{ background: '#14131f', borderColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 16, justifyContent: 'center' }}>
-                  <input
-                    type="text"
-                    pattern="[0-9]*"
-                    inputMode="numeric"
-                    placeholder="••••••"
-                    value={code}
-                    onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                    style={{ textAlign: 'center', letterSpacing: 8, fontSize: 20, color: '#ffffff' }}
-                    required
-                  />
-                </div>
+            </div>
+
+            {/* Password Input */}
+            <div className="m-input-group" style={{ marginBottom: 24 }}>
+              <label className="m-input-label" style={{ color: '#8c8a9e', fontSize: 11, fontWeight: 800, letterSpacing: '0.8px', marginBottom: 8, display: 'block' }}>PASSWORD</label>
+              <div className="m-input-wrap" style={{ background: '#14131f', borderColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 16, display: 'flex', alignItems: 'center' }}>
+                <Lock size={18} color="#8b5cf6" strokeWidth={2} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  style={{ color: '#ffffff', flex: 1, background: 'transparent', border: 'none', outline: 'none', minWidth: 0 }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#8c8a9e', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', margin: '0', flexShrink: 0, width: '36px', height: '36px' }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-            )}
+            </div>
 
             {/* Error banner */}
             {error && (
@@ -287,26 +319,10 @@ export default function MobileLogin() {
                 </>
               ) : (
                 <>
-                  {confirm ? 'Confirm & Verify ' : 'Authorize with OTP '}
+                  Log In
                 </>
               )}
             </button>
-
-            {confirm && (
-              <button
-                type="button"
-                className="m-btn m-btn-ghost m-btn-full m-btn-sm"
-                style={{ marginTop: 12, borderRadius: 16 }}
-                onClick={() => {
-                  setConfirm(null);
-                  setCode('');
-                  setError('');
-                }}
-              >
-                <RefreshCw size={14} />
-                Change Phone Number
-              </button>
-            )}
           </form>
         </div>
 

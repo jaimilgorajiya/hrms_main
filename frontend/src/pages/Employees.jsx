@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, User, Briefcase, RotateCcw, Upload } from 'lucide-react';
+import { Plus, Search, User, Briefcase, RotateCcw, Upload, Send } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import Swal from 'sweetalert2';
 
@@ -45,6 +45,46 @@ const Employees = () => {
             console.error("Error fetching data:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendAllCredentials = async () => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "This will reset and send temporary login credentials and the APK download link to all employees.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, send to all!',
+            showLoaderOnConfirm: true,
+            preConfirm: async () => {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await authenticatedFetch(`${API_URL}/api/users/send-all-credentials`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const data = await response.json();
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Failed to send credentials.');
+                    }
+                    return data;
+                } catch (error) {
+                    Swal.showValidationMessage(`Request failed: ${error.message}`);
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        });
+
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Success!',
+                text: result.value.message || 'Credentials sent successfully to all employees.',
+                icon: 'success'
+            });
         }
     };
 
@@ -349,6 +389,9 @@ const Employees = () => {
                             style={{ paddingLeft: '44px' }}
                         />
                     </div>
+                    <button className="btn-hrm btn-hrm-secondary" onClick={handleSendAllCredentials}>
+                        <Send size={18} /> SEND CREDENTIALS
+                    </button>
                     <button className="btn-hrm btn-hrm-secondary" onClick={handleImport}>
                         <Upload size={18} /> IMPORT
                     </button>

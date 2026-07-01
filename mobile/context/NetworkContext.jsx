@@ -107,6 +107,8 @@ export const NetworkProvider = ({ children }) => {
         failedCount++;
         console.error(`[NetworkContext] Sync error for punch #${entry.id}:`, err);
         // Network failed mid-sync — keep entry in queue, stop syncing
+        isSyncing.current = false;
+        await refreshPendingCount();
         break;
       }
     }

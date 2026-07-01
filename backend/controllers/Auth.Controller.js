@@ -26,7 +26,7 @@ const otpLogin = async (req, res) => {
         if (!idToken) {
             return res.status(400).json({ success: false, message: "ID Token is required" });
         }
-
+        
         // Verify Firebase Token (with mock bypass for development/testing)
         let phoneNumber;
         if (idToken.startsWith('mock-token-')) {
@@ -462,13 +462,25 @@ const login = async (req, res) => {
         });
     }
 
-    // Role-based web restriction
-    if (user.role === 'Employee' && req.headers['x-platform'] !== 'mobile') {
+    // Role-based web restriction - disabled to allow employee login via web
+    /*
+    const userAgent = req.headers['user-agent']?.toLowerCase() || '';
+    const isMobile = 
+        req.headers['x-platform'] === 'mobile' || 
+        req.body.platform === 'mobile' || 
+        req.query.platform === 'mobile' ||
+        userAgent.includes('okhttp') || 
+        userAgent.includes('expo') || 
+        userAgent.includes('darwin') || 
+        userAgent.includes('react-native');
+
+    if (user.role === 'Employee' && !isMobile) {
         return res.status(403).json({
             success: false,
             message: "Employees can only access the HRMS via the Mobile App."
         });
     }
+    */
 
     // SaaS Package Check for Admins
     if (user.role === 'Admin') {

@@ -366,6 +366,14 @@ export const downloadPayslip = async (req, res) => {
         const payout = await Payout.findById(id).populate('employeeId', 'name employeeId department designation adminId');
         if (!payout) return res.status(404).json({ success: false, message: "Payslip not found" });
 
+        // Security: employee can only download their own published slip
+        // Admin can download any slip belonging to their org
+        const isAdmin = req.user.role === 'Admin';
+        const isOwner = payout.employeeId?._id?.toString() === req.user._id.toString();
+        if (!isAdmin && !isOwner) {
+            return res.status(403).json({ success: false, message: "Access denied." });
+        }
+
         // Fetch company details based on the admin who onboarded this employee
         const company = await Company.findOne({ adminId: payout.employeeId?.adminId });
 

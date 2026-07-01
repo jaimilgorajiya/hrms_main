@@ -6,28 +6,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
       "android": {
         "buildType": "apk"
       },
-      "ios": {
-        "simulator": true
-      },
-      "distribution": "internal"
-    },
-    "preview-device": {
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
-      },
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hrmsapi.ifloriana.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "autoIncrement": true,
+      "channel": "production"
     }
   },
   "submit": {

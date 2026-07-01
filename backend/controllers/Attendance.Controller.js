@@ -456,7 +456,7 @@ export const togglePunch = async (req, res) => {
             const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
             const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
             const earlyByMins = shiftEndMins - nowMins;
-            console.log(`[PENALTY_DEBUG] Punch Out at ${istNow.getUTCHours()}:${istNow.getUTCMinutes()} IST. Shift End: ${shiftEndMins}m, Early: ${earlyByMins}m`);
+
 
             if (earlyByMins > 0) {
                 const providedReason = req.body.earlyReason || req.body.reason;
@@ -472,10 +472,10 @@ export const togglePunch = async (req, res) => {
                         const inMinsTotal = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
                         const lateMins = Math.max(0, inMinsTotal - shiftStartMins);
                         maxAllowed = Math.max(0, (shift.maxLateInMinutes || 0) - lateMins);
-                        console.log(`[PENALTY_DEBUG] Combined late/early. First IN: ${inMinsTotal}m, Shift Start: ${shiftStartMins}m, Late: ${lateMins}m. Adjusted maxEarlyOut: ${maxAllowed}m`);
+
                     } else {
                         maxAllowed = shift.maxLateInMinutes || 0;
-                        console.log(`[PENALTY_DEBUG] Combined late/early. No first IN or shift start. Defaulting maxEarlyOut: ${maxAllowed}m`);
+
                     }
                 }
 
@@ -527,7 +527,7 @@ export const togglePunch = async (req, res) => {
                         const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
                         if (thresholdMins !== null && nowMins < thresholdMins) {
                             record.status = 'Half Day';
-                            console.log(`[PENALTY_DEBUG] Mark as Half Day (Early Out). Today: ${nowMins}m, Threshold: ${thresholdMins}m`);
+
                         }
                     }
 
@@ -538,7 +538,7 @@ export const togglePunch = async (req, res) => {
                             amount: earlyOutPenaltyAmount,
                             isApplied: true
                         };
-                        console.log(`[PENALTY_DEBUG] Calculated early out penalty: ${earlyOutPenaltyAmount} for ${earlyByMins}m early.`);
+
                     }
                 }
             }
@@ -1048,6 +1048,7 @@ export const addManualAttendance = async (req, res) => {
         if (status === 'Present' && punches.length > 0) {
             const { shift: empShift, daySchedule } = await getEmployeeShiftToday(employeeId, date);
             if (empShift && daySchedule) {
+                
                 // Late In
                 const firstIn = punches.find(p => p.type === 'IN');
                 if (firstIn && daySchedule.shiftStart) {

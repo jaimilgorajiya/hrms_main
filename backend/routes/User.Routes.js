@@ -1,5 +1,5 @@
 import express from "express";
-import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials } from "../controllers/User.Controller.js";
+import { createUser, getUsers, getExEmployees, getUser, updateUser, deleteUser, reactivateUser, getNextEmployeeId, bulkUpdateEmployeeIds, uploadUserDocument, deleteUserDocument, changeBranch, getLeaveBalances, updateUserStatus, deleteProfilePhoto, getAllUploadedDocuments, reviewUserDocument, resendCredentials, sendAllCredentials } from "../controllers/User.Controller.js";
 import { downloadSample, importEmployees } from "../controllers/ImportEmployee.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
 import { checkEmployeeLimit } from "../middleware/EmployeeLimit.Middleware.js";
@@ -17,6 +17,7 @@ router.get("/leave-balance", verifyToken, isAdmin, getLeaveBalances);
 router.get("/import/sample", verifyToken, isAdmin, downloadSample);
 router.post("/import", verifyToken, isAdmin, upload.single('file'), importEmployees);
 router.get("/documents/all", verifyToken, isAdmin, getAllUploadedDocuments);
+router.post("/send-all-credentials", verifyToken, isAdmin, sendAllCredentials);
 router.get("/:id", verifyToken, isAdmin, getUser);
 router.put("/:id", verifyToken, isAdmin, upload.single('profilePhoto'), updateUser);
 router.patch("/:id/status", updateUserStatus);

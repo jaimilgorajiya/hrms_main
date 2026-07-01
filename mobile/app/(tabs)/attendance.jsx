@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput, Keyboard, Pressable,
+  KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -204,6 +205,18 @@ export default function AttendanceScreen() {
 
   useEffect(() => { loadData(); }, []);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -233,6 +246,7 @@ export default function AttendanceScreen() {
 
 
   const [showApply, setShowApply] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [reqType, setReqType] = useState('Leave');
@@ -640,14 +654,18 @@ export default function AttendanceScreen() {
       </ScrollView>
 
       <Modal visible={showApply} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
-          <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={Keyboard.dismiss} />
+            <View style={[styles.modalContent, { backgroundColor: colors.bgCardElevated, borderColor: colors.borderLight }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textDark }]}>New Request</Text>
               <TouchableOpacity onPress={() => { Keyboard.dismiss(); setShowApply(false); }}><Ionicons name="close" size={24} color={colors.textDark} /></TouchableOpacity>
             </View>
-            <ScrollView style={styles.modalBody}>
+             <ScrollView style={[styles.modalBody, { flexGrow: 0 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 0 }}>
               <Text style={[styles.inputLabel, { color: colors.textDark }]}><Ionicons name="calendar-outline" size={14} color={colors.textMuted} /> {reqDate} {isMissingPunchOut && ` (In: ${selectedRecord?.punchIn || manualIn})`}</Text>
 
                     {!isMissingPunchOut && (
@@ -814,9 +832,11 @@ export default function AttendanceScreen() {
               >
                 {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.submitBtnText, { color: colors.white }]}>Submit Request</Text>}
               </TouchableOpacity>
+              <View style={{ height: 20 }} />
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Filtered Days List Modal */}
@@ -937,7 +957,7 @@ const styles = StyleSheet.create({
   sentRequestLabel: { fontSize: 11, fontWeight: '700' },
   sentRequestValue: { fontSize: 11, fontWeight: '700', flex: 1, textAlign: 'right', marginLeft: 10 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '90%', borderWidth: 1 },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '85%', borderWidth: 1 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
   modalBody: { gap: 16 },

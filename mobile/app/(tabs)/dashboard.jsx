@@ -1169,7 +1169,6 @@ export default function Dashboard() {
         return;
       }
       const { latitude, longitude } = loc.coords;
-      console.log('Mobile Location:', { latitude, longitude });
 
       // 1.1 Reverse Geocode to get Building, Street, City
       let addr = 'Address not found';
@@ -1180,16 +1179,13 @@ export default function Dashboard() {
           addr = [name, streetNumber, street, city, region].filter(Boolean).join(', ');
         }
       } catch (ge) { console.error('Geocode error:', ge); }
-      console.log('Fethced Address:', addr);
       setCurrentAddress(addr);
 
       // 2. Check Geofence
       const target = data?.stats?.branchCoords;
-      console.log('Target Branch Coords from Server:', target);
       if (target && target.latitude !== 0) {
         const distance = getDistance(latitude, longitude, target.latitude, target.longitude);
         const radius = target.radius || 200;
-        console.log('[GEOFENCE] Distance:', distance, 'm, Max Radius:', radius, 'm');
         
         if (distance > radius) {
           if (data?.stats?.requireOutOfRangeReason) {
@@ -1740,9 +1736,14 @@ export default function Dashboard() {
               <Ionicons name="checkmark-circle" size={48} color={colors.success} />
             </View>
             <Text style={[styles.modalTitle, { color: colors.textDark, fontSize: 22 }]}>
-              {Math.round(getDistance(tempLocation?.latitude || 0, tempLocation?.longitude || 0, data?.stats?.branchCoords?.latitude || 0, data?.stats?.branchCoords?.longitude || 0)) <= (data?.stats?.branchCoords?.radius || 500) 
-                ? 'You are in range' 
-                : 'Remote Punch Available'}
+              {(() => {
+                const dist = Math.round(getDistance(
+                  tempLocation?.latitude || 0, tempLocation?.longitude || 0,
+                  data?.stats?.branchCoords?.latitude || 0, data?.stats?.branchCoords?.longitude || 0
+                ));
+                const maxRadius = data?.stats?.branchCoords?.radius || 500;
+                return dist <= maxRadius ? 'You are in range' : 'Out of Range — Confirm Punch';
+              })()}
             </Text>
           
             
@@ -1767,6 +1768,7 @@ export default function Dashboard() {
                 earlyReason,
                 lateReason,
                 workSummary,
+                geofenceReason,
                 locationAddress: currentAddress
               });
             }}>
