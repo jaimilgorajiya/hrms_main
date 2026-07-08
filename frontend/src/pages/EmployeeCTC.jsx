@@ -19,6 +19,7 @@ const EmployeeCTC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [salaryGroups, setSalaryGroups] = useState([]);
+    const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'assigned', 'unassigned', 'active'
 
     useEffect(() => {
         fetchData();
@@ -83,13 +84,27 @@ const EmployeeCTC = () => {
 
     const filteredEmployees = useMemo(() => {
         if (!Array.isArray(employees)) return [];
-        return employees.filter(emp => 
-            emp && emp.ctcDetails && emp.name && (
+        return employees.filter(emp => {
+            if (!emp || !emp.name) return false;
+            
+            // Search filter
+            const matchesSearch = 
                 emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        );
-    }, [employees, searchTerm]);
+                emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!matchesSearch) return false;
+
+            // Stat card filter
+            if (activeFilter === 'unassigned') {
+                return !emp.ctcDetails;
+            } else if (activeFilter === 'active') {
+                return emp.ctcDetails?.status === 'Active';
+            } else if (activeFilter === 'assigned') {
+                return !!emp.ctcDetails;
+            }
+
+            return true;
+        });
+    }, [employees, searchTerm, activeFilter]);
 
     return (
         <div className="hrm-container">
@@ -121,20 +136,62 @@ const EmployeeCTC = () => {
             {/* Quick Stats Grid */}
             <div className="hrm-stats-grid" style={{ marginBottom: '32px' }}>
                 {[
-                    { label: 'Total Payroll Budget', value: `₹${(employees || []).reduce((sum, e) => sum + (e.ctcDetails?.annualCTC || 0), 0).toLocaleString()}`, icon: <Wallet size={20} />, color: 'var(--primary-blue)', bg: 'var(--primary-light)' },
-                    { label: 'Unassigned CTC', value: (employees || []).filter(e => !e.ctcDetails).length, icon: <Users size={20} />, color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.15)' },
-                    { label: 'Active Structures', value: (employees || []).filter(e => e.ctcDetails?.status === 'Active').length, icon: <CheckCircle2 size={20} />, color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.15)' }
-                ].map((stat, i) => (
-                    <div key={i} className="hrm-stat-card">
-                        <div className="hrm-stat-icon-wrapper" style={{ background: stat.bg, color: stat.color }}>
-                            {stat.icon}
+                    { 
+                        id: 'assigned', 
+                        label: 'Total Payroll Budget (Monthly)', 
+                        value: `₹${Math.round((employees || []).reduce((sum, e) => sum + (e.ctcDetails?.annualCTC || 0), 0) / 12).toLocaleString()}`, 
+                        icon: <Wallet size={20} />, 
+                        color: 'var(--primary-blue)', 
+                        bg: 'var(--primary-light)',
+                        activeColor: 'var(--primary-blue)',
+                        activeBg: 'rgba(59, 130, 246, 0.12)'
+                    },
+                    { 
+                        id: 'unassigned', 
+                        label: 'Unassigned CTC', 
+                        value: (employees || []).filter(e => !e.ctcDetails).length, 
+                        icon: <Users size={20} />, 
+                        color: 'var(--warning)', 
+                        bg: 'rgba(245, 158, 11, 0.12)',
+                        activeColor: 'var(--warning)',
+                        activeBg: 'rgba(245, 158, 11, 0.20)'
+                    },
+                    { 
+                        id: 'active', 
+                        label: 'Active Structures', 
+                        value: (employees || []).filter(e => e.ctcDetails?.status === 'Active').length, 
+                        icon: <CheckCircle2 size={20} />, 
+                        color: 'var(--success)', 
+                        bg: 'rgba(16, 185, 129, 0.12)',
+                        activeColor: 'var(--success)',
+                        activeBg: 'rgba(16, 185, 129, 0.20)'
+                    }
+                ].map((stat) => {
+                    const isActive = activeFilter === stat.id;
+                    return (
+                        <div 
+                            key={stat.id} 
+                            className={`hrm-stat-card ${isActive ? 'active' : ''}`}
+                            onClick={() => setActiveFilter(prev => prev === stat.id ? 'all' : stat.id)}
+                            style={{
+                                cursor: 'pointer',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                border: isActive ? `2px solid ${stat.activeColor}` : '1px solid var(--border)',
+                                transform: isActive ? 'translateY(-4px)' : 'none',
+                                boxShadow: isActive ? `0 8px 24px -6px ${stat.activeColor}40` : 'var(--shadow)',
+                                background: isActive ? stat.activeBg : 'var(--bg-base)'
+                            }}
+                        >
+                            <div className="hrm-stat-icon-wrapper" style={{ background: stat.bg, color: stat.color }}>
+                                {stat.icon}
+                            </div>
+                            <div className="hrm-stat-details">
+                                <span className="hrm-stat-label">{stat.label}</span>
+                                <h3 className="hrm-stat-value">{stat.value}</h3>
+                            </div>
                         </div>
-                        <div className="hrm-stat-details">
-                            <span className="hrm-stat-label">{stat.label}</span>
-                            <h3 className="hrm-stat-value">{stat.value}</h3>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Employee CTC List */}

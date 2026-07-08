@@ -10,6 +10,28 @@ import Holiday from "../models/Holiday.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
 
+// Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
+const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
+    const monthStart = new Date(yearMonthStr + "-01");
+    const [year, month] = yearMonthStr.split('-').map(Number);
+    const monthEnd = new Date(year, month, 0); // last day of month
+
+    const reqStart = new Date(fromDateStr);
+    const reqEnd = new Date(toDateStr);
+
+    const overlapStart = new Date(Math.max(monthStart.getTime(), reqStart.getTime()));
+    const overlapEnd = new Date(Math.min(monthEnd.getTime(), reqEnd.getTime()));
+
+    if (overlapStart > overlapEnd) {
+        return 0;
+    }
+
+    const diffMs = overlapEnd.getTime() - overlapStart.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+
+    return leaveDuration === "Full Day" ? diffDays : 0.5;
+};
+
 export const getEmployeeStats = async (req, res) => {
     try {
         const userId = req.user._id;
@@ -147,23 +169,23 @@ export const getEmployeeStats = async (req, res) => {
         const hasLeaveGroup = !!emp.leaveGroup;
         
         const currentYearMonth = istNow.toISOString().substring(0, 7);
-        const calMonthStart = currentYearMonth + "-01";
-        const calMonthEnd = currentYearMonth + "-31";
+        const [cy, cm] = currentYearMonth.split('-').map(Number);
+        const lastDay = new Date(cy, cm, 0).getDate();
+        const calMonthStart = `${currentYearMonth}-01`;
+        const calMonthEnd = `${currentYearMonth}-${String(lastDay).padStart(2, '0')}`;
 
-        // Sum approved leave days (Paid and Unpaid) for current calendar month
+        // Sum approved leave days (Paid and Unpaid) for current calendar month using overlap logic
         const paidRequests = await Request.find({
             employee: userId,
             requestType: 'Leave',
             status: 'Approved',
             leaveCategory: 'Paid',
-            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+            fromDate: { $lte: calMonthEnd },
+            toDate: { $gte: calMonthStart }
         });
         let usedPaidLeaves = 0;
         paidRequests.forEach(req => {
-            const start = new Date(req.fromDate);
-            const end = new Date(req.toDate);
-            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-            usedPaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
+            usedPaidLeaves += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, currentYearMonth);
         });
 
         // Sum pending paid leave requests to count towards monthly usage limits
@@ -172,14 +194,12 @@ export const getEmployeeStats = async (req, res) => {
             requestType: 'Leave',
             status: 'Pending',
             leaveCategory: 'Paid',
-            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+            fromDate: { $lte: calMonthEnd },
+            toDate: { $gte: calMonthStart }
         });
         let pendingPaidLeaves = 0;
         pendingPaidReqs.forEach(req => {
-            const start = new Date(req.fromDate);
-            const end = new Date(req.toDate);
-            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-            pendingPaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
+            pendingPaidLeaves += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, currentYearMonth);
         });
 
         const unpaidRequests = await Request.find({
@@ -187,14 +207,12 @@ export const getEmployeeStats = async (req, res) => {
             requestType: 'Leave',
             status: 'Approved',
             leaveCategory: 'Unpaid',
-            fromDate: { $gte: calMonthStart, $lte: calMonthEnd }
+            fromDate: { $lte: calMonthEnd },
+            toDate: { $gte: calMonthStart }
         });
         let usedUnpaidLeaves = 0;
         unpaidRequests.forEach(req => {
-            const start = new Date(req.fromDate);
-            const end = new Date(req.toDate);
-            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-            usedUnpaidLeaves += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
+            usedUnpaidLeaves += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, currentYearMonth);
         });
 
         // Document count

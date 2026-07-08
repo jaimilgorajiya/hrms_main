@@ -20,7 +20,7 @@ router.get("/documents/all", verifyToken, isAdmin, getAllUploadedDocuments);
 router.post("/send-all-credentials", verifyToken, isAdmin, sendAllCredentials);
 router.get("/:id", verifyToken, isAdmin, getUser);
 router.put("/:id", verifyToken, isAdmin, upload.single('profilePhoto'), updateUser);
-router.patch("/:id/status", updateUserStatus);
+router.patch("/:id/status", verifyToken, isAdmin, updateUserStatus);
 router.delete("/:id", verifyToken, isAdmin, deleteUser);
 router.post("/:id/reactivate", verifyToken, isAdmin, reactivateUser);
 router.post("/:id/documents", verifyToken, isAdmin, upload.single('file'), uploadUserDocument);

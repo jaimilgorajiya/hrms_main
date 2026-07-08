@@ -19,7 +19,7 @@ export const getAllShifts = async (req, res) => {
 // Get shift by ID
 export const getShiftById = async (req, res) => {
     try {
-        const shift = await Shift.findById(req.params.id)
+        const shift = await Shift.findOne({ _id: req.params.id, adminId: req.user._id })
             .populate('employeeCount')
             .populate('createdBy', 'name email');
         if (!shift) {
@@ -45,7 +45,7 @@ export const addShift = async (req, res) => {
         }
 
         // Check if shift code already exists
-        const existingShift = await Shift.findOne({ shiftCode: req.body.shiftCode });
+        const existingShift = await Shift.findOne({ shiftCode: req.body.shiftCode, adminId: req.user._id });
         if (existingShift) {
             return res.status(400).json({
                 success: false,
@@ -54,7 +54,7 @@ export const addShift = async (req, res) => {
         }
 
         // Check if shift name already exists
-        const existingShiftName = await Shift.findOne({ shiftName: req.body.shiftName });
+        const existingShiftName = await Shift.findOne({ shiftName: req.body.shiftName, adminId: req.user._id });
         if (existingShiftName) {
             return res.status(400).json({
                 success: false,
@@ -100,6 +100,7 @@ export const updateShift = async (req, res) => {
         // Check if shift code already exists (if being updated)
         const existingShift = await Shift.findOne({ 
             shiftCode: req.body.shiftCode,
+            adminId: req.user._id,
             _id: { $ne: req.params.id }
         });
         if (existingShift) {
@@ -113,6 +114,7 @@ export const updateShift = async (req, res) => {
         if (req.body.shiftName) {
             const existingShiftName = await Shift.findOne({ 
                 shiftName: req.body.shiftName,
+                adminId: req.user._id,
                 _id: { $ne: req.params.id }
             });
             if (existingShiftName) {
@@ -123,8 +125,8 @@ export const updateShift = async (req, res) => {
             }
         }
 
-        const shift = await Shift.findByIdAndUpdate(
-            req.params.id,
+        const shift = await Shift.findOneAndUpdate(
+            { _id: req.params.id, adminId: req.user._id },
             req.body,
             { new: true, runValidators: true }
         );
@@ -151,7 +153,7 @@ export const updateShift = async (req, res) => {
 // Delete shift
 export const deleteShift = async (req, res) => {
     try {
-        const shift = await Shift.findById(req.params.id).populate('employeeCount');
+        const shift = await Shift.findOne({ _id: req.params.id, adminId: req.user._id }).populate('employeeCount');
         
         if (!shift) {
             return res.status(404).json({ success: false, message: 'Shift not found' });
@@ -165,7 +167,7 @@ export const deleteShift = async (req, res) => {
             });
         }
 
-        await Shift.findByIdAndDelete(req.params.id);
+        await Shift.findOneAndDelete({ _id: req.params.id, adminId: req.user._id });
 
         res.status(200).json({ 
             success: true, 
@@ -183,7 +185,7 @@ export const deleteShift = async (req, res) => {
 // Toggle shift status
 export const toggleShiftStatus = async (req, res) => {
     try {
-        const shift = await Shift.findById(req.params.id);
+        const shift = await Shift.findOne({ _id: req.params.id, adminId: req.user._id });
         
         if (!shift) {
             return res.status(404).json({ success: false, message: 'Shift not found' });

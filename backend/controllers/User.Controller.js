@@ -337,7 +337,7 @@ const getExEmployees = async (req, res) => {
 
 const getUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id)
+        const user = await User.findOne({ _id: req.params.id, adminId: req.user._id })
             .populate('workSetup.shift')
             .populate('leaveGroup')
             .populate('workSetup.salaryGroup')
@@ -377,6 +377,7 @@ const updateUser = async (req, res) => {
         // Handle password update separately if provided
         if (updateData.password && updateData.password.trim() !== '') {
             updateData.password = await bcrypt.hash(updateData.password, 10);
+            updateData.passwordChangedAt = new Date();
         } else {
             delete updateData.password;
         }
@@ -395,7 +396,7 @@ const updateUser = async (req, res) => {
              updateData.profilePhoto = null;
         }
         
-        const userToUpdate = await User.findById(req.params.id);
+        const userToUpdate = await User.findOne({ _id: req.params.id, adminId: req.user._id });
         if (!userToUpdate) return res.status(404).json({ success: false, message: "User not found" });
 
         // Merge workSetup if it was sent as an object or partial fields
@@ -448,8 +449,8 @@ const updateUser = async (req, res) => {
         // Convert empty string leaveGroup to null
         if (updateData.leaveGroup === "") updateData.leaveGroup = null;
 
-        const user = await User.findByIdAndUpdate(
-            req.params.id, 
+        const user = await User.findOneAndUpdate(
+            { _id: req.params.id, adminId: req.user._id }, 
             { $set: updateData }, 
             { new: true, runValidators: true }
         ).select("-password").populate('workSetup.shift').populate('leaveGroup').populate('workSetup.salaryGroup');
@@ -488,7 +489,7 @@ const updateUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
+        const user = await User.findOneAndDelete({ _id: req.params.id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -502,7 +503,7 @@ const deleteUser = async (req, res) => {
 const reactivateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findById(id);
+        const user = await User.findOne({ _id: id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -586,7 +587,10 @@ const uploadUserDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: "Document type and file are required" });
         }
 
-        const user = await User.findById(req.params.id);
+        const query = req.user.role === 'Admin'
+            ? { _id: req.params.id, adminId: req.user._id }
+            : { _id: req.params.id, _id: req.user._id };
+        const user = await User.findOne(query);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -603,7 +607,7 @@ const uploadUserDocument = async (req, res) => {
         user.documents.push(newDoc);
         await user.save();
 
-        const populatedUser = await User.findById(req.params.id)
+        const populatedUser = await User.findOne(query)
             .populate('workSetup.shift')
             .populate('workSetup.salaryGroup')
             .populate('documents.documentType')
@@ -619,7 +623,10 @@ const uploadUserDocument = async (req, res) => {
 const deleteUserDocument = async (req, res) => {
     try {
         const { id, docId } = req.params;
-        const user = await User.findById(id);
+        const query = req.user.role === 'Admin'
+            ? { _id: id, adminId: req.user._id }
+            : { _id: id, _id: req.user._id };
+        const user = await User.findOne(query);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -627,7 +634,7 @@ const deleteUserDocument = async (req, res) => {
         user.documents = user.documents.filter(doc => doc._id.toString() !== docId);
         await user.save();
         
-        const populatedUser = await User.findById(req.params.id)
+        const populatedUser = await User.findOne(query)
             .populate('workSetup.shift')
             .populate('workSetup.salaryGroup')
             .populate('documents.documentType')
@@ -649,7 +656,7 @@ const changeBranch = async (req, res) => {
             return res.status(400).json({ success: false, message: "Branch is required" });
         }
 
-        const user = await User.findById(id);
+        const user = await User.findOne({ _id: id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "Employee not found" });
         }
@@ -735,7 +742,7 @@ const updateUserStatus = async (req, res) => {
         const { id } = req.params;
         const { status, isActive } = req.body;
         
-        const user = await User.findById(id);
+        const user = await User.findOne({ _id: id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -764,7 +771,7 @@ const updateUserStatus = async (req, res) => {
 const deleteProfilePhoto = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findById(id);
+        const user = await User.findOne({ _id: id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -828,7 +835,7 @@ const reviewUserDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid status" });
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findOne({ _id: userId, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -856,7 +863,7 @@ const reviewUserDocument = async (req, res) => {
 const resendCredentials = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findById(id);
+        const user = await User.findOne({ _id: id, adminId: req.user._id });
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
         }
@@ -866,6 +873,7 @@ const resendCredentials = async (req, res) => {
         const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
         user.password = hashedPassword;
+        user.passwordChangedAt = new Date();
         user.forcePasswordReset = true;
         await user.save();
 
@@ -904,6 +912,7 @@ const sendAllCredentials = async (req, res) => {
             const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
             user.password = hashedPassword;
+            user.passwordChangedAt = new Date();
             user.forcePasswordReset = true;
             await user.save();
 

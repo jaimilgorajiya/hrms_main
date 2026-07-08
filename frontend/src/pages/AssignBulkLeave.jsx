@@ -151,14 +151,14 @@ const AssignBulkLeave = () => {
                                         <td style={{ padding: '16px 24px', textAlign: 'center' }}>
                                             <div style={{ 
                                                 fontWeight: '900', 
-                                                color: (emp.leaveGroup && typeof emp.leaveGroup === 'object' && emp.leaveGroup.noOfPaidLeaves) ? 'var(--accent)' : 'var(--text-muted)', 
+                                                color: (emp.leaveGroup && emp.noOfPaidLeaves) ? 'var(--accent)' : 'var(--text-muted)', 
                                                 background: 'var(--bg-main)', 
                                                 padding: '6px 12px', 
                                                 borderRadius: '8px', 
                                                 border: '1px solid var(--border)', 
                                                 display: 'inline-block' 
                                             }}>
-                                                {(emp.leaveGroup && typeof emp.leaveGroup === 'object' && emp.leaveGroup.noOfPaidLeaves) ? Number(emp.leaveGroup.noOfPaidLeaves).toFixed(2) : '0.00'}
+                                                {emp.leaveGroup ? Number(emp.noOfPaidLeaves || 0).toFixed(2) : '0.00'}
                                             </div>
                                         </td>
                                     </tr>

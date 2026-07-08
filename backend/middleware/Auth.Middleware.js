@@ -29,6 +29,15 @@ const verifyToken = async (req, res, next) => {
             return res.status(401).json({ success: false, message: "Unauthorized - User Not Found" });
         }
 
+        // Force logout if password has been changed after token was issued
+        if (user.passwordChangedAt) {
+            const changedTimestamp = Math.floor(user.passwordChangedAt.getTime() / 1000);
+            const tokenIat = decoded.iat || 0;
+            if (tokenIat < changedTimestamp) {
+                return res.status(401).json({ success: false, message: "Unauthorized - Invalid Token" });
+            }
+        }
+
         // Check account status - auto logout ex-employees
         const today = new Date();
         today.setHours(0,0,0,0);

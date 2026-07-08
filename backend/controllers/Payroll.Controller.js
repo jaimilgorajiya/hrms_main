@@ -7,6 +7,7 @@ import { computeWorkingMinutes } from "../utils/attendance.js";
 import PenaltyRule from "../models/PenaltyRule.Model.js";
 import Payout from "../models/Payout.Model.js";
 import Company from '../models/Company.Model.js';
+import SalarySlip from '../models/SalarySlip.Model.js';
 import pdfmake from 'pdfmake';
 
 export const getMonthlyPayoutSummary = async (req, res) => {
@@ -16,13 +17,13 @@ export const getMonthlyPayoutSummary = async (req, res) => {
 
         const [year, monthNum] = month.split('-').map(Number);
         const startDate = `${month}-01`;
-        const endDate = new Date(year, monthNum, 0).toISOString().split('T')[0];
         const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const endDate = `${month}-${String(daysInMonth).padStart(2, '0')}`;
         const adminId = req.user._id;
 
-        const employeeQuery = { 
+        const employeeQuery = {
             adminId,
-            status: { $in: ['Active', 'Resigned'] } 
+            status: { $in: ['Active', 'Resigned'] }
         };
         if (branch) employeeQuery.branch = branch;
         if (department) employeeQuery.department = department;
@@ -56,7 +57,7 @@ export const getMonthlyPayoutSummary = async (req, res) => {
 
         for (const emp of employees) {
             const isInitiated = !!initiatedMap[emp._id.toString()];
-            
+
             const ctc = await EmployeeCTC.findOne({ employeeId: emp._id, status: 'Active' });
             const ctcMissing = !ctc;
 
@@ -92,7 +93,7 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
 
             const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            
+
             let workedMins = 0;
             let monthPenalty = 0;
             for (let d = 1; d <= daysInMonth; d++) {
@@ -100,9 +101,9 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 const dateObj = new Date(year, monthNum - 1, d);
                 const dayName = daysOfWeek[dateObj.getDay()];
                 const isWeekOff = shift?.weekOffDays?.includes(dayName);
-                
+
                 const record = attendanceMap[dayStr];
-                
+
                 if (record) {
                     workedMins += computeWorkingMinutes(record.punches, record.breaks);
 
@@ -130,7 +131,7 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     } else if (record.status === 'Week Off') {
                         weekOffsPaid++;
                     }
-                    
+
                     // Accumulate penalties
                     monthPenalty += (record.lateInPenalty?.amount || 0) + (record.earlyOutPenalty?.amount || 0);
                 } else {
@@ -155,11 +156,11 @@ export const getMonthlyPayoutSummary = async (req, res) => {
             // Total Payable Days calculation
             // Base = Worked + Paid Leaves + Paid Week Offs (recorded or missed) + Holidays
             const basePayable = presentDaysCount + (halfDaysCount * 0.5) + weekOffsPaid + holidaysPaid + usedPaidLeaves;
-            
+
             // Extra Benefit = Days * (TotalMultiplier - 1)
             // Because they already have '1x' in the basePayable (as Present/HalfDay)
             const extraBenefit = extraDaysWorked * (totalMultiplier - 1);
-            
+
             const payableDays = basePayable + extraBenefit;
 
             const salaryGroup = emp.workSetup?.salaryGroup;
@@ -178,11 +179,11 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 const regularPayable = Math.min(baseDays, basePayable);
                 accruedGross = (perDayGross * regularPayable) + (perDayGross * extraBenefit);
                 accruedNet = ((perDayNet * regularPayable) + (perDayNet * extraBenefit)) - monthPenalty;
-                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * regularPayable); 
+                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * regularPayable);
             } else {
                 accruedGross = perDayGross * payableDays;
                 accruedNet = (perDayNet * payableDays) - monthPenalty;
-                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * (payableDays - extraBenefit)); 
+                unpaidLeaveDeduction = (ctc?.netSalary || 0) - (perDayNet * (payableDays - extraBenefit));
             }
 
             if (salaryGroup?.roundedSalary === 'Yes') {
@@ -205,18 +206,18 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 },
                 daysInMonth,
                 isInitiated,
-                attendance: { 
-                    present: presentDaysCount, 
-                    halfDay: halfDaysCount, 
-                    absent: absentDaysCount, 
-                    weekOff: weekOffsPaid, 
-                    holiday: holidaysPaid, 
-                    paidLeave: usedPaidLeaves, 
-                    unpaidLeave: usedUnpaidLeaves 
+                attendance: {
+                    present: presentDaysCount,
+                    halfDay: halfDaysCount,
+                    absent: absentDaysCount,
+                    weekOff: weekOffsPaid,
+                    holiday: holidaysPaid,
+                    paidLeave: usedPaidLeaves,
+                    unpaidLeave: usedUnpaidLeaves
                 },
-                hours: { 
-                    worked: Math.floor(workedMins / 60) + 'h ' + (workedMins % 60) + 'm', 
-                    expected: Math.floor(expectedMins / 60) + 'h ' + (expectedMins % 60) + 'm' 
+                hours: {
+                    worked: Math.floor(workedMins / 60) + 'h ' + (workedMins % 60) + 'm',
+                    expected: Math.floor(expectedMins / 60) + 'h ' + (expectedMins % 60) + 'm'
                 },
                 extraBenefits: {
                     extraDaysWorked,
@@ -224,15 +225,15 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     bonusPayDays: extraBenefit,
                     amount: extraBenefit * perDayNet
                 },
-                penalties: { 
-                    lateIn: isInitiated ? 0 : monthPenalty, 
-                    total: isInitiated ? 0 : monthPenalty 
+                penalties: {
+                    lateIn: isInitiated ? (initiatedMap[emp._id.toString()].penalties?.lateIn || 0) : monthPenalty,
+                    total: isInitiated ? (initiatedMap[emp._id.toString()].penalties?.total || 0) : monthPenalty
                 },
-                salary: { 
-                    monthlyGross: ctc?.monthlyGross || 0, 
-                    monthlyNet: ctc?.netSalary || 0, 
-                    accruedGross: isInitiated ? (initiatedMap[emp._id.toString()].systemAccrued || 0) : accruedGross, 
-                    accruedNet: isInitiated ? (initiatedMap[emp._id.toString()].finalPayout || 0) : accruedNet, 
+                salary: {
+                    monthlyGross: ctc?.monthlyGross || 0,
+                    monthlyNet: ctc?.netSalary || 0,
+                    accruedGross: isInitiated ? (initiatedMap[emp._id.toString()].systemAccrued || 0) : accruedGross,
+                    accruedNet: isInitiated ? (initiatedMap[emp._id.toString()].finalPayout || 0) : accruedNet,
                     unpaidLeaveDeduction: isInitiated ? 0 : unpaidLeaveDeduction,
                     extraDayAmount: extraBenefit * perDayNet
                 },
@@ -248,8 +249,8 @@ export const getMonthlyPayoutSummary = async (req, res) => {
 
 export const initiatePayout = async (req, res) => {
     try {
-        const { 
-            employeeId, month, attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout 
+        const {
+            employeeId, month, attendance, baseSalary, systemAccrued, penalties, adjustments, extraDayBenefit, finalPayout
         } = req.body;
         const adminId = req.user._id;
 
@@ -282,23 +283,23 @@ export const initiatePayout = async (req, res) => {
 
         const payout = await Payout.findOneAndUpdate(
             { employeeId, month },
-            { 
-                $set: { 
-                    attendance, 
-                    baseSalary, 
-                    systemAccrued, 
-                    penalties, 
-                    adjustments, 
-                    extraDayBenefit, 
+            {
+                $set: {
+                    attendance,
+                    baseSalary,
+                    systemAccrued,
+                    penalties,
+                    adjustments,
+                    extraDayBenefit,
                     finalPayout,
                     joiningNetSalary,
                     joiningMonthlyGross,
                     earnings: earningsSnapshot,
                     deductions: deductionsSnapshot,
-                    initiatedBy: adminId, 
-                    initiatedAt: new Date(), 
-                    status: 'Initiated' 
-                } 
+                    initiatedBy: adminId,
+                    initiatedAt: new Date(),
+                    status: 'Initiated'
+                }
             },
             { upsert: true, new: true }
         );
@@ -346,9 +347,9 @@ export const publishSalarySlip = async (req, res) => {
 export const getMyPayslips = async (req, res) => {
     try {
         const employeeId = req.user._id;
-        const slips = await Payout.find({ 
-            employeeId, 
-            status: 'Published' 
+        const slips = await Payout.find({
+            employeeId,
+            status: 'Published'
         })
             .populate('employeeId', 'name employeeId department designation')
             .sort({ month: -1 });
@@ -370,12 +371,183 @@ export const downloadPayslip = async (req, res) => {
         // Admin can download any slip belonging to their org
         const isAdmin = req.user.role === 'Admin';
         const isOwner = payout.employeeId?._id?.toString() === req.user._id.toString();
-        if (!isAdmin && !isOwner) {
+
+        // Ensure that if it is an Admin, the employee belongs to this Admin's company (org validation)
+        const isSameOrg = isAdmin && payout.employeeId?.adminId?.toString() === req.user._id.toString();
+
+        if (!isSameOrg && !isOwner) {
             return res.status(403).json({ success: false, message: "Access denied." });
         }
 
         // Fetch company details based on the admin who onboarded this employee
         const company = await Company.findOne({ adminId: payout.employeeId?.adminId });
+
+        const [payoutYear, payoutMonthNum] = payout.month.split('-').map(Number);
+        const salarySlipRecord = await SalarySlip.findOne({
+            employeeId: payout.employeeId?._id,
+            month: payoutMonthNum,
+            year: payoutYear
+        });
+        const payoutDescription = payout.description || salarySlipRecord?.description || "";
+
+        // --- Day-wise Salary Breakdown Calculation ---
+        const employeeId = payout.employeeId?._id;
+        const month = payout.month; // YYYY-MM
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const startDate = `${month}-01`;
+        const endDate = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+
+        const user = await User.findById(employeeId)
+            .populate('workSetup.shift')
+            .populate('workSetup.salaryGroup');
+
+        const shift = user?.workSetup?.shift;
+        const salaryGroup = user?.workSetup?.salaryGroup;
+
+        const monthAttendance = await Attendance.find({
+            employee: employeeId,
+            date: { $gte: startDate, $lte: endDate }
+        });
+        const attendanceMap = {};
+        monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
+
+        const approvedLeaves = await Request.find({
+            employee: employeeId,
+            requestType: 'Leave',
+            status: 'Approved',
+            date: { $gte: startDate, $lte: endDate }
+        });
+        const leavesMap = {};
+        approvedLeaves.forEach(l => {
+            leavesMap[l.date] = l;
+        });
+
+        const monthHolidays = await Holiday.find({
+            adminId: user?.adminId || payout.initiatedBy,
+            year: year,
+            date: { $gte: startDate, $lte: endDate },
+            status: 'Active'
+        });
+        const holidayPaidMap = {};
+        monthHolidays.forEach(h => {
+            holidayPaidMap[h.date] = {
+                name: h.holidayName,
+                isPaid: h.isPaid !== false
+            };
+        });
+
+        const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
+        const baseDays = isFixed ? (salaryGroup?.fixedDays || 26) : daysInMonth;
+        const perDayNet = payout.joiningNetSalary ? (payout.joiningNetSalary / baseDays) : 0;
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        const multiplierStr = shift?.extraPayoutMultiplier || 'Default';
+        let totalMultiplier = 1;
+        if (multiplierStr === '1x') totalMultiplier = 1;
+        else if (multiplierStr === '1.5x') totalMultiplier = 1.5;
+        else if (multiplierStr === '2x' || multiplierStr === 'Default') totalMultiplier = 2;
+
+        const daywiseRows = [
+            [
+                { text: 'Date', style: 'tableHeader' },
+                { text: 'Status', style: 'tableHeader' },
+                { text: 'Punches', style: 'tableHeader' },
+                { text: 'Work Hrs', style: 'tableHeader' },
+                { text: 'Penalties', style: 'tableHeader' },
+                { text: 'Earned Pay', style: 'tableHeader' }
+            ]
+        ];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dayStr = `${month}-${String(d).padStart(2, '0')}`;
+            const dateObj = new Date(year, monthNum - 1, d);
+            const dayName = daysOfWeek[dateObj.getDay()];
+            const isWeekOff = shift?.weekOffDays?.includes(dayName);
+
+            const attendanceRecord = attendanceMap[dayStr];
+            const leaveRecord = leavesMap[dayStr];
+            const holidayRecord = holidayPaidMap[dayStr];
+
+            let status = 'Absent';
+            let punchIn = '--';
+            let punchOut = '--';
+            let latePenalty = 0;
+            let earlyPenalty = 0;
+            let workedMins = 0;
+            let earnedAmount = 0;
+
+            if (attendanceRecord) {
+                workedMins = computeWorkingMinutes(attendanceRecord.punches, attendanceRecord.breaks);
+                const firstIn = attendanceRecord.punches.find(p => p.type === 'IN');
+                const lastOut = [...attendanceRecord.punches].reverse().find(p => p.type === 'OUT');
+                
+                if (firstIn) {
+                    punchIn = new Date(firstIn.time).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+                if (lastOut) {
+                    punchOut = new Date(lastOut.time).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+                latePenalty = attendanceRecord.lateInPenalty?.amount || 0;
+                earlyPenalty = attendanceRecord.earlyOutPenalty?.amount || 0;
+                status = attendanceRecord.status;
+            } else {
+                if (isWeekOff) status = 'Week Off';
+                else if (holidayRecord) status = 'Holiday';
+            }
+
+            if (leaveRecord) {
+                status = leaveRecord.leaveCategory === 'Paid' ? 'Paid Leave' : 'Unpaid Leave';
+                if (leaveRecord.leaveDuration === 'Half Day') {
+                    status = leaveRecord.leaveCategory === 'Paid' ? 'Paid Leave (Half)' : 'Unpaid Leave (Half)';
+                }
+            }
+
+            // Earned Amount
+            if (status === 'Present') {
+                if (isWeekOff || holidayRecord) earnedAmount = perDayNet * totalMultiplier;
+                else earnedAmount = perDayNet;
+            } else if (status === 'Half Day') {
+                if (isWeekOff || holidayRecord) earnedAmount = perDayNet * 0.5 * totalMultiplier;
+                else earnedAmount = perDayNet * 0.5;
+            } else if (status === 'Paid Leave') {
+                earnedAmount = perDayNet;
+            } else if (status === 'Paid Leave (Half)') {
+                earnedAmount = perDayNet * 0.5;
+            } else if (status === 'Week Off') {
+                earnedAmount = perDayNet;
+            } else if (status === 'Holiday') {
+                if (!holidayRecord || holidayRecord.isPaid) earnedAmount = perDayNet;
+            }
+
+            const totalPenalty = latePenalty + earlyPenalty;
+            const netDailyEarned = Math.max(0, earnedAmount - totalPenalty);
+
+            // Format date as DD-MMM
+            const displayDate = `${String(d).padStart(2, '0')}-${dateObj.toLocaleString('en-US', { month: 'short' })}`;
+            const punchesStr = punchIn !== '--' ? `${punchIn} - ${punchOut}` : '--';
+            const workedHoursStr = workedMins > 0 ? `${Math.floor(workedMins / 60)}h ${workedMins % 60}m` : '--';
+            const penaltyStr = totalPenalty > 0 ? `Rs. ${totalPenalty}` : '-';
+
+            daywiseRows.push([
+                { text: `${displayDate} (${dayName.slice(0, 3)})`, fontSize: 7, alignment: 'left' },
+                { text: status, fontSize: 7, alignment: 'center' },
+                { text: punchesStr, fontSize: 7, alignment: 'center' },
+                { text: workedHoursStr, fontSize: 7, alignment: 'center' },
+                { text: penaltyStr, fontSize: 7, alignment: 'center', color: totalPenalty > 0 ? '#ef4444' : '#475569' },
+                { text: `Rs. ${Math.round(netDailyEarned).toLocaleString()}`, fontSize: 7, alignment: 'right', bold: true }
+            ]);
+        }
 
         const fonts = {
             Roboto: {
@@ -391,7 +563,7 @@ export const downloadPayslip = async (req, res) => {
 
         let earningRows = [];
         let deductionRows = [];
-        
+
         // Process Dynamic Earnings from Snapshot
         if (payout.earnings && payout.earnings.length > 0) {
             earningRows = payout.earnings.map(e => ([
@@ -435,7 +607,7 @@ export const downloadPayslip = async (req, res) => {
                 { text: (payout.adjustments.deduction.amount).toLocaleString(), fontSize: 10, alignment: 'right' }
             ]);
         }
-        
+
         // Add Extra Day Benefit (New)
         if ((payout.extraDayBenefit?.amount || 0) > 0) {
             earningRows.push([
@@ -481,7 +653,7 @@ export const downloadPayslip = async (req, res) => {
                 { text: `${company?.address || ''}${company?.pincode ? ', ' + company.pincode : ''}`, style: 'subHeader' },
                 { text: `Email: ${company?.companyEmail || 'N/A'} | Contact: ${company?.companyContact || 'N/A'}`, style: 'subHeader' },
                 { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#e2e8f0' }] },
-                
+
                 { text: `PAYSLIP FOR THE MONTH OF ${payout.month}`, style: 'title' },
 
                 // Employee Details Table
@@ -560,7 +732,7 @@ export const downloadPayslip = async (req, res) => {
                     table: {
                         widths: ['*', '35%'],
                         body: [
-                             [
+                            [
                                 { text: 'NET PAYABLE:', bold: true, fontSize: 13, color: '#0f172a', margin: [0, 5, 0, 5] },
                                 { text: ` ${payout.finalPayout.toLocaleString()}`, bold: true, fontSize: 16, color: '#0f172a', alignment: 'right', margin: [0, 5, 0, 5] }
                             ]
@@ -576,8 +748,45 @@ export const downloadPayslip = async (req, res) => {
 
                 { text: `(Rupees ${amountToWords(payout.finalPayout)} Only)`, fontSize: 10, italics: true, margin: [0, 10, 0, 0], alignment: 'right' },
 
+                // Add Remarks/Notes if present
+                payoutDescription ? {
+                    margin: [0, 15, 0, 0],
+                    table: {
+                        widths: ['*'],
+                        body: [
+                            [
+                                {
+                                    fillColor: '#f8fafc',
+                                    border: [true, true, true, true],
+                                    borderColor: '#e2e8f0',
+                                    text: [
+                                        { text: 'Note / Remarks:\n', bold: true, fontSize: 9, color: '#334155' },
+                                        { text: payoutDescription, fontSize: 9, color: '#475569' }
+                                    ],
+                                    margin: [8, 8, 8, 8]
+                                }
+                            ]
+                        ]
+                    }
+                } : null,
+
                 // Footer Region
-                { text: 'This is a computer-generated document and does not require a physical signature.', style: 'footer' }
+                { text: 'This is a computer-generated document and does not require a physical signature.', style: 'footer', margin: [0, 20, 0, 0] },
+
+                // Page 2: Day-wise Salary Breakdown
+                { text: '', pageBreak: 'before' },
+                { text: company?.companyName || 'COMPANY NAME', style: 'header' },
+                { text: `Payslip Report - ${payout.month}`, style: 'title' },
+                { text: 'DAY-WISE ATTENDANCE & EARNINGS BREAKDOWN', style: 'sectionHeader', alignment: 'center', margin: [0, 0, 0, 10] },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ['18%', '16%', '22%', '14%', '12%', '18%'],
+                        body: daywiseRows
+                    },
+                    margin: [0, 5, 0, 15]
+                },
+                { text: '* Earned Pay represents the pro-rated daily salary based on actual status and shift multipliers (if applicable), minus daily penalties.', fontSize: 8, italics: true, color: '#64748b', alignment: 'center' }
             ],
             styles: {
                 header: { fontSize: 22, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 0, 0, 5] },
@@ -587,17 +796,17 @@ export const downloadPayslip = async (req, res) => {
                 tableHeader: { bold: true, fontSize: 9, alignment: 'center', fillColor: '#334155', color: 'white', margin: [0, 4, 0, 4] },
                 earningsHeader: { bold: true, fontSize: 10, fillColor: '#1e293b', color: 'white', margin: [0, 4, 0, 4] },
                 deductionsHeader: { bold: true, fontSize: 10, fillColor: '#475569', color: 'white', margin: [0, 4, 0, 4] },
-                footer: { fontSize: 8, italics: true, color: '#94a3b8', alignment: 'center', margin: [0, 60, 0, 0] }
+                footer: { fontSize: 8, italics: true, color: '#94a3b8', alignment: 'center', margin: [0, 40, 0, 0] }
             },
             defaultStyle: { font: 'Roboto' }
         };
 
         // Helper function for amount to words
         function amountToWords(amount) {
-            const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
-            const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+            const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-            function inWords (num) {
+            function inWords(num) {
                 if ((num = num.toString()).length > 9) return 'overflow';
                 const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
                 if (!n) return ''; let str = '';
@@ -608,13 +817,13 @@ export const downloadPayslip = async (req, res) => {
                 str += (Number(n[5]) != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
                 return str.trim();
             }
-            
+
             const parts = Number(amount).toFixed(2).split('.');
             let rupeesPart = inWords(parts[0]);
             if (!rupeesPart || rupeesPart === '') rupeesPart = 'Zero';
-            
+
             let paisePart = Number(parts[1]) > 0 ? ' and ' + inWords(parts[1]) + ' Paise' : '';
-            
+
             return rupeesPart + paisePart;
         }
 
@@ -624,7 +833,7 @@ export const downloadPayslip = async (req, res) => {
         res.setHeader('Content-Type', 'application/pdf');
         const disposition = req.query.download === 'true' ? 'attachment' : 'inline';
         res.setHeader('Content-Disposition', `${disposition}; filename=payslip-${payout.month}.pdf`);
-        
+
         res.send(Buffer.from(buffer));
 
     } catch (error) {
@@ -636,15 +845,18 @@ export const downloadPayslip = async (req, res) => {
 export const deletePayout = async (req, res) => {
     try {
         const { id } = req.params;
-        const payout = await Payout.findById(id);
-        
+        const adminId = req.user._id;
+
+        // Verify the payout record belongs to this admin's workspace
+        const payout = await Payout.findOne({ _id: id, adminId });
+
         if (!payout) return res.status(404).json({ success: false, message: "Record not found" });
         if (payout.status === 'Published') {
             // Optional: You might want to restrict deleting published slips, 
             // but for recovery purposes we allow it here.
         }
 
-        await Payout.findByIdAndDelete(id);
+        await Payout.findOneAndDelete({ _id: id, adminId });
         res.status(200).json({ success: true, message: "Payout record cleared successfully" });
     } catch (error) {
         console.error("deletePayout error:", error);
@@ -656,11 +868,16 @@ export const getPayoutHistory = async (req, res) => {
     try {
         const { month, employeeId } = req.query;
         const adminId = req.user._id;
-        
+
         let query = {};
         if (month) query.month = month;
-        
+
         if (employeeId) {
+            // Verify employee belongs to this admin's workspace
+            const empExists = await User.findOne({ _id: employeeId, adminId });
+            if (!empExists) {
+                return res.status(403).json({ success: false, message: "Access denied." });
+            }
             query.employeeId = employeeId;
         } else {
             const employees = await User.find({ adminId }).select('_id');
@@ -677,5 +894,247 @@ export const getPayoutHistory = async (req, res) => {
     } catch (error) {
         console.error("getPayoutHistory error:", error);
         res.status(500).json({ success: false, message: "Failed to fetch payout history" });
+    }
+};
+
+export const getDaywisePayoutBreakdown = async (req, res) => {
+    try {
+        const { id } = req.params; // Payout ID
+        const payout = await Payout.findById(id).populate('employeeId', 'name employeeId department designation adminId workSetup');
+        if (!payout) return res.status(404).json({ success: false, message: "Payslip/Payout not found" });
+
+        // Security check: must be owner or admin of the same company
+        const isAdmin = req.user.role === 'Admin';
+        const isOwner = payout.employeeId?._id?.toString() === req.user._id.toString();
+        const isSameOrg = isAdmin && payout.employeeId?.adminId?.toString() === req.user._id.toString();
+
+        if (!isSameOrg && !isOwner) {
+            return res.status(403).json({ success: false, message: "Access denied." });
+        }
+
+        const employeeId = payout.employeeId?._id;
+        const month = payout.month; // YYYY-MM
+        const [year, monthNum] = month.split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const startDate = `${month}-01`;
+        const endDate = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+
+        // Fetch User with populated shift & salaryGroup
+        const user = await User.findById(employeeId)
+            .populate('workSetup.shift')
+            .populate('workSetup.salaryGroup');
+
+        const shift = user?.workSetup?.shift;
+        const salaryGroup = user?.workSetup?.salaryGroup;
+
+        // Fetch Attendance records
+        const monthAttendance = await Attendance.find({
+            employee: employeeId,
+            date: { $gte: startDate, $lte: endDate }
+        });
+        const attendanceMap = {};
+        monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
+
+        // Fetch Approved Leaves
+        const approvedLeaves = await Request.find({
+            employee: employeeId,
+            requestType: 'Leave',
+            status: 'Approved',
+            date: { $gte: startDate, $lte: endDate }
+        });
+        const leavesMap = {};
+        approvedLeaves.forEach(l => {
+            leavesMap[l.date] = l;
+        });
+
+        // Fetch Holidays
+        const monthHolidays = await Holiday.find({
+            adminId: user?.adminId || payout.initiatedBy,
+            year: year,
+            date: { $gte: startDate, $lte: endDate },
+            status: 'Active'
+        });
+        const holidayPaidMap = {};
+        monthHolidays.forEach(h => {
+            holidayPaidMap[h.date] = {
+                name: h.holidayName,
+                isPaid: h.isPaid !== false
+            };
+        });
+
+        // Divisor based on salary group setting
+        const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
+        const baseDays = isFixed ? (salaryGroup?.fixedDays || 26) : daysInMonth;
+
+        const perDayGross = payout.joiningMonthlyGross ? (payout.joiningMonthlyGross / baseDays) : 0;
+        const perDayNet = payout.joiningNetSalary ? (payout.joiningNetSalary / baseDays) : 0;
+
+        const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        // Shift multiplier for extra hours on weekoff/holiday
+        const multiplierStr = shift?.extraPayoutMultiplier || 'Default';
+        let totalMultiplier = 1;
+        if (multiplierStr === '1x') totalMultiplier = 1;
+        else if (multiplierStr === '1.5x') totalMultiplier = 1.5;
+        else if (multiplierStr === '2x' || multiplierStr === 'Default') totalMultiplier = 2;
+
+        const daywiseBreakdown = [];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dayStr = `${month}-${String(d).padStart(2, '0')}`;
+            const dateObj = new Date(year, monthNum - 1, d);
+            const dayName = daysOfWeek[dateObj.getDay()];
+            const isWeekOff = shift?.weekOffDays?.includes(dayName);
+
+            const attendanceRecord = attendanceMap[dayStr];
+            const leaveRecord = leavesMap[dayStr];
+            const holidayRecord = holidayPaidMap[dayStr];
+
+            let status = 'Absent';
+            let punchIn = '--';
+            let punchOut = '--';
+            let latePenalty = 0;
+            let earlyPenalty = 0;
+            let totalBreaks = 0;
+            let workedMins = 0;
+            let earnedAmount = 0;
+            let rateDescription = '';
+
+            // 1. Core Attendance details
+            if (attendanceRecord) {
+                workedMins = computeWorkingMinutes(attendanceRecord.punches, attendanceRecord.breaks);
+
+                const firstIn = attendanceRecord.punches.find(p => p.type === 'IN');
+                const lastOut = [...attendanceRecord.punches].reverse().find(p => p.type === 'OUT');
+
+                if (firstIn) {
+                    punchIn = new Date(firstIn.time).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+                if (lastOut) {
+                    punchOut = new Date(lastOut.time).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+
+                latePenalty = attendanceRecord.lateInPenalty?.amount || 0;
+                earlyPenalty = attendanceRecord.earlyOutPenalty?.amount || 0;
+                totalBreaks = attendanceRecord.breaks?.length || 0;
+
+                status = attendanceRecord.status;
+            } else {
+                if (isWeekOff) {
+                    status = 'Week Off';
+                } else if (holidayRecord) {
+                    status = 'Holiday';
+                }
+            }
+
+            // Approved Leave overrides
+            if (leaveRecord) {
+                status = leaveRecord.leaveCategory === 'Paid' ? 'Paid Leave' : 'Unpaid Leave';
+                if (leaveRecord.leaveDuration === 'Half Day') {
+                    status = leaveRecord.leaveCategory === 'Paid' ? 'Paid Leave (Half)' : 'Unpaid Leave (Half)';
+                }
+            }
+
+            // 2. Earnings logic per day status
+            if (status === 'Present') {
+                if (isWeekOff) {
+                    earnedAmount = perDayNet * totalMultiplier;
+                    rateDescription = `Present on Week Off (${totalMultiplier}x pay)`;
+                } else if (holidayRecord) {
+                    earnedAmount = perDayNet * totalMultiplier;
+                    rateDescription = `Present on Holiday (${totalMultiplier}x pay)`;
+                } else {
+                    earnedAmount = perDayNet;
+                    rateDescription = 'Regular Day Pay';
+                }
+            } else if (status === 'Half Day') {
+                if (isWeekOff) {
+                    earnedAmount = perDayNet * 0.5 * totalMultiplier;
+                    rateDescription = `Half Day on Week Off (${totalMultiplier}x pay)`;
+                } else if (holidayRecord) {
+                    earnedAmount = perDayNet * 0.5 * totalMultiplier;
+                    rateDescription = `Half Day on Holiday (${totalMultiplier}x pay)`;
+                } else {
+                    earnedAmount = perDayNet * 0.5;
+                    rateDescription = 'Half Day Pay';
+                }
+            } else if (status === 'Paid Leave') {
+                earnedAmount = perDayNet;
+                rateDescription = 'Approved Paid Leave';
+            } else if (status === 'Paid Leave (Half)') {
+                earnedAmount = perDayNet * 0.5;
+                rateDescription = 'Approved Paid Leave (Half)';
+            } else if (status === 'Week Off') {
+                earnedAmount = perDayNet;
+                rateDescription = 'Paid Week Off';
+            } else if (status === 'Holiday') {
+                if (!holidayRecord || holidayRecord.isPaid) {
+                    earnedAmount = perDayNet;
+                    rateDescription = `Paid Holiday (${holidayRecord?.name || 'Company Holiday'})`;
+                } else {
+                    earnedAmount = 0;
+                    rateDescription = `Unpaid Holiday (${holidayRecord?.name || 'Company Holiday'})`;
+                }
+            } else {
+                // Unpaid Leave / Unpaid Leave (Half) / Absent
+                earnedAmount = 0;
+                rateDescription = status === 'Absent' ? 'Absent (Unpaid)' : 'Approved Unpaid Leave';
+            }
+
+            const netDailyEarned = Math.max(0, earnedAmount - latePenalty - earlyPenalty);
+
+            daywiseBreakdown.push({
+                date: dayStr,
+                dayName,
+                status,
+                punchIn,
+                punchOut,
+                workedMins,
+                workedHours: Math.floor(workedMins / 60) + 'h ' + (workedMins % 60) + 'm',
+                latePenalty,
+                earlyPenalty,
+                totalPenalty: latePenalty + earlyPenalty,
+                baseEarned: parseFloat(earnedAmount.toFixed(2)),
+                netEarned: parseFloat(netDailyEarned.toFixed(2)),
+                rateDescription,
+                isHoliday: !!holidayRecord,
+                holidayName: holidayRecord?.name || '',
+                isWeekOff
+            });
+        }
+
+        const [breakdownYear, breakdownMonthNum] = payout.month.split('-').map(Number);
+        const slipRecord = await SalarySlip.findOne({
+            employeeId: payout.employeeId?._id,
+            month: breakdownMonthNum,
+            year: breakdownYear
+        });
+        const payoutDescription = payout.description || slipRecord?.description || "";
+
+        res.status(200).json({
+            success: true,
+            month,
+            employeeName: payout.employeeId?.name,
+            employeeId: payout.employeeId?.employeeId,
+            joiningNetSalary: payout.joiningNetSalary,
+            joiningMonthlyGross: payout.joiningMonthlyGross,
+            perDayNet: parseFloat(perDayNet.toFixed(2)),
+            days: daywiseBreakdown,
+            description: payoutDescription
+        });
+
+    } catch (error) {
+        console.error("getDaywisePayoutBreakdown error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

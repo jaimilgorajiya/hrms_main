@@ -410,7 +410,7 @@ const AdminDashboard = () => {
               </div>
            </div>
            <div className="card-footer-prem">
-              <button className="view-all-prem" onClick={() => navigate('/admin/requests/all')}>
+              <button className="view-all-prem" onClick={() => navigate('/admin/leave/request')}>
                  MANAGE ALL <ArrowRight size={14} />
               </button>
            </div>

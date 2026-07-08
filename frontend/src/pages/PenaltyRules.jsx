@@ -1,7 +1,7 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Save, AlertCircle, Minus, ShieldAlert, Clock, Zap, Info } from 'lucide-react';
+import { Plus, Trash2, Save, AlertCircle, Minus, ShieldAlert, Clock, Zap, Info, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import SearchableSelect from '../components/SearchableSelect';
 
@@ -180,7 +180,7 @@ const PenaltyRules = () => {
 
     if (fetchingShifts) return (
         <div className="hrm-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-            <div className="animate-spin" style={{ color: 'var(--primary-blue)' }}><ShieldAlert size={40} /></div>
+            <div className="animate-spin" style={{ color: 'var(--primary-blue)' }}><Loader2 size={40} /></div>
         </div>
     );
 

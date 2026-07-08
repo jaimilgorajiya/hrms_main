@@ -367,20 +367,19 @@ const PenaltiesList = () => {
                                 <th style={{ borderBottom: 'none', padding: '16px 20px', fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Late In Penalty</th>
                                 <th style={{ borderBottom: 'none', padding: '16px 20px', fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Early Out Penalty</th>
                                 <th style={{ borderBottom: 'none', padding: '16px 20px', fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Penalty</th>
-                                <th style={{ borderBottom: 'none', padding: '16px 20px', fontSize: '11.5px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'center', width: '120px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '80px 0', textAlign: 'center' }}>
+                                    <td colSpan="5" style={{ padding: '80px 0', textAlign: 'center' }}>
                                         <div className="spinner" style={{ border: '3px solid var(--border)', borderTop: '3px solid var(--primary-blue)', borderRadius: '50%', width: '28px', height: '28px', margin: '0 auto 12px auto', animation: 'spin 1s linear infinite' }}></div>
                                         <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-muted)' }}>Fetching penalty records...</div>
                                     </td>
                                 </tr>
                             ) : filteredRecords.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" style={{ padding: '80px 0', textAlign: 'center' }}>
+                                    <td colSpan="5" style={{ padding: '80px 0', textAlign: 'center' }}>
                                         <div style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                                             <ShieldAlert size={40} style={{ opacity: 0.6 }} />
                                             <span style={{ fontSize: '14.5px', fontWeight: '700' }}>No penalties found for this period</span>
@@ -447,60 +446,10 @@ const PenaltiesList = () => {
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>---</span>
                                             )}
                                         </td>
-                                        <td style={{ padding: '18px 20px', borderBottom: 'none' }}>
+                                        <td style={{ padding: '18px 20px', borderRadius: '0 12px 12px 0', borderBottom: 'none' }}>
                                             <span style={{ fontSize: '14px', fontWeight: '900', color: totalDayPenalty > 0 ? '#EF4444' : 'var(--text-secondary)' }}>
                                                 ₹{totalDayPenalty}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: '18px 20px', borderRadius: '0 12px 12px 0', textAlign: 'center', borderBottom: 'none' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                                <button 
-                                                    className="btn-download-slip" 
-                                                    style={{ 
-                                                        padding: '6px 10px', 
-                                                        borderRadius: '8px', 
-                                                        border: '1.5px solid var(--border)', 
-                                                        background: 'var(--card-bg)', 
-                                                        color: 'var(--text-secondary)',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '4px',
-                                                        fontSize: '11px',
-                                                        fontWeight: '700'
-                                                    }}
-                                                    onClick={() => openEditModal(r)}
-                                                    title="Edit Penalty Amounts"
-                                                >
-                                                    <Edit2 size={12} /> Edit
-                                                </button>
-                                                
-                                                {totalDayPenalty > 0 && (
-                                                    <button 
-                                                        className="btn-download-slip" 
-                                                        style={{ 
-                                                            padding: '6px 10px', 
-                                                            borderRadius: '8px', 
-                                                            border: '1.5px solid rgba(16, 185, 129, 0.3)', 
-                                                            background: 'rgba(16, 185, 129, 0.05)', 
-                                                            color: '#10B981',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            fontSize: '11px',
-                                                            fontWeight: '700'
-                                                        }}
-                                                        onClick={() => {
-                                                            if (r.lateInPenalty?.amount > 0) handleWaivePenalty(r, 'Late In');
-                                                            if (r.earlyOutPenalty?.amount > 0) handleWaivePenalty(r, 'Early Out');
-                                                        }}
-                                                        title="Waive all penalties"
-                                                    >
-                                                        Waive
-                                                    </button>
-                                                )}
-                                            </div>
                                         </td>
                                     </tr>
                                 );

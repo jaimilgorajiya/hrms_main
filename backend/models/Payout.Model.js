@@ -83,6 +83,10 @@ const payoutSchema = new mongoose.Schema({
     initiatedAt: {
         type: Date,
         default: Date.now
+    },
+    description: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true });
 

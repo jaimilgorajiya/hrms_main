@@ -1621,6 +1621,91 @@ export const recalculateHalfDayStatus = async (req, res) => {
     }
 };
 
+const recalculateRecordPenaltyLive = async (record, employeeId) => {
+    try {
+        let changed = false;
+        const { shift, daySchedule } = await getEmployeeShiftToday(employeeId, record.date);
+        
+        if (shift && daySchedule) {
+            const rule = await PenaltyRule.findOne({ shift: shift._id });
+            
+            // 1. Late In Penalty Recalculation
+            if (record.lateInPenalty?.isLate || record.lateInPenalty?.amount > 0) {
+                const firstIn = record.punches.find(p => p.type === 'IN');
+                if (firstIn && daySchedule.shiftStart) {
+                    const shiftStartMins = parseTimeToMinutes(daySchedule.shiftStart);
+                    const inTime = new Date(firstIn.time);
+                    const istIn = new Date(inTime.getTime() + (5.5 * 60 * 60 * 1000));
+                    const inMins = istIn.getUTCHours() * 60 + istIn.getUTCMinutes();
+                    const lateByMins = inMins - shiftStartMins;
+                    const graceMins = shift.maxLateInMinutes || 0;
+                    
+                    if (lateByMins > graceMins) {
+                        const amount = await calculatePenaltyAmount(shift._id, lateByMins, employeeId, rule);
+                        if (record.lateInPenalty.amount !== amount || !record.lateInPenalty.isApplied) {
+                            record.lateInPenalty.amount = amount;
+                            record.lateInPenalty.isApplied = amount > 0;
+                            record.lateInPenalty.isLate = true;
+                            changed = true;
+                        }
+                    } else {
+                        if (record.lateInPenalty.amount !== 0 || record.lateInPenalty.isLate) {
+                            record.lateInPenalty.amount = 0;
+                            record.lateInPenalty.isApplied = false;
+                            record.lateInPenalty.isLate = false;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            
+            // 2. Early Out Penalty Recalculation
+            if (record.earlyOutPenalty?.isEarly || record.earlyOutPenalty?.amount > 0) {
+                const lastOut = record.punches.slice().reverse().find(p => p.type === 'OUT');
+                if (lastOut && daySchedule.shiftEnd) {
+                    const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+                    const outTime = new Date(lastOut.time);
+                    const istOut = new Date(outTime.getTime() + (5.5 * 60 * 60 * 1000));
+                    const outMins = istOut.getUTCHours() * 60 + istOut.getUTCMinutes();
+                    const earlyByMins = shiftEndMins - outMins;
+                    const graceMins = shift.maxEarlyOutMinutes || 0;
+                    
+                    if (earlyByMins > graceMins) {
+                        const amount = await calculatePenaltyAmount(shift._id, earlyByMins, employeeId, rule, null, 'Early Out Minutes');
+                        if (record.earlyOutPenalty.amount !== amount || !record.earlyOutPenalty.isApplied) {
+                            record.earlyOutPenalty.amount = amount;
+                            record.earlyOutPenalty.isApplied = amount > 0;
+                            record.earlyOutPenalty.isEarly = true;
+                            changed = true;
+                        }
+                    } else {
+                        if (record.earlyOutPenalty.amount !== 0 || record.earlyOutPenalty.isEarly) {
+                            record.earlyOutPenalty.amount = 0;
+                            record.earlyOutPenalty.isApplied = false;
+                            record.earlyOutPenalty.isEarly = false;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (changed) {
+            await Attendance.updateOne(
+                { _id: record._id },
+                { 
+                    $set: { 
+                        lateInPenalty: record.lateInPenalty,
+                        earlyOutPenalty: record.earlyOutPenalty
+                    } 
+                }
+            );
+        }
+    } catch (err) {
+        console.error("recalculateRecordPenaltyLive error:", err);
+    }
+};
+
 // GET /api/attendance/admin/employee-monthly-summary
 export const getEmployeeMonthlySummary = async (req, res) => {
     try {
@@ -1631,8 +1716,8 @@ export const getEmployeeMonthlySummary = async (req, res) => {
 
         const [year, monthNum] = month.split('-').map(Number);
         const startDate = `${month}-01`;
-        const endDate = new Date(year, monthNum, 0).toISOString().split('T')[0];
         const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const endDate = `${month}-${String(daysInMonth).padStart(2, '0')}`;
 
         const employee = await User.findById(employeeId).populate('workSetup.shift');
         if (!employee) {
@@ -1646,7 +1731,7 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             date: { $gte: startDate, $lte: endDate }
         });
 
-        // Auto-heal incorrect status in database
+        // Auto-heal incorrect status and recalculate penalties in database
         if (shift) {
             for (let r of monthAttendance) {
                 const corrected = getCorrectStatus(r, shift);
@@ -1654,18 +1739,31 @@ export const getEmployeeMonthlySummary = async (req, res) => {
                     r.status = corrected;
                     await Attendance.updateOne({ _id: r._id }, { $set: { status: corrected } });
                 }
+                await recalculateRecordPenaltyLive(r, employeeId);
             }
         }
 
-        const approvedLeaves = await Request.find({
+        const monthRequests = await Request.find({
             employee: employeeId,
             requestType: 'Leave',
-            status: 'Approved',
+            status: { $in: ['Approved', 'Pending'] },
             $or: [
                 { fromDate: { $lte: endDate }, toDate: { $gte: startDate } },
                 { date: { $gte: startDate, $lte: endDate } }
             ]
-        });
+        }).populate('leaveType', 'name');
+
+        const approvedLeaves = monthRequests.filter(r => r.status === 'Approved');
+        
+        const leaveRequests = monthRequests.map(l => ({
+            _id: l._id,
+            fromDate: l.fromDate,
+            toDate: l.toDate,
+            status: l.status,
+            leaveType: l.leaveType?.name || 'Leave',
+            leaveCategory: l.leaveCategory,
+            leaveDuration: l.leaveDuration
+        }));
 
         let usedPaidLeaves = 0;
         let usedUnpaidLeaves = 0;
@@ -1717,6 +1815,8 @@ export const getEmployeeMonthlySummary = async (req, res) => {
         monthAttendance.forEach(a => { attendanceMap[a.date] = a; });
 
         const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        let totalPenalties = 0;
+        const penaltyDetails = [];
 
         for (let d = 1; d <= daysInMonth; d++) {
             const dayStr = `${month}-${String(d).padStart(2, '0')}`;
@@ -1736,6 +1836,18 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             const record = attendanceMap[dayStr];
 
             if (record) {
+                const lateInAmt = record.lateInPenalty?.amount || 0;
+                const earlyOutAmt = record.earlyOutPenalty?.amount || 0;
+                if (lateInAmt > 0 || earlyOutAmt > 0) {
+                    penaltyDetails.push({
+                        date: dayStr,
+                        lateIn: lateInAmt,
+                        earlyOut: earlyOutAmt,
+                        total: lateInAmt + earlyOutAmt
+                    });
+                }
+                totalPenalties += lateInAmt + earlyOutAmt;
+
                 if (record.status === 'Present') {
                     if (isWeekOff) {
                         extraDaysWorked += 1;
@@ -1766,7 +1878,6 @@ export const getEmployeeMonthlySummary = async (req, res) => {
         }
 
         // True absent days = elapsed working days minus present, half (as 0.5), leave, and holiday days
-        // True absent days = elapsed working days minus present, half (as 0.5), leave, and holiday days
         const trueAbsentDays = Math.max(0, elapsedWorkingDays - (presentDaysCount + (halfDaysCount * 0.5) + usedPaidLeaves + usedUnpaidLeaves + holidaysPaid));
 
         const missingPunches = monthAttendance
@@ -1777,6 +1888,14 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             })
             .map(a => a.date)
             .sort();
+
+        const pendingCorrections = await Request.find({
+            employee: employeeId,
+            requestType: 'Attendance Correction',
+            status: 'Pending',
+            date: { $gte: startDate, $lte: endDate }
+        });
+        const pendingCorrectionDates = pendingCorrections.map(r => r.date);
 
         res.status(200).json({
             success: true,
@@ -1790,7 +1909,11 @@ export const getEmployeeMonthlySummary = async (req, res) => {
                 unpaidLeave: usedUnpaidLeaves + trueAbsentDays,
                 extraDays: extraDaysWorked,
                 monthWorkingDays: daysInMonth - totalShiftWeekOffs,
-                missingPunches: missingPunches
+                missingPunches: missingPunches,
+                leaveRequests: leaveRequests,
+                pendingCorrectionDates: pendingCorrectionDates,
+                totalPenalties: totalPenalties,
+                penaltyDetails: penaltyDetails
             }
         });
     } catch (error) {
@@ -1829,7 +1952,16 @@ export const getAdminPenalties = async (req, res) => {
             .populate('employee', 'name employeeId department designation branch profilePhoto workSetup')
             .sort({ date: -1 });
 
-        res.status(200).json({ success: true, records });
+        for (let record of records) {
+            await recalculateRecordPenaltyLive(record, record.employee?._id || record.employee);
+        }
+
+        // Re-query to get updated penalty amounts
+        const updatedRecords = await Attendance.find(query)
+            .populate('employee', 'name employeeId department designation branch profilePhoto workSetup')
+            .sort({ date: -1 });
+
+        res.status(200).json({ success: true, records: updatedRecords });
     } catch (error) {
         console.error("getAdminPenalties error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });

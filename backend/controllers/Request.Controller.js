@@ -6,6 +6,47 @@ import LeaveType from "../models/LeaveType.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
 import { isMonthLocked } from "../utils/payoutLock.js";
 
+// Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
+const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
+    const monthStart = new Date(yearMonthStr + "-01");
+    const [year, month] = yearMonthStr.split('-').map(Number);
+    const monthEnd = new Date(year, month, 0); // last day of month
+
+    const reqStart = new Date(fromDateStr);
+    const reqEnd = new Date(toDateStr);
+
+    const overlapStart = new Date(Math.max(monthStart.getTime(), reqStart.getTime()));
+    const overlapEnd = new Date(Math.min(monthEnd.getTime(), reqEnd.getTime()));
+    
+    if (overlapStart > overlapEnd) {
+        return 0;
+    }
+
+    const diffMs = overlapEnd.getTime() - overlapStart.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+
+    return leaveDuration === "Full Day" ? diffDays : 0.5;
+};
+
+// Helper to group requested days of a leave request by month
+const getDaysPerMonth = (startStr, endStr, leaveDuration) => {
+    const daysMap = {};
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    
+    if (leaveDuration !== "Full Day") {
+        const ym = startStr.substring(0, 7);
+        daysMap[ym] = 0.5;
+        return daysMap;
+    }
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const ym = d.toISOString().split('T')[0].substring(0, 7);
+        daysMap[ym] = (daysMap[ym] || 0) + 1;
+    }
+    return daysMap;
+};
+
 // POST /api/requests/submit
 export const submitRequest = async (req, res) => {
     try {
@@ -106,31 +147,33 @@ export const submitRequest = async (req, res) => {
                     : (leaveGroup?.maxUseInMonth || 0);
 
                 if (maxInMonth > 0) {
-                    // Calculate current month's used paid leave days
-                    const monthStart = startStr.substring(0, 7) + "-01";
-                    const monthEnd = startStr.substring(0, 7) + "-31";
-                    
-                    const approvedRequests = await Request.find({
-                        employee: employeeId,
-                        requestType: 'Leave',
-                        status: { $ne: 'Rejected' },
-                        leaveCategory: 'Paid',
-                        fromDate: { $gte: monthStart, $lte: monthEnd }
-                    });
+                    const daysPerMonth = getDaysPerMonth(startStr, endStr, leaveDuration);
+                    for (const [ym, reqDaysForYm] of Object.entries(daysPerMonth)) {
+                        const [year, month] = ym.split('-').map(Number);
+                        const lastDay = new Date(year, month, 0).getDate();
+                        const monthStart = `${ym}-01`;
+                        const monthEnd = `${ym}-${String(lastDay).padStart(2, '0')}`;
 
-                    let usedInMonth = 0;
-                    approvedRequests.forEach(req => {
-                        const start = new Date(req.fromDate);
-                        const end = new Date(req.toDate);
-                        const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-                        usedInMonth += (req.leaveDuration === "Full Day" ? diffDays : 0.5);
-                    });
-
-                    if ((usedInMonth + requestedDays) > maxInMonth) {
-                        return res.status(400).json({ 
-                            success: false, 
-                            message: `Monthly Paid Leave Limit Reached: You have already used ${usedInMonth} out of ${maxInMonth} allowed paid leave days for this month.` 
+                        const approvedRequests = await Request.find({
+                            employee: employeeId,
+                            requestType: 'Leave',
+                            status: { $ne: 'Rejected' },
+                            leaveCategory: 'Paid',
+                            fromDate: { $lte: monthEnd },
+                            toDate: { $gte: monthStart }
                         });
+
+                        let usedInMonth = 0;
+                        approvedRequests.forEach(req => {
+                            usedInMonth += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, ym);
+                        });
+
+                        if ((usedInMonth + reqDaysForYm) > maxInMonth) {
+                            return res.status(400).json({ 
+                                success: false, 
+                                message: `Monthly Paid Leave Limit Reached: For ${ym}, you have already used/applied ${usedInMonth} out of ${maxInMonth} allowed paid leave days. This request would add ${reqDaysForYm} day(s).` 
+                            });
+                        }
                     }
                 }
             }
@@ -229,7 +272,7 @@ export const updateRequestStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid status" });
         }
 
-        const request = await Request.findById(requestId);
+        const request = await Request.findOne({ _id: requestId, adminId: req.user._id });
         if (!request) return res.status(404).json({ success: false, message: "Request not found" });
 
         // Check if month is locked (month-end lock feature)

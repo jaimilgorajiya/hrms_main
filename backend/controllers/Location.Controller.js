@@ -37,8 +37,9 @@ const updateLocation = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, address, city, state, country, pincode } = req.body;
+        const adminId = req.user._id;
 
-        const updateLocation = await Location.findByIdAndUpdate({ _id: id }, {
+        const updateLocation = await Location.findOneAndUpdate({ _id: id, adminId }, {
             name, address, city, state, country, pincode
         }, { new: true });
 
@@ -55,7 +56,8 @@ const updateLocation = async (req, res) => {
 const deleteLocation = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedLocation = await Location.findByIdAndDelete({ _id: id });
+        const adminId = req.user._id;
+        const deletedLocation = await Location.findOneAndDelete({ _id: id, adminId });
 
         if (!deletedLocation) {
             return res.status(404).json({ success: false, error: "Location not found" });

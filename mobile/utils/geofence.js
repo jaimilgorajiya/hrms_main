@@ -18,7 +18,7 @@ export const getDistance = (lat1, lon1, lat2, lon2) => {
 
   return R * c; // Distance in meters
 };
-
+   
 /**
  * Checks if a point is within a circular geofence.
  */

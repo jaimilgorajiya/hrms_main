@@ -42,6 +42,7 @@ export const syncRetirementRecords = async (adminId) => {
 
     const today = new Date();
     const employees = await User.find({
+        adminId,
         role: { $ne: 'Admin' },
         status: { $in: ['Active', 'Inactive', 'Onboarding'] },
         dateOfBirth: { $exists: true, $ne: null }

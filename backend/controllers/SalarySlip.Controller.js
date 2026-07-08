@@ -18,7 +18,7 @@ const createSalarySlip = async (req, res) => {
             });
         }
 
-        const user = await User.findById(employeeId);
+        const user = await User.findOne({ _id: employeeId, adminId });
         if (!user) {
             return res.status(404).json({ success: false, message: 'Employee not found' });
         }
@@ -97,7 +97,7 @@ const createSalarySlip = async (req, res) => {
         };
 
         const slip = await SalarySlip.findOneAndUpdate(
-            { employeeId, month: Number(month), year: Number(year) },
+            { employeeId, month: Number(month), year: Number(year), adminId },
             validatedPayload,
             { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
         );
@@ -146,7 +146,8 @@ const createSalarySlip = async (req, res) => {
                     finalPayout: netSalary,
                     status: 'Initiated',
                     initiatedBy: adminId,
-                    initiatedAt: new Date()
+                    initiatedAt: new Date(),
+                    description: req.body.description || ""
                 }
             },
             { upsert: true, new: true }
@@ -203,7 +204,8 @@ const getSalarySlips = async (req, res) => {
 // ──────────────────────────────────────────────────────────────
 const getSalarySlipById = async (req, res) => {
     try {
-        const slip = await SalarySlip.findById(req.params.id)
+        const adminId = req.user._id;
+        const slip = await SalarySlip.findOne({ _id: req.params.id, adminId })
             .populate('employeeId', 'name employeeId designation department branch dateJoined profilePhoto');
 
         if (!slip) {
@@ -222,7 +224,8 @@ const getSalarySlipById = async (req, res) => {
 // ──────────────────────────────────────────────────────────────
 const deleteSalarySlip = async (req, res) => {
     try {
-        const slip = await SalarySlip.findByIdAndDelete(req.params.id);
+        const adminId = req.user._id;
+        const slip = await SalarySlip.findOneAndDelete({ _id: req.params.id, adminId });
         if (!slip) {
             return res.status(404).json({ success: false, message: 'Salary slip not found' });
         }

@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyToken, isAdmin } from '../middleware/Auth.Middleware.js';
-import { getMonthlyPayoutSummary, initiatePayout, getPayoutHistory, generateSalarySlip, publishSalarySlip, getMyPayslips, downloadPayslip, deletePayout } from '../controllers/Payroll.Controller.js';
+import { getMonthlyPayoutSummary, initiatePayout, getPayoutHistory, generateSalarySlip, publishSalarySlip, getMyPayslips, downloadPayslip, deletePayout, getDaywisePayoutBreakdown } from '../controllers/Payroll.Controller.js';
 
 const router = express.Router();
 
@@ -14,6 +14,7 @@ router.post('/publish-slip', verifyToken, isAdmin, publishSalarySlip);
 
 // Employee access
 router.get('/my-slips', verifyToken, getMyPayslips);
+router.get('/my-slips/:id/daywise', verifyToken, getDaywisePayoutBreakdown);
 router.get('/download-slip/:id', verifyToken, downloadPayslip);
 
 export default router;

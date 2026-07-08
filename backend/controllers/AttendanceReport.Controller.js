@@ -31,7 +31,7 @@ export const getAttendanceReport = async (req, res) => {
         if (!from || !to) return res.status(400).json({ success: false, message: 'from and to dates are required' });
 
         // Build employee filter
-        let empFilter = { role: { $ne: 'Admin' } };
+        let empFilter = { role: { $ne: 'Admin' }, adminId: req.user._id };
         if (department) empFilter.department = department;
         if (employeeId) empFilter._id = employeeId;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileText, RefreshCw, Calendar, DollarSign, Briefcase, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, RefreshCw, Calendar, DollarSign, Briefcase, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import Swal from 'sweetalert2';
@@ -61,14 +61,46 @@ const CreateSalarySlip = () => {
     const [existingSlips, setExistingSlips] = useState([]);
     const [earningDeductionTypes, setEarningDeductionTypes] = useState([]);
     const [missingPunches, setMissingPunches] = useState([]);
+    const [leaveRequests, setLeaveRequests] = useState([]);
+    const [pendingCorrectionDates, setPendingCorrectionDates] = useState([]);
+    const [autoPenalties, setAutoPenalties] = useState(0);
+    const [penaltyDetails, setPenaltyDetails] = useState([]);
+
+    const handlePrevMonth = () => {
+        if (!monthYear) return;
+        const [yr, mn] = monthYear.split('-').map(Number);
+        let newYr = yr;
+        let newMn = mn - 1;
+        if (newMn === 0) {
+            newMn = 12;
+            newYr = yr - 1;
+        }
+        setMonthYear(`${newYr}-${String(newMn).padStart(2, '0')}`);
+    };
+
+    const handleNextMonth = () => {
+        if (!monthYear) return;
+        const [yr, mn] = monthYear.split('-').map(Number);
+        let newYr = yr;
+        let newMn = mn + 1;
+        if (newMn === 13) {
+            newMn = 1;
+            newYr = yr + 1;
+        }
+        setMonthYear(`${newYr}-${String(newMn).padStart(2, '0')}`);
+    };
 
     /* Filters */
-    const [branch, setBranch] = useState(state.branch || '');
-    const [department, setDepartment] = useState(state.department || '');
-    const [monthYear, setMonthYear] = useState(state.monthYear || todayMonthYear);
+    const [branch, setBranch] = useState(state.branch || sessionStorage.getItem('create_slip_branch') || '');
+    const [department, setDepartment] = useState(state.department || sessionStorage.getItem('create_slip_department') || '');
+    const [monthYear, setMonthYear] = useState(state.monthYear || sessionStorage.getItem('create_slip_month_year') || todayMonthYear);
 
     /* Editable form fields */
     const [form, setForm] = useState(defaultForm());
+
+    const pendingLeaves = useMemo(() => leaveRequests.filter(r => r.status === 'Pending'), [leaveRequests]);
+    const approvedLeavesList = useMemo(() => leaveRequests.filter(r => r.status === 'Approved'), [leaveRequests]);
+    const hasPendingLeaves = pendingLeaves.length > 0;
 
     /* ── Fetch all employees with CTC on mount ── */
     useEffect(() => {
@@ -92,8 +124,9 @@ const CreateSalarySlip = () => {
                 if (data.success) {
                     const emps = (data.data || []).filter(e => e.ctcDetails);
                     setAllEmployees(emps);
-                    if (state.employeeId) {
-                        const found = emps.find(e => e._id === state.employeeId);
+                    const targetEmpId = state.employeeId || sessionStorage.getItem('create_slip_employee_id');
+                    if (targetEmpId) {
+                        const found = emps.find(e => e._id === targetEmpId);
                         if (found) {
                             setSelectedEmployee(found);
                             try {
@@ -117,6 +150,28 @@ const CreateSalarySlip = () => {
             }
         })();
     }, []);
+
+    useEffect(() => {
+        if (selectedEmployee) {
+            sessionStorage.setItem('create_slip_employee_id', selectedEmployee._id);
+        } else {
+            sessionStorage.removeItem('create_slip_employee_id');
+        }
+    }, [selectedEmployee]);
+
+    useEffect(() => {
+        if (monthYear) {
+            sessionStorage.setItem('create_slip_month_year', monthYear);
+        }
+    }, [monthYear]);
+
+    useEffect(() => {
+        sessionStorage.setItem('create_slip_branch', branch);
+    }, [branch]);
+
+    useEffect(() => {
+        sessionStorage.setItem('create_slip_department', department);
+    }, [department]);
 
     /* ── Auto-populate days when monthYear changes ── */
     useEffect(() => {
@@ -147,6 +202,8 @@ const CreateSalarySlip = () => {
     useEffect(() => {
         if (!selectedEmployee || !monthYear) {
             setMissingPunches([]);
+            setLeaveRequests([]);
+            setPendingCorrectionDates([]);
             return;
         }
         
@@ -157,6 +214,10 @@ const CreateSalarySlip = () => {
                 if (data.success && data.summary) {
                     const s = data.summary;
                     setMissingPunches(s.missingPunches || []);
+                    setLeaveRequests(s.leaveRequests || []);
+                    setPendingCorrectionDates(s.pendingCorrectionDates || []);
+                    setAutoPenalties(s.totalPenalties || 0);
+                    setPenaltyDetails(s.penaltyDetails || []);
                     setForm(prev => ({
                         ...prev,
                         employeeWorkingDays: s.present + (s.halfDay * 0.5),
@@ -166,6 +227,7 @@ const CreateSalarySlip = () => {
                         extraDaysPaid: s.extraDays || 0,
                         paidHolidays: s.holiday || 0,
                         paidWeekOff: s.weekOff || 0,
+                        otherDeduction: s.totalPenalties || 0,
                         monthWorkingDays: s.monthWorkingDays !== undefined ? s.monthWorkingDays : prev.monthWorkingDays
                     }));
                 }
@@ -224,6 +286,8 @@ const CreateSalarySlip = () => {
         setSelectedEmployee(null);
         setCtcData(null);
         setMissingPunches([]);
+        setLeaveRequests([]);
+        setPendingCorrectionDates([]);
     };
 
     const handleDeptChange = (val) => {
@@ -231,13 +295,17 @@ const CreateSalarySlip = () => {
         setSelectedEmployee(null);
         setCtcData(null);
         setMissingPunches([]);
+        setLeaveRequests([]);
+        setPendingCorrectionDates([]);
     };
 
     const handleEmployeeChange = (empId) => {
-        if (!empId) { setSelectedEmployee(null); setCtcData(null); setMissingPunches([]); return; }
+        if (!empId) { setSelectedEmployee(null); setCtcData(null); setMissingPunches([]); setLeaveRequests([]); setPendingCorrectionDates([]); return; }
         const emp = allEmployees.find(e => e._id === empId);
         setSelectedEmployee(emp || null);
         setMissingPunches([]);
+        setLeaveRequests([]);
+        setPendingCorrectionDates([]);
         if (emp) fetchCTC(emp._id);
     };
 
@@ -375,6 +443,10 @@ const CreateSalarySlip = () => {
             return Swal.fire('Missing Punch-Outs', 'This employee has missing punch-outs. Please fix them before generating the salary slip.', 'error');
         }
 
+        if (hasPendingLeaves) {
+            return Swal.fire('Pending Leave Requests', 'This employee has pending leave requests. Please approve or reject them before generating the salary slip.', 'error');
+        }
+
         const confirmResult = await Swal.fire({
             title: 'Generate Salary Slip?',
             html: `<div style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-top: 10px;">
@@ -455,6 +527,10 @@ const CreateSalarySlip = () => {
                         actions: 'premium-swal-actions'
                     }
                 });
+                sessionStorage.removeItem('create_slip_employee_id');
+                sessionStorage.removeItem('create_slip_month_year');
+                sessionStorage.removeItem('create_slip_branch');
+                sessionStorage.removeItem('create_slip_department');
                 setSelectedEmployee(null);
                 setCtcData(null);
                 navigate('/admin/payroll/generate-slip');
@@ -531,18 +607,62 @@ const CreateSalarySlip = () => {
                     </div>
                     <div style={fld}>
                         <label style={lbl}>Month Year <span style={{ color: 'var(--danger)' }}>*</span></label>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                            <input
-                                type="month"
-                                value={monthYear}
-                                onChange={e => setMonthYear(e.target.value)}
-                                onClick={e => {
-                                    try {
-                                        e.target.showPicker();
-                                    } catch (err) {}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                                type="button"
+                                onClick={handlePrevMonth}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '36px',
+                                    height: '38px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border)',
+                                    background: 'var(--card-bg)',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
                                 }}
-                                style={{ ...inp(), cursor: 'pointer' }}
-                            />
+                                onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
+                                onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    type="month"
+                                    value={monthYear}
+                                    onChange={e => setMonthYear(e.target.value)}
+                                    onClick={e => {
+                                        try {
+                                            e.target.showPicker();
+                                        } catch (err) {}
+                                    }}
+                                    style={{ ...inp(), cursor: 'pointer' }}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleNextMonth}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '36px',
+                                    height: '38px',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border)',
+                                    background: 'var(--card-bg)',
+                                    color: 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
+                                onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                            >
+                                <ChevronRight size={16} />
+                            </button>
                         </div>
                         {monthDateRange && (
                             <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
@@ -694,6 +814,11 @@ const CreateSalarySlip = () => {
                                             min="0"
                                             step="any"
                                         />
+                                        {autoPenalties > 0 && (
+                                            <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', fontWeight: 600 }}>
+                                                Includes Rs. {autoPenalties} in Late In / Early Out penalties.
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -803,47 +928,230 @@ const CreateSalarySlip = () => {
                                         This employee has missing punch-out logs for the dates listed below. Please resolve these records before generating the salary slip.
                                     </p>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
-                                        {missingPunches.map(d => (
+                                        {missingPunches.map(d => {
+                                            const hasRequest = pendingCorrectionDates.includes(d);
+                                            return (
+                                                <button 
+                                                    key={d} 
+                                                    onClick={() => {
+                                                        if (hasRequest) {
+                                                            navigate('/admin/leave/request', {
+                                                                state: {
+                                                                    employeeSearch: selectedEmployee.employeeId || selectedEmployee.name,
+                                                                    status: 'Pending',
+                                                                    requestType: 'Attendance Correction'
+                                                                }
+                                                            });
+                                                        } else {
+                                                            navigate('/admin/attendance/fix', { 
+                                                                state: { 
+                                                                    employeeId: selectedEmployee._id, 
+                                                                    date: d,
+                                                                    monthYear,
+                                                                    branch,
+                                                                    department,
+                                                                    fromSalarySlip: true
+                                                                } 
+                                                            });
+                                                        }
+                                                    }}
+                                                    style={{ 
+                                                        background: hasRequest ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-base)', 
+                                                        color: hasRequest ? '#F59E0B' : 'var(--text-primary)', 
+                                                        border: hasRequest ? '1.5px solid #F59E0B' : '1.5px solid var(--border)', 
+                                                        padding: '6px 12px', 
+                                                        borderRadius: '8px', 
+                                                        fontSize: '11px', 
+                                                        fontWeight: 700, 
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        transition: 'all 0.2s',
+                                                        fontFamily: "'Inter', sans-serif"
+                                                    }}
+                                                    onMouseOver={(e) => { 
+                                                        e.currentTarget.style.borderColor = hasRequest ? '#D97706' : '#EF4444'; 
+                                                        e.currentTarget.style.color = hasRequest ? '#D97706' : '#EF4444'; 
+                                                    }}
+                                                    onMouseOut={(e) => { 
+                                                        e.currentTarget.style.borderColor = hasRequest ? '#F59E0B' : 'var(--border)'; 
+                                                        e.currentTarget.style.color = hasRequest ? '#F59E0B' : 'var(--text-primary)'; 
+                                                    }}
+                                                    title={hasRequest ? "Click to review correction request" : "Click to resolve this log"}
+                                                >
+                                                    {new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                    <span style={{ fontSize: '10px', opacity: 0.6 }}>→</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Penalty Dates warning/info */}
+                            {penaltyDetails.length > 0 && (
+                                <div style={{
+                                    background: 'var(--bg-elevated)',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    marginBottom: '20px',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#EF4444' }}>
+                                        <AlertCircle size={16} />
+                                        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-0.2px' }}>
+                                            Monthly Late In / Early Out Penalties
+                                        </span>
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                                        The following late-in or early-out penalty records were found in the employee's attendance logs for this period:
+                                    </p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px', marginTop: '4px' }}>
+                                        {penaltyDetails.map(p => (
+                                            <div 
+                                                key={p.date} 
+                                                style={{ 
+                                                    background: 'var(--bg-base)', 
+                                                    border: '1.5px solid var(--border)', 
+                                                    padding: '6px 10px', 
+                                                    borderRadius: '8px', 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 700,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '2px',
+                                                    textAlign: 'center'
+                                                }}
+                                            >
+                                                <span style={{ color: 'var(--text-primary)' }}>
+                                                    {new Date(p.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                </span>
+                                                <span style={{ color: '#EF4444', fontSize: '10px' }}>
+                                                    - Rs. {p.total}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pending Leaves warning */}
+                            {pendingLeaves.length > 0 && (
+                                <div style={{
+                                    background: 'var(--bg-elevated)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    marginBottom: '20px',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F59E0B' }}>
+                                        <AlertCircle size={16} />
+                                        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-0.2px' }}>
+                                            Action Required: Pending Leave Requests
+                                        </span>
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                                        This employee has pending leave requests for this month. Please resolve these requests before generating the salary slip.
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                                        {pendingLeaves.map(l => (
                                             <button 
-                                                key={d} 
-                                                onClick={() => navigate('/admin/attendance/fix', { 
-                                                    state: { 
-                                                        employeeId: selectedEmployee._id, 
-                                                        date: d,
-                                                        monthYear,
-                                                        branch,
-                                                        department,
-                                                        fromSalarySlip: true
-                                                    } 
+                                                key={l._id} 
+                                                onClick={() => navigate('/admin/leave/request', {
+                                                    state: {
+                                                        employeeSearch: selectedEmployee.employeeId || selectedEmployee.name,
+                                                        status: 'Pending'
+                                                    }
                                                 })}
                                                 style={{ 
                                                     background: 'var(--bg-base)', 
                                                     color: 'var(--text-primary)', 
                                                     border: '1.5px solid var(--border)', 
-                                                    padding: '6px 12px', 
+                                                    padding: '8px 12px', 
                                                     borderRadius: '8px', 
                                                     fontSize: '11px', 
                                                     fontWeight: 700, 
                                                     cursor: 'pointer',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '6px',
-                                                    transition: 'all 0.2s',
-                                                    fontFamily: "'Inter', sans-serif"
+                                                    justifyContent: 'space-between',
+                                                    width: '100%',
+                                                    textAlign: 'left'
                                                 }}
-                                                onMouseOver={(e) => { 
-                                                    e.currentTarget.style.borderColor = '#EF4444'; 
-                                                    e.currentTarget.style.color = '#EF4444'; 
-                                                }}
-                                                onMouseOut={(e) => { 
-                                                    e.currentTarget.style.borderColor = 'var(--border)'; 
-                                                    e.currentTarget.style.color = 'var(--text-primary)'; 
-                                                }}
-                                                title="Click to resolve this log"
+                                                title="Click to manage requests"
                                             >
-                                                {new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                                <span style={{ fontSize: '10px', opacity: 0.6 }}>→</span>
+                                                <span>
+                                                    {l.leaveType} ({l.leaveCategory})
+                                                </span>
+                                                <span style={{ color: 'var(--text-secondary)' }}>
+                                                    {l.fromDate === l.toDate 
+                                                        ? new Date(l.fromDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                                                        : `${new Date(l.fromDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${new Date(l.toDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                                                    {l.leaveDuration !== 'Full Day' && ` (${l.leaveDuration})`}
+                                                    {" "}→
+                                                </span>
                                             </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Approved Leaves Info */}
+                            {approvedLeavesList.length > 0 && (
+                                <div style={{
+                                    background: 'var(--bg-elevated)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '12px',
+                                    padding: '16px',
+                                    marginBottom: '20px',
+                                    boxShadow: 'var(--shadow-sm)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981' }}>
+                                        <FileText size={16} />
+                                        <span style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '-0.2px' }}>
+                                            Approved Leaves This Month
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                                        {approvedLeavesList.map(l => (
+                                            <div 
+                                                key={l._id} 
+                                                style={{ 
+                                                    background: 'var(--bg-base)', 
+                                                    color: 'var(--text-primary)', 
+                                                    border: '1px solid var(--border)', 
+                                                    padding: '8px 12px', 
+                                                    borderRadius: '8px', 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    width: '100%'
+                                                }}
+                                            >
+                                                <span>
+                                                    {l.leaveType} ({l.leaveCategory})
+                                                </span>
+                                                <span style={{ color: 'var(--text-secondary)' }}>
+                                                    {l.fromDate === l.toDate 
+                                                        ? new Date(l.fromDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                                                        : `${new Date(l.fromDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${new Date(l.toDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                                                    {l.leaveDuration !== 'Full Day' && ` (${l.leaveDuration})`}
+                                                </span>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -853,7 +1161,7 @@ const CreateSalarySlip = () => {
                             <button
                                 className="btn-hrm btn-hrm-primary"
                                 onClick={handleSubmit}
-                                disabled={submitting || missingPunches.length > 0}
+                                disabled={submitting || missingPunches.length > 0 || hasPendingLeaves}
                                 style={{
                                     width: '100%',
                                     display: 'flex',
@@ -863,8 +1171,8 @@ const CreateSalarySlip = () => {
                                     padding: '12px',
                                     fontSize: '13px',
                                     fontWeight: 700,
-                                    opacity: (submitting || missingPunches.length > 0) ? 0.6 : 1,
-                                    cursor: (submitting || missingPunches.length > 0) ? 'not-allowed' : 'pointer'
+                                    opacity: (submitting || missingPunches.length > 0 || hasPendingLeaves) ? 0.6 : 1,
+                                    cursor: (submitting || missingPunches.length > 0 || hasPendingLeaves) ? 'not-allowed' : 'pointer'
                                 }}
                             >
                                 <FileText size={16} />

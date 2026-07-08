@@ -21,13 +21,13 @@ const upsertEmployeeCTC = async (req, res) => {
             return res.status(400).json({ success: false, message: "Employee ID is required" });
         }
 
-        // Check if employee exists
-        const user = await User.findById(employeeId);
+        const adminId = req.user._id;
+
+        // Check if employee exists in this admin's workspace
+        const user = await User.findOne({ _id: employeeId, adminId });
         if (!user) {
             return res.status(404).json({ success: false, message: "Employee not found" });
         }
-
-        const adminId = req.user._id;
 
         // If salaryGroup is provided, update the employee's work setup
         if (req.body.salaryGroup) {
@@ -138,7 +138,8 @@ const upsertEmployeeCTC = async (req, res) => {
 const getEmployeeCTC = async (req, res) => {
     try {
         const { id } = req.params;
-        const ctc = await EmployeeCTC.findOne({ employeeId: id })
+        const adminId = req.user._id;
+        const ctc = await EmployeeCTC.findOne({ employeeId: id, adminId })
             .populate({
                 path: 'employeeId',
                 select: 'name employeeId workSetup email phone department designation branch dateJoined',

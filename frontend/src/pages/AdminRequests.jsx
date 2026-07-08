@@ -152,9 +152,9 @@ const AdminRequests = () => {
   const location = useLocation();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('Pending');
-  const [filterType, setFilterType] = useState('All');
+  const [search, setSearch] = useState(location.state?.employeeSearch || '');
+  const [filterStatus, setFilterStatus] = useState(location.state?.status || 'Pending');
+  const [filterType, setFilterType] = useState(location.state?.requestType || 'All');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [adminRemark, setAdminRemark] = useState('');
@@ -162,9 +162,21 @@ const AdminRequests = () => {
   const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
-    if (location.pathname.includes('/leave')) setFilterType('Leave');
-    else if (location.pathname.includes('/attendance')) setFilterType('Attendance Correction');
-  }, [location.pathname]);
+    if (location.state?.requestType !== undefined) {
+      setFilterType(location.state.requestType);
+    } else {
+      if (location.pathname.includes('/leave')) setFilterType('Leave');
+      else if (location.pathname.includes('/attendance')) setFilterType('Attendance Correction');
+    }
+  }, [location.pathname, location.state]);
+
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.employeeSearch !== undefined) setSearch(location.state.employeeSearch);
+      if (location.state.status !== undefined) setFilterStatus(location.state.status);
+      if (location.state.requestType !== undefined) setFilterType(location.state.requestType);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     setSelectedIds([]);

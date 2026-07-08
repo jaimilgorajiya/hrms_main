@@ -610,12 +610,12 @@ const changePassword = async (req, res) => {
         // Sanitize the shift field if it's an empty string to prevent future validation errors
         if (user.workSetup && user.workSetup.shift === "") {
             await User.findByIdAndUpdate(userId, { 
-                $set: { password: hashedPassword },
+                $set: { password: hashedPassword, passwordChangedAt: new Date() },
                 $unset: { "workSetup.shift": "" } 
             });
         } else {
             await User.findByIdAndUpdate(userId, { 
-                $set: { password: hashedPassword } 
+                $set: { password: hashedPassword, passwordChangedAt: new Date() } 
             });
         }
 
@@ -680,7 +680,7 @@ export const resetPassword = async (req, res) => {
 
         const hashed = await bcrypt.hash(password, 10);
         await User.findByIdAndUpdate(user._id, {
-            $set: { password: hashed },
+            $set: { password: hashed, passwordChangedAt: new Date() },
             $unset: { resetPasswordToken: '', resetPasswordExpiry: '' }
         });
 
