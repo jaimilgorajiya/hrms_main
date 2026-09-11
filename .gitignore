@@ -3,3 +3,6 @@
 *.log
 *.zip
 *.gz
+*.apk
+mobile/*.apk
+backend/public/uploads/
