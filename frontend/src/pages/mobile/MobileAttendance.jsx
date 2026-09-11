@@ -10,6 +10,7 @@ function getDayClass(dateStr, markedDates, selectedDate) {
   if (dateStr === selectedDate) return 'selected';
   const m = markedDates[dateStr];
   if (!m) return '';
+  if (m.type === 'holiday') return 'holiday';
   if (m.type === 'weekend') return 'weekend';
   if (m.type === 'present') return 'present';
   if (m.type === 'absent') return 'absent';
@@ -79,6 +80,7 @@ export default function MobileAttendance() {
         } else if (r.status === 'Present') { marked[dateStr] = { type: 'present' }; sPresent++; }
         else if (r.status === 'Absent') { marked[dateStr] = { type: 'absent' }; sAbsent++; }
         else if (r.status === 'Leave' || r.status === 'On Leave') { marked[dateStr] = { type: 'leave' }; sLeaves++; }
+        else if (r.status === 'Holiday') { marked[dateStr] = { type: 'holiday' }; }
         else { marked[dateStr] = { type: 'missing' }; }
       } else if (req) {
         if (req.status === 'Approved') marked[dateStr] = { type: req.type === 'Leave' ? 'leave' : 'present' };
@@ -144,7 +146,8 @@ export default function MobileAttendance() {
   const isMissingPunchOut = selectedRecord && selectedRecord.punchIn && !selectedRecord.punchOut && selectedDate < today;
   const isAbsent = !selectedRecord && selectedDate < today && (!joiningDate || selectedDate >= joiningDate) && !weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE'));
   const isPunchComplete = selectedRecord && selectedRecord.punchIn && selectedRecord.punchOut;
-  const canRequest = selectedDate && !currentRequest && !isPunchComplete && (isAbsent || isMissingPunchOut || selectedDate >= today);
+  const isHoliday = selectedRecord?.status === 'Holiday' || markedDates[selectedDate]?.type === 'holiday';
+  const canRequest = selectedDate && !currentRequest && !isPunchComplete && !isHoliday && (isAbsent || isMissingPunchOut || selectedDate >= today);
 
   const handleSubmit = async () => {
     if (reqType === 'Leave') {

@@ -49,6 +49,7 @@ export default function MobileLeaves() {
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState(null);
   const [leaveTypes, setLeaveTypes] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -72,15 +73,18 @@ export default function MobileLeaves() {
 
   const loadData = useCallback(async () => {
     try {
-      const [statsRes, reqRes, ltRes] = await Promise.all([
+      const currentYear = new Date().getFullYear();
+      const [statsRes, reqRes, ltRes, holRes] = await Promise.all([
         apiFetch('/api/employee-dashboard/stats'),
         apiFetch('/api/requests/my-requests'),
         apiFetch('/api/leave-types'),
+        apiFetch(`/api/holidays/my?year=${currentYear}`),
       ]);
-      const [statsJson, reqJson, ltJson] = await Promise.all([statsRes.json(), reqRes.json(), ltRes.json()]);
+      const [statsJson, reqJson, ltJson, holJson] = await Promise.all([statsRes.json(), reqRes.json(), ltRes.json(), holRes.json()]);
       if (statsJson.success) { setStats(statsJson.stats); setUserProfile(statsJson.employee); }
       if (reqJson.success) setRequests(reqJson.requests.filter(r => r.requestType === 'Leave'));
       if (ltJson.success) setLeaveTypes(ltJson.leaveTypes || ltJson.data || []);
+      if (holJson.success) setHolidays(holJson.holidays || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [apiFetch]);
@@ -91,6 +95,9 @@ export default function MobileLeaves() {
     const today = new Date(); today.setHours(0,0,0,0);
     const selected = new Date(dateStr); selected.setHours(0,0,0,0);
     if (selected < today) return; // block past dates
+    if (holidays.some(h => h.date === dateStr)) {
+      return showToast('Cannot apply leave on a holiday', 'error');
+    }
 
     if (leaveDuration !== 'Full Day') {
       setFromDate(dateStr); setToDate(dateStr); return;

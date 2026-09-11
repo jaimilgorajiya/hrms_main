@@ -13,6 +13,7 @@ const statusConfig = {
   'On Leave': { label: 'On Leave', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)' },
   Incomplete: { label: 'Incomplete', color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
   'Clocked In': { label: 'Clocked In', color: 'var(--ep-accent-orange)', bg: 'rgba(245, 158, 11, 0.15)' },
+  Holiday: { label: 'Holiday', color: '#EC4899', bg: 'rgba(236, 72, 153, 0.15)' },
   weekend: { label: 'Weekend', color: 'var(--ep-text-muted)', bg: 'rgba(255, 255, 255, 0.02)' },
 };
 

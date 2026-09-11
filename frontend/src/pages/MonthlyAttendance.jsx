@@ -13,6 +13,7 @@ const STATUS_STYLE = {
     'Absent':     { color: '#EF4444', bg: '#FEE2E2', dot: '#EF4444', icon: <X size={14} /> },
     'Half Day':   { color: '#F59E0B', bg: '#FEF3C7', dot: '#F59E0B', icon: <Activity size={14} /> },
     'On Leave':   { color: '#8B5CF6', bg: '#EDE9FE', dot: '#8B5CF6', icon: <Calendar size={14} /> },
+    'Holiday':    { color: '#EC4899', bg: '#FCE7F3', dot: '#EC4899', icon: <Calendar size={14} /> },
     'Week Off':   { color: '#64748B', bg: '#F1F5F9', dot: '#94A3B8', icon: <MinusCircle size={14} /> },
     'Extra Day':  { color: '#0EA5E9', bg: '#E0F2FE', dot: '#0EA5E9', icon: <TrendingUp size={14} /> },
     'Missing':    { color: '#F97316', bg: '#FFF7ED', dot: '#F97316', icon: <AlertCircle size={14} /> },
@@ -168,6 +169,7 @@ const MonthlyAttendance = () => {
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
                         <StatCard icon={<CheckCircle2 size={18} />} label="Days Present" value={s.presentDays} color="#10B981" subValue={`${Math.round((s.presentDays/s.workingDays)*100)}%`} />
                         <StatCard icon={<X size={18} />} label="Days Absent" value={s.absentDays} color="#EF4444" />
+                        <StatCard icon={<Calendar size={18} />} label="Paid Holidays" value={s.paidHolidays || s.holidays || 0} color="#EC4899" />
                         <StatCard icon={<Calendar size={18} />} label="Approved Leaves" value={s.leaves} color="#8B5CF6" />
                         <StatCard icon={<Clock size={18} />} label="Total Hours" value={`${s.totalWorkedHours}h`} color="#3B82F6" subValue={`${s.totalWorkedMins}m`} />
                         <StatCard icon={<Activity size={18} />} label="Efficiency Score" value={`${s.efficiency}%`} color={s.efficiency >= 80 ? '#10B981' : s.efficiency >= 50 ? '#F59E0B' : '#EF4444'} />
@@ -185,7 +187,7 @@ const MonthlyAttendance = () => {
                                     <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Attendance Calendar</h2>
                                 </div>
                                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                    {['Present', 'Absent', 'Half Day', 'On Leave'].map(l => (
+                                    {['Present', 'Absent', 'Half Day', 'On Leave', 'Holiday'].map(l => (
                                         <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>
                                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: STATUS_STYLE[l].dot }}></div>
                                             {l.toUpperCase()}
@@ -203,8 +205,10 @@ const MonthlyAttendance = () => {
                                     
                                     const isFuture = cell.date > todayStr;
                                     const isMissingPunch = cell.rec && cell.rec.punchIn && !cell.rec.punchOut;
+                                    const isHoliday = cell.rec?.status === 'Holiday';
                                     const status = cell.isExtraDay ? 'Extra Day' : 
                                                   isMissingPunch ? 'Missing' :
+                                                  isHoliday ? 'Holiday' :
                                                   cell.isWeekOff ? 'Week Off' : 
                                                   (cell.rec?.status || (isFuture ? '—' : 'Absent'));
 
@@ -361,9 +365,9 @@ const MonthlyAttendance = () => {
                                                         const geofenceReasons = [];
 
                                                         if (rec) {
-                                                            if (rec.workSummary) summaries.push(rec.workSummary);
+                                                            if (rec.workSummary && rec.workSummary !== 'Manual entry by admin') summaries.push(rec.workSummary);
                                                             (rec.punches || []).forEach(p => {
-                                                                if (p.workSummary && !summaries.includes(p.workSummary)) summaries.push(p.workSummary);
+                                                                if (p.workSummary && p.workSummary !== 'Manual entry by admin' && !summaries.includes(p.workSummary)) summaries.push(p.workSummary);
                                                                 if (p.lateReason && !lateReasons.includes(p.lateReason)) lateReasons.push(p.lateReason);
                                                                 if (p.earlyReason && !earlyReasons.includes(p.earlyReason)) earlyReasons.push(p.earlyReason);
                                                                 if (p.geofenceReason && !geofenceReasons.includes(p.geofenceReason)) geofenceReasons.push(p.geofenceReason);
@@ -371,7 +375,7 @@ const MonthlyAttendance = () => {
                                                         }
 
                                                         (selectedDay.dayRequests || []).forEach(req => {
-                                                            if (req.workSummary && !summaries.includes(req.workSummary)) summaries.push(req.workSummary);
+                                                            if (req.workSummary && req.workSummary !== 'Manual entry by admin' && !summaries.includes(req.workSummary)) summaries.push(req.workSummary);
                                                         });
 
                                                         return (

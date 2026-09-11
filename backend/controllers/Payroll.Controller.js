@@ -80,6 +80,17 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 .filter(l => l.leaveCategory === 'Unpaid')
                 .reduce((sum, l) => sum + (l.leaveDuration === 'Full Day' ? 1 : 0.5), 0);
 
+            // Build per-employee holiday paid map
+            const empHolidayPaidMap = {};
+            monthHolidays.forEach(h => {
+                const isApplicable = h.applicableTo === 'All' ||
+                    (h.applicableTo === 'Branch' && h.branches?.includes(emp.branch)) ||
+                    (h.applicableTo === 'Department' && h.departments?.includes(emp.department));
+                if (isApplicable) {
+                    empHolidayPaidMap[h.date] = h.isPaid !== false;
+                }
+            });
+
             // --- ADVANCED PAYROLL ENGINE ---
             const shift = emp.workSetup?.shift;
             let presentDaysCount = 0;
@@ -101,6 +112,8 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                 const dateObj = new Date(year, monthNum - 1, d);
                 const dayName = daysOfWeek[dateObj.getDay()];
                 const isWeekOff = shift?.weekOffDays?.includes(dayName);
+                const isHoliday = empHolidayPaidMap[dayStr] !== undefined;
+                const isPaidHoliday = empHolidayPaidMap[dayStr] === true;
 
                 const record = attendanceMap[dayStr];
 
@@ -119,14 +132,17 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                             halfDaysCount++;
                             if (isWeekOff) extraDaysWorked += 0.5;
                         }
-                    } else if (record.status === 'Absent') {
-                        absentDaysCount++;
                     } else if (record.status === 'Holiday') {
-                        // Only count as a paid holiday if the Holiday master record says isPaid
-                        if (holidayPaidMap[dayStr] !== false) {
+                        if (!isWeekOff && isPaidHoliday) {
                             holidaysPaid++;
-                        } else {
-                            absentDaysCount++; // unpaid holiday — treated like absent for salary
+                        } else if (!isWeekOff) {
+                            absentDaysCount++;
+                        }
+                    } else if (record.status === 'Absent' || !record.punches?.length) {
+                        if (!isWeekOff && isHoliday && isPaidHoliday) {
+                            holidaysPaid++;
+                        } else if (!isWeekOff) {
+                            absentDaysCount++;
                         }
                     } else if (record.status === 'Week Off') {
                         weekOffsPaid++;
@@ -135,9 +151,12 @@ export const getMonthlyPayoutSummary = async (req, res) => {
                     // Accumulate penalties
                     monthPenalty += (record.lateInPenalty?.amount || 0) + (record.earlyOutPenalty?.amount || 0);
                 } else {
-                    // No record found: Treat as Paid Week Off or Unpaid Absent
                     if (isWeekOff) {
                         weekOffsPaid++;
+                    } else if (isHoliday && isPaidHoliday) {
+                        holidaysPaid++;
+                    } else if (isHoliday && !isPaidHoliday) {
+                        absentDaysCount++;
                     }
                 }
             }
@@ -501,6 +520,9 @@ export const downloadPayslip = async (req, res) => {
                 latePenalty = attendanceRecord.lateInPenalty?.amount || 0;
                 earlyPenalty = attendanceRecord.earlyOutPenalty?.amount || 0;
                 status = attendanceRecord.status;
+                if ((status === 'Absent' || workedMins === 0) && holidayRecord) {
+                    status = 'Holiday';
+                }
             } else {
                 if (isWeekOff) status = 'Week Off';
                 else if (holidayRecord) status = 'Holiday';
@@ -1029,6 +1051,9 @@ export const getDaywisePayoutBreakdown = async (req, res) => {
                 totalBreaks = attendanceRecord.breaks?.length || 0;
 
                 status = attendanceRecord.status;
+                if ((status === 'Absent' || workedMins === 0) && holidayRecord) {
+                    status = 'Holiday';
+                }
             } else {
                 if (isWeekOff) {
                     status = 'Week Off';

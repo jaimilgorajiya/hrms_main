@@ -809,12 +809,14 @@
 .m-cal-day.present { background: rgba(16, 185, 129, 0.12); color: var(--m-success); }
 .m-cal-day.absent  { background: rgba(239, 68, 68, 0.12);  color: var(--m-danger);  }
 .m-cal-day.leave   { background: rgba(245, 158, 11, 0.12); color: var(--m-warning); }
+.m-cal-day.holiday { background: rgba(236, 72, 153, 0.15); color: #EC4899; }
 .m-cal-day.weekend { background: rgba(139, 92, 246, 0.08); color: var(--m-purple);  }
 .m-cal-day.missing { background: rgba(245, 158, 11, 0.1);  color: var(--m-warning); }
 
 .m-cal-day.selected.present,
 .m-cal-day.selected.absent,
 .m-cal-day.selected.leave,
+.m-cal-day.selected.holiday,
 .m-cal-day.selected.weekend,
 .m-cal-day.selected.missing {
   background: var(--m-primary);

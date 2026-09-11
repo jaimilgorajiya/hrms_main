@@ -156,16 +156,30 @@ export default function AttendanceScreen() {
         else if (r.status === 'Present') { dotColor = colors.success; sPresent++; }
         else if (r.status === 'Absent') { dotColor = colors.danger; sAbsent++; }
         else if (r.status === 'Leave' || r.status === 'On Leave') { dotColor = colors.danger; sLeaves++; }
+        else if (r.status === 'Holiday') {
+          dotColor = colors.accent || '#EC4899';
+          marked[dateStr] = {
+            marked: true,
+            dotColor,
+            isHoliday: true,
+            customStyles: {
+              container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 },
+              text: { color: dotColor, fontWeight: '700' }
+            }
+          };
+        }
         else { dotColor = colors.warning; sHalfDay++; }
 
-        marked[dateStr] = {
-          marked: true,
-          dotColor,
-          customStyles: {
-            container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 },
-            text: { color: dotColor, fontWeight: '700' }
-          }
-        };
+        if (r.status !== 'Holiday') {
+          marked[dateStr] = {
+            marked: true,
+            dotColor,
+            customStyles: {
+              container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 },
+              text: { color: dotColor, fontWeight: '700' }
+            }
+          };
+        }
       } else if (req && req.status === 'Approved') {
           let dotColor = req.type === 'Leave' ? colors.danger : colors.success;
           marked[dateStr] = { marked: true, dotColor, customStyles: { container: { backgroundColor: dotColor + (isDarkMode ? '20' : '15'), borderRadius: 8 }, text: { color: dotColor, fontWeight: '700' } } };
@@ -232,6 +246,7 @@ export default function AttendanceScreen() {
 
   const selectedRecord = data.find(r => r.date === selectedDate);
   const currentRequest = allRequests[selectedDate];
+  const isHoliday = selectedRecord?.status === 'Holiday' || markedDates[selectedDate]?.isHoliday;
   const isAbsent = !selectedRecord && selectedDate < format(new Date(), 'yyyy-MM-dd') && (!joiningDate || selectedDate >= joiningDate);
   const isRedDate = (markedDates[selectedDate]?.dotColor === colors.danger) || isAbsent;
   
@@ -241,7 +256,7 @@ export default function AttendanceScreen() {
   const isIncomplete = selectedRecord && (selectedRecord.status === 'Incomplete' || selectedRecord.status === 'Half Day' || selectedRecord.status === 'Late' || selectedRecord.status === 'Absent');
   const isPastDate = selectedDate < todayStr;
   const isFutureDate = selectedDate > todayStr;
-  const canRequest = !currentRequest && (isRedDate || isMissingPunchOut || (isPastDate && isIncomplete) || (selectedDate === todayStr && !selectedRecord));
+  const canRequest = !currentRequest && !isHoliday && (isRedDate || isMissingPunchOut || (isPastDate && isIncomplete) || (selectedDate === todayStr && !selectedRecord));
 
 
 

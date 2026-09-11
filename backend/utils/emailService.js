@@ -1,15 +1,21 @@
 import nodemailer from 'nodemailer';
 
-// Create transporter
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false, // true for 465, false for other ports
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+// Create transporter helper
+const getTransporter = () => {
+    return nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_PORT == '465',
+        family: 4,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+        },
+        tls: {
+            rejectUnauthorized: false
+        }
+    });
+};
 
 // Generate random password
 export const generatePassword = () => {
@@ -35,6 +41,7 @@ export const generatePassword = () => {
 // Send welcome email with credentials
 export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporaryPassword) => {
     try {
+        const clientUrl = process.env.CLIENT_URL || 'https://hrms.ifloriana.com';
         const mailOptions = {
             from: `"Employee Management System" <${process.env.SMTP_FROM}>`,
             to: userEmail,
@@ -83,16 +90,20 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                             </div>
                             
                             <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
-                                <h3 style="margin-top: 0; color: #1e40af; font-size: 16px; font-weight: 700;">📱 Download Our Mobile App</h3>
+                                <h3 style="margin-top: 0; color: #1e40af; font-size: 16px; font-weight: 700;">📱 Mobile App & Web Punch Options</h3>
                                 <p style="margin: 8px 0 16px 0; font-size: 13px; color: #1e3a8a; line-height: 1.5;">
-                                    Access your attendance, punch in/out, check leave requests, and view pay details directly on the go. Get the Android application using the one-click download button below:
+                                    Access your attendance, punch in/out, check leave requests, and view pay details directly on your phone or web browser. Choose your preferred platform below:
                                 </p>
-                                <center style="text-align: left;">
+                                <div style="margin-top: 12px;">
                                     <a href="https://drive.google.com/drive/folders/1s8qm4dIP69mCDoLktQjNb74L7O9SDE6a?usp=sharing" 
-                                       style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
-                                        📥 Download Android App (APK)
+                                       style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2); margin-right: 8px; margin-bottom: 8px;">
+                                        🤖 Download Android App (APK)
                                     </a>
-                                </center>
+                                    <a href="${clientUrl}/employee/login" 
+                                       style="display: inline-block; background: #0f172a; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2); margin-bottom: 8px;">
+                                        🍎 iOS & Web Punch (Portal Link)
+                                    </a>
+                                </div>
                             </div>
 
                             <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; margin: 20px 0; border-left: 4px solid #f59e0b; border-radius: 5px;">
@@ -116,7 +127,7 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
             `
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         console.log('Welcome email sent:', info.messageId);
         // For development/debugging:
         console.log('--- NEW USER CREDENTIALS ---');
@@ -204,7 +215,7 @@ export const sendAdminWelcomeEmail = async (userEmail, userName, plainPassword) 
             `
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         console.log('Admin welcome email sent:', info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
@@ -235,7 +246,7 @@ export const sendOffboardingDocument = async (userEmail, userName, documentType,
             `
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         console.log(`Offboarding document (${documentType}) email sent:`, info.messageId);
         return { success: true, messageId: info.messageId };
     } catch (error) {
@@ -282,7 +293,7 @@ export const sendRetirementNotificationEmail = async (hrEmail, employeeName, ret
                 </div>
             `
         };
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('Retirement notification email error:', error);
@@ -385,7 +396,7 @@ export const sendDailyAttendanceReport = async (adminEmail, reportData) => {
             `
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         return { success: true, messageId: info.messageId };
     } catch (error) {
         console.error('Daily Report Email Error:', error);
@@ -418,7 +429,7 @@ export const sendPasswordResetEmail = async (userEmail, userName, resetToken) =>
                 </div>
             `
         };
-        const info = await transporter.sendMail(mailOptions);
+        const info = await getTransporter().sendMail(mailOptions);
         console.log('Password reset email sent:', info.messageId);
         return { success: true };
     } catch (error) {

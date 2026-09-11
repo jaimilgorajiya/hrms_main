@@ -4,6 +4,7 @@ import User from "../models/User.Model.js";
 import Notification from "../models/Notification.Model.js";
 import LeaveType from "../models/LeaveType.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
+import Holiday from "../models/Holiday.Model.js";
 import { isMonthLocked } from "../utils/payoutLock.js";
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
@@ -70,6 +71,28 @@ export const submitRequest = async (req, res) => {
         if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
 
         const adminId = employee.adminId || employeeId; // Fallback to self if no admin assigned (e.g. root admin)
+
+        // ── HOLIDAY CHECK ──
+        if (checkStart && checkEnd) {
+            const holidays = await Holiday.find({
+                adminId,
+                status: 'Active',
+                date: { $gte: checkStart, $lte: checkEnd }
+            });
+            const applicableHoliday = holidays.find(h => {
+                if (h.applicableTo === 'All') return true;
+                if (h.applicableTo === 'Branch' && h.branches?.includes(employee.branch)) return true;
+                if (h.applicableTo === 'Department' && h.departments?.includes(employee.department)) return true;
+                return false;
+            });
+
+            if (applicableHoliday) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Selected date range includes a holiday (${applicableHoliday.name} on ${applicableHoliday.date}). Leave/Attendance correction cannot be requested on a holiday.`
+                });
+            }
+        }
 
         // ── POLICY ENFORCEMENT ──
         if (requestType === 'Leave') {

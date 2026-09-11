@@ -5,9 +5,19 @@ import User from "../models/User.Model.js";
 import Shift from "../models/Shift.Model.js";
 import Attendance from "../models/Attendance.Model.js";
 import Branch from "../models/Branch.Model.js";
+import Holiday from "../models/Holiday.Model.js";
 import { computeWorkingMinutes, formatMinutes, getDistance } from "../utils/attendance.js";
 import Notification from "../models/Notification.Model.js";
 import { isMonthLocked } from '../utils/payoutLock.js';
+
+// Helper: Check if a holiday is applicable to a specific user
+const isHolidayApplicable = (holiday, user) => {
+    if (!holiday || holiday.status === 'Inactive') return false;
+    if (holiday.applicableTo === 'All') return true;
+    if (holiday.applicableTo === 'Branch' && holiday.branches?.includes(user?.branch)) return true;
+    if (holiday.applicableTo === 'Department' && holiday.departments?.includes(user?.department)) return true;
+    return false;
+};
 
 // Notify admin when employee punches in or out
 const notifyAdminPunch = async (employeeId, action, date, status) => {
@@ -816,6 +826,51 @@ export const getAttendanceHistory = async (req, res) => {
 
         const totalPenalty = records.reduce((acc, r) => acc + (r.lateInPenalty?.amount || 0), 0);
 
+        // Fetch applicable holidays for the employee
+        const adminId = user?.adminId || user?._id;
+        const monthHolidays = await Holiday.find({
+            adminId,
+            status: 'Active',
+            ...(month ? { date: { $regex: `^${month}` } } : {})
+        });
+
+        const holidayMap = {};
+        monthHolidays.forEach(h => {
+            if (isHolidayApplicable(h, user)) {
+                holidayMap[h.date] = h;
+            }
+        });
+
+        // Ensure holiday records show as Holiday
+        for (const hDate in holidayMap) {
+            const existing = formatted.find(r => r.date === hDate);
+            if (existing) {
+                if (!existing.punches || existing.punches.length === 0 || existing.status === 'Absent') {
+                    existing.status = 'Holiday';
+                }
+            } else {
+                formatted.push({
+                    date: hDate,
+                    status: 'Holiday',
+                    punchIn: null,
+                    punchOut: null,
+                    workingMinutes: 0,
+                    workingFormatted: '0h 0m',
+                    breakCount: 0,
+                    breakFormatted: '0h 0m',
+                    punches: [],
+                    breaks: [],
+                    workSummary: '',
+                    lateInPenalty: { amount: 0, isApplied: false },
+                    earlyOutPenalty: { amount: 0, isApplied: false },
+                    approvalStatus: 'Approved',
+                    leaveCategory: null,
+                    request: rqMap[hDate] || null
+                });
+            }
+        }
+        formatted.sort((a, b) => b.date.localeCompare(a.date));
+
         res.status(200).json({
             success: true,
             records: formatted,
@@ -1037,7 +1092,7 @@ export const addManualAttendance = async (req, res) => {
                 type: "OUT",
                 locationAddress: "Admin Manual Entry",
                 earlyReason: remark,
-                workSummary: "Manual entry by admin"
+                workSummary: remark || ""
             });
         }
 
@@ -1088,7 +1143,8 @@ export const addManualAttendance = async (req, res) => {
                     lateInPenalty,
                     earlyOutPenalty,
                     approvalStatus: "Pending",
-                    remark: remark || "Manual entry by admin",
+                    remark: remark || "",
+                    workSummary: remark || "",
                     adminId: req.user._id
                 }
             },
@@ -1338,6 +1394,20 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         const daysInMonth = new Date(year, monthNum, 0).getDate();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+        const adminId = user.adminId || user._id;
+        const monthHolidays = await Holiday.find({
+            adminId,
+            status: 'Active',
+            date: { $regex: `^${month}` }
+        });
+
+        const holidayMap = {};
+        monthHolidays.forEach(h => {
+            if (isHolidayApplicable(h, user)) {
+                holidayMap[h.date] = h;
+            }
+        });
+
         // On-the-fly cleanup of older records that are within shift's grace minutes limit
         if (shift) {
             const graceMins = shift.maxLateInMinutes || 0;
@@ -1374,11 +1444,14 @@ export const getMonthlyAttendanceStats = async (req, res) => {
         let weekOffCount = 0;
         let totalExpectedMins = 0;
         let elapsedWorkingDays = 0; // working days up to today
+        let holidaysCount = 0;
 
         for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${month}-${String(d).padStart(2, '0')}`;
             const dateObj = new Date(year, monthNum - 1, d);
             const dayName = days[dateObj.getDay()];
             const isWeekOff = weekOffDays.includes(dayName);
+            const hol = holidayMap[dateStr];
 
             if (isWeekOff) {
                 weekOffCount++;
@@ -1386,6 +1459,9 @@ export const getMonthlyAttendanceStats = async (req, res) => {
                 workingDaysCount++;
                 if (d <= maxDayToCount) {
                     elapsedWorkingDays++;
+                }
+                if (hol && hol.isPaid !== false) {
+                    holidaysCount++;
                 }
                 const schedule = shift?.schedule?.[dayName.toLowerCase()];
                 if (schedule) {
@@ -1403,12 +1479,31 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             }
         }
 
+        // Incorporate holiday records into attendance records list
+        for (const dateStr in holidayMap) {
+            const hol = holidayMap[dateStr];
+            const existingRec = records.find(r => r.date === dateStr);
+            if (existingRec) {
+                if (!existingRec.punches || existingRec.punches.length === 0 || existingRec.status === 'Absent') {
+                    existingRec.status = 'Holiday';
+                }
+            } else {
+                records.push({
+                    date: dateStr,
+                    status: 'Holiday',
+                    punches: [],
+                    breaks: [],
+                    approvalStatus: 'Approved'
+                });
+            }
+        }
+
         const presentCount = records.filter(r => r.status === 'Present').length;
         const halfDaysCount = records.filter(r => r.status === 'Half Day').length;
         const leaveDaysCount = records.filter(r => r.status === 'On Leave').length;
         
-        // Absent days are elapsed working days minus present and leave days
-        const absentDays = Math.max(0, elapsedWorkingDays - (presentCount + (halfDaysCount * 0.5) + leaveDaysCount));
+        // Absent days are elapsed working days minus present, half, leave, and holiday days
+        const absentDays = Math.max(0, elapsedWorkingDays - (presentCount + (halfDaysCount * 0.5) + leaveDaysCount + holidaysCount));
 
         const totalWorkedMins = records.reduce((acc, r) => acc + (computeWorkingMinutes(r.punches, r.breaks) || 0), 0);
 
@@ -1418,6 +1513,8 @@ export const getMonthlyAttendanceStats = async (req, res) => {
             absentDays,
             weekOff: weekOffCount,
             leaves: leaveDaysCount,
+            holidays: holidaysCount,
+            paidHolidays: holidaysCount,
             lateIn: records.filter(r => r.lateInPenalty?.isLate).length,
             earlyOut: records.filter(r => r.earlyOutPenalty?.amount > 0).length,
             missingPunch: records.filter(r => r.punches.find(p => p.type === 'IN') && !r.punches.find(p => p.type === 'OUT')).length,
@@ -1725,6 +1822,20 @@ export const getEmployeeMonthlySummary = async (req, res) => {
         }
 
         const shift = employee.workSetup?.shift;
+        const adminId = employee.adminId || employee._id;
+
+        const monthHolidays = await Holiday.find({
+            adminId,
+            status: 'Active',
+            date: { $gte: startDate, $lte: endDate }
+        });
+
+        const holidayPaidMap = {};
+        monthHolidays.forEach(h => {
+            if (isHolidayApplicable(h, employee)) {
+                holidayPaidMap[h.date] = h.isPaid !== false;
+            }
+        });
 
         const monthAttendance = await Attendance.find({
             employee: employeeId,
@@ -1834,6 +1945,8 @@ export const getEmployeeMonthlySummary = async (req, res) => {
             }
 
             const record = attendanceMap[dayStr];
+            const isHoliday = holidayPaidMap[dayStr] !== undefined;
+            const isPaidHoliday = holidayPaidMap[dayStr] === true;
 
             if (record) {
                 const lateInAmt = record.lateInPenalty?.amount || 0;
@@ -1865,14 +1978,21 @@ export const getEmployeeMonthlySummary = async (req, res) => {
                             halfDaysCount++;
                         }
                     }
-                } else if (record.status === 'Absent') {
-                    if (!isWeekOff) {
-                        absentDaysCount++;
-                    }
                 } else if (record.status === 'Holiday') {
-                    if (!isWeekOff) {
+                    if (!isWeekOff && isPaidHoliday) {
                         holidaysPaid++;
                     }
+                } else if (record.status === 'Absent' || !record.punches?.length) {
+                    if (!isWeekOff && isHoliday && isPaidHoliday) {
+                        holidaysPaid++;
+                        record.status = 'Holiday';
+                    } else if (!isWeekOff) {
+                        absentDaysCount++;
+                    }
+                }
+            } else {
+                if (!isWeekOff && isHoliday && isPaidHoliday) {
+                    holidaysPaid++;
                 }
             }
         }

@@ -408,9 +408,9 @@ const AdminAttendance = () => {
                           )}
                         </div>
 
-                        {(item.workSummary || item.lateReason || item.earlyReason || item.geofenceReason) && (
+                        {((item.workSummary && item.workSummary !== 'Manual entry by admin') || item.lateReason || item.earlyReason || item.geofenceReason) && (
                           <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-main)', borderRadius: '12px', fontSize: '12px', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
-                            {item.workSummary && <div style={{ marginBottom: item.lateReason || item.earlyReason || item.geofenceReason ? '8px' : 0 }}><strong>Summary:</strong> {item.workSummary}</div>}
+                            {item.workSummary && item.workSummary !== 'Manual entry by admin' && <div style={{ marginBottom: item.lateReason || item.earlyReason || item.geofenceReason ? '8px' : 0 }}><strong>Summary:</strong> {item.workSummary}</div>}
                             {item.lateReason && <div style={{ color: 'var(--danger)' }}><strong>Late Reason:</strong> {item.lateReason}</div>}
                             {item.earlyReason && <div style={{ color: 'var(--danger)' }}><strong>Early Reason:</strong> {item.earlyReason}</div>}
                             {item.geofenceReason && <div style={{ color: 'var(--warning)' }}><strong>Out of Range:</strong> {item.geofenceReason}</div>}

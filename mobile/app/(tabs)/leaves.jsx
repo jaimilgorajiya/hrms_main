@@ -96,7 +96,12 @@ export default function LeavesScreen() {
 
   const onDayPress = (day) => {
     const date = day.dateString;
-    if (baseMarkedDates[date]) return; // Block selection of existing leaves
+    if (baseMarkedDates[date]) {
+      if (baseMarkedDates[date].isHoliday) {
+        return Toast.show({ type: 'error', text1: 'Holiday', text2: 'Leave cannot be applied on a holiday.' });
+      }
+      return; // Block selection of existing leaves
+    }
     // Condition for Half Day (Only one day allowed)
     if (leaveDuration !== 'Full Day') {
       setFromDate(date);
@@ -153,6 +158,8 @@ export default function LeavesScreen() {
       const statsRes = await apiFetch(ENDPOINTS.stats || ENDPOINTS.employeeStats);
       const res = await apiFetch(ENDPOINTS.myRequests);
       const ltRes = await apiFetch(ENDPOINTS.leaveTypes);
+      const currentYear = new Date().getFullYear();
+      const holRes = await apiFetch(`/api/holidays/my?year=${currentYear}`);
 
       const statsJson = await statsRes.json();
       if (statsJson.success) {
@@ -161,12 +168,30 @@ export default function LeavesScreen() {
       }
 
       const json = await res.json();
+      const historical = {};
+
+      if (holRes) {
+        const holJson = await holRes.json();
+        if (holJson.success && holJson.holidays) {
+          holJson.holidays.forEach(h => {
+            historical[h.date] = {
+              disabled: true,
+              disableTouchEvent: true,
+              color: colors.accentLight || 'rgba(236, 72, 153, 0.15)',
+              textColor: colors.accent || '#EC4899',
+              startingDay: true,
+              endingDay: true,
+              isHoliday: true
+            };
+          });
+        }
+      }
+
       if (json.success) {
         const leaveRequests = json.requests.filter(r => r.requestType === 'Leave');
         setRequests(leaveRequests);
 
         // Process marked dates
-        const historical = {};
         leaveRequests.forEach(req => {
             if (req.status === 'Rejected') return;
             const start = new Date(req.fromDate);

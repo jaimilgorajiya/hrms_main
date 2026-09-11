@@ -255,7 +255,13 @@ export const signup = async (req, res) => {
 
         const existingUser = await User.findOne({ email: email.trim().toLowerCase() });
         if (existingUser) {
-            return res.status(400).json({ success: false, message: "Email is already registered" });
+            if (existingUser.status !== "Inactive") {
+                return res.status(400).json({ success: false, message: "Email is already registered" });
+            }
+            // Previous registration was incomplete or payment was never completed: clean up stale records to allow re-registration
+            await Company.deleteMany({ adminId: existingUser._id, paymentStatus: 'pending' });
+            await Client.deleteMany({ adminId: existingUser._id, paymentStatus: 'pending' });
+            await User.deleteOne({ _id: existingUser._id });
         }
 
         const selectedPackage = await Package.findById(packageId);
