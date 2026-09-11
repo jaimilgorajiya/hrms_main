@@ -2,6 +2,10 @@
  * polyfills.js (or index.js) — loaded FIRST before any other module.
  */
 
+if (typeof global.Buffer === 'undefined') {
+  global.Buffer = require('buffer').Buffer;
+}
+
 // ─── 0. Event / event-target-shim read-only 'NONE' Fix ──────────────────────
 (function polyfillEvent() {
   let originalEvent = global.Event;

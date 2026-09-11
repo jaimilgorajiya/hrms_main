@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X, ArrowRight, Map, Wrench } from 'lucide-react';
+import { Calendar, Clock, Search, RefreshCw, LogIn, LogOut, Users, CheckCircle, XCircle, Coffee, Plus, Save, MapPin, X, ArrowRight, Map, Wrench, Camera } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -21,6 +21,7 @@ const AdminAttendance = () => {
   const [month, setMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedSelfie, setSelectedSelfie] = useState(null);
   const [manualModal, setManualModal] = useState(false);
   const [fixHalfDayModal, setFixHalfDayModal] = useState(false);
   const [fixLoading, setFixLoading] = useState(false);
@@ -422,6 +423,28 @@ const AdminAttendance = () => {
                             <MapPin size={10} /> {item.locationAddress}
                           </div>
                         )}
+
+                        {isPunch && item.selfieUrl && (
+                          <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-main)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                            <img 
+                              src={item.selfieUrl.startsWith('data:') || item.selfieUrl.startsWith('http') ? item.selfieUrl : `${API_URL}${item.selfieUrl}`} 
+                              alt="Punch Selfie" 
+                              style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', cursor: 'pointer', border: '2px solid var(--primary)' }}
+                              onClick={() => setSelectedSelfie(item.selfieUrl.startsWith('data:') || item.selfieUrl.startsWith('http') ? item.selfieUrl : `${API_URL}${item.selfieUrl}`)}
+                            />
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Camera size={12} color="var(--primary)" /> Face Detection Recorded
+                              </div>
+                              <div 
+                                style={{ fontSize: '10px', color: 'var(--primary)', cursor: 'pointer', fontWeight: 700, marginTop: '2px' }}
+                                onClick={() => setSelectedSelfie(item.selfieUrl.startsWith('data:') || item.selfieUrl.startsWith('http') ? item.selfieUrl : `${API_URL}${item.selfieUrl}`)}
+                              >
+                                Click to enlarge photo
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -583,6 +606,23 @@ const AdminAttendance = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selfie Full Preview Modal */}
+      {selectedSelfie && (
+        <div className="hrm-modal-overlay" onClick={() => setSelectedSelfie(null)} style={{ zIndex: 9999 }}>
+          <div className="hrm-modal-content" style={{ maxWidth: '440px', padding: '20px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-dark)' }}>Punch Face Verification</h3>
+              <button className="icon-btn" onClick={() => setSelectedSelfie(null)}><X size={20} /></button>
+            </div>
+            <img 
+              src={selectedSelfie} 
+              alt="Selfie Full Preview" 
+              style={{ width: '100%', maxHeight: '450px', borderRadius: '16px', objectFit: 'cover', border: '1px solid var(--border)' }}
+            />
           </div>
         </div>
       )}

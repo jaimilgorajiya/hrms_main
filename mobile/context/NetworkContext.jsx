@@ -80,6 +80,7 @@ export const NetworkProvider = ({ children }) => {
             earlyReason: entry.earlyReason,
             lateReason: entry.lateReason,
             locationAddress: entry.locationAddress,
+            selfieBase64: entry.selfieBase64,
             isMocked: entry.isMocked,
             clientTime: entry.clientTime, // preserves the real punch time
             isOfflineSync: true,          // tells backend: skip 60s clock-tamper check

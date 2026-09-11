@@ -12,7 +12,7 @@ const Employees = () => {
     const [branches, setBranches] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeBranchId, setActiveBranchId] = useState(null);
+    const [activeBranchId, setActiveBranchId] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDept, setFilterDept] = useState('all');
     const [filterDesignation, setFilterDesignation] = useState('all');
@@ -36,9 +36,8 @@ const Employees = () => {
             const branchData = await branchRes.json();
             const deptData = await deptRes.json();
             if (userData.success) setEmployees(userData.users);
-            if (branchData.success && branchData.branches.length > 0) {
-                setBranches(branchData.branches);
-                if (!activeBranchId) setActiveBranchId('all');
+            if (branchData.success) {
+                setBranches(branchData.branches || []);
             }
             if (deptData.success) setDepartments(deptData.departments);
         } catch (error) {
@@ -334,11 +333,10 @@ const Employees = () => {
     };
 
     const relevantEmployees = useMemo(() => {
-        if (activeBranchId === 'all') return employees;
-        if (!activeBranchId) return [];
+        if (!activeBranchId || activeBranchId === 'all') return employees;
         const activeBranch = branches.find(b => b._id === activeBranchId);
-        if (!activeBranch) return [];
-        return employees.filter(emp => emp.branch === activeBranch.branchName);
+        if (!activeBranch) return employees;
+        return employees.filter(emp => emp.branch === activeBranch.branchName || emp.workSetup?.location === activeBranch.branchName);
     }, [employees, activeBranchId, branches]);
 
     const availableDepartments = useMemo(() => {

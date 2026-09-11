@@ -14,10 +14,7 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-
-     
-
-    "sdkVersion": "54.0.0",
+    "sdkVersion": "57.0.0",
     "updates": {
       "url": "https://u.expo.dev/2cd9afca-b9e7-4979-bb01-75a69001d509",
       "enabled": true,
@@ -74,7 +71,9 @@
       ],
       "expo-secure-store",
       "expo-updates",
-      "expo-font"
+      "expo-font",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": false

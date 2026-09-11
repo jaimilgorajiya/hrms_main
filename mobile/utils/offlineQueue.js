@@ -64,6 +64,7 @@ export const addToQueue = async (punch) => {
     earlyReason: punch.earlyReason || '',
     lateReason: punch.lateReason || '',
     workSummary: punch.workSummary || '',
+    selfieBase64: punch.selfieBase64 || punch.selfieUrl || '',
     isMocked: punch.isMocked || false,
     clientTime: punch.clientTime || new Date().toISOString(),
     syncedAt: null,

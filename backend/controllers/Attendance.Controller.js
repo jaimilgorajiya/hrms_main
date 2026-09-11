@@ -222,10 +222,55 @@ export const getTodayAttendance = async (req, res) => {
     }
 };
 
+// POST /api/attendance/upload-selfie
+export const uploadSelfie = async (req, res) => {
+    try {
+        if (!req.file && !req.body.selfieBase64) {
+            return res.status(400).json({ success: false, message: "No selfie image provided" });
+        }
+        let selfieUrl = "";
+        if (req.file) {
+            selfieUrl = `/uploads/${req.file.filename}`;
+        } else if (req.body.selfieBase64) {
+            const fs = await import('fs');
+            const path = await import('path');
+            const base64Data = req.body.selfieBase64.replace(/^data:image\/\w+;base64,/, "");
+            const filename = `selfie-${Date.now()}-${Math.round(Math.random()*1E9)}.jpg`;
+            const uploadPath = path.join('public/uploads', filename);
+            await fs.promises.writeFile(uploadPath, base64Data, 'base64');
+            selfieUrl = `/uploads/${filename}`;
+        }
+        return res.status(200).json({ success: true, selfieUrl });
+    } catch (error) {
+        console.error("uploadSelfie error:", error);
+        return res.status(500).json({ success: false, message: "Failed to upload selfie" });
+    }
+};
+
 // POST /api/attendance/toggle-punch
 export const togglePunch = async (req, res) => {
     try {
-        const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress, isMocked, mocked, clientTime, isOfflineSync } = req.body;
+        const { reason, latitude, longitude, geofenceReason, workSummary, earlyReason, lateReason, locationAddress, isMocked, mocked, clientTime, isOfflineSync, selfieBase64 } = req.body;
+        let selfieUrl = req.body.selfieUrl || null;
+        if (req.file) {
+            selfieUrl = `/uploads/${req.file.filename}`;
+        } else if (selfieBase64) {
+            try {
+                const fs = await import('fs');
+                const path = await import('path');
+                const base64Data = selfieBase64.replace(/^data:image\/\w+;base64,/, "");
+                const filename = `selfie-${Date.now()}-${Math.round(Math.random()*1E9)}.jpg`;
+                const uploadDir = 'public/uploads';
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+                const uploadPath = path.join(uploadDir, filename);
+                await fs.promises.writeFile(uploadPath, base64Data, 'base64');
+                selfieUrl = `/uploads/${filename}`;
+            } catch (err) {
+                console.error("Failed to save selfieBase64 in togglePunch:", err.message);
+            }
+        }
         
         // Anti-GPS Spoofing Check
         if (isMocked || mocked) {
@@ -384,6 +429,7 @@ export const togglePunch = async (req, res) => {
                 type: 'IN',
                 latitude,
                 longitude,
+                selfieUrl,
                 geofenceReason,
                 workSummary,
                 lateReason,
@@ -394,7 +440,7 @@ export const togglePunch = async (req, res) => {
             const lateInPenalty = {
                 amount: latePenaltyAmount,
                 isApplied: latePenaltyAmount > 0,
-                isLate: lateByMins > (shift.maxLateInMinutes || 0)
+                isLate: lateByMins > (shift?.maxLateInMinutes || 0)
             };
 
             if (!record) {
@@ -563,6 +609,7 @@ export const togglePunch = async (req, res) => {
             type: 'OUT',
             latitude,
             longitude,
+            selfieUrl,
             geofenceReason,
             workSummary,
             earlyReason: earlyReason || reason, 

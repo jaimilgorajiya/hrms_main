@@ -406,6 +406,10 @@ const updateUser = async (req, res) => {
         delete updateData._id;
         delete updateData.__v;
 
+        if (typeof updateData.requireSelfie !== 'undefined') {
+            updateData.requireSelfie = updateData.requireSelfie === true || updateData.requireSelfie === 'true';
+        }
+
         // Try to parse JSON strings and handle special values
         Object.keys(updateData).forEach(key => {
             if (updateData[key] === '[object Object]' || updateData[key] === 'undefined' || updateData[key] === 'null') {

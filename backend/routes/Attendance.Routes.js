@@ -1,12 +1,14 @@
 import express from "express";
-import { togglePunch, getTodayAttendance, toggleBreak, getAttendanceHistory, getAdminAttendance, updateApprovalStatus, addManualAttendance, getMissingAttendance, getMonthlyAttendanceStats, getAbsentEmployees, deleteAttendance, getSpecificRecord, recalculateHalfDayStatus, getEmployeeMonthlySummary, getAdminPenalties, updateAdminPenalty } from "../controllers/Attendance.Controller.js";
+import { togglePunch, uploadSelfie, getTodayAttendance, toggleBreak, getAttendanceHistory, getAdminAttendance, updateApprovalStatus, addManualAttendance, getMissingAttendance, getMonthlyAttendanceStats, getAbsentEmployees, deleteAttendance, getSpecificRecord, recalculateHalfDayStatus, getEmployeeMonthlySummary, getAdminPenalties, updateAdminPenalty } from "../controllers/Attendance.Controller.js";
 import { verifyToken, isAdmin } from "../middleware/Auth.Middleware.js";
+import upload from "../middleware/Upload.Middleware.js";
 
 const router = express.Router();
 
 // Employee routes
 router.get("/today", verifyToken, getTodayAttendance);
-router.post("/toggle-punch", verifyToken, togglePunch);
+router.post("/upload-selfie", verifyToken, upload.single('selfie'), uploadSelfie);
+router.post("/toggle-punch", verifyToken, upload.single('selfie'), togglePunch);
 router.post("/toggle-break", verifyToken, toggleBreak);
 router.get("/history", verifyToken, getAttendanceHistory);
 

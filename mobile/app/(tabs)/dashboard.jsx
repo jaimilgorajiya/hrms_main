@@ -21,6 +21,7 @@ import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { getDistance } from '../../utils/geofence';
+import SelfieCameraModal from '../../components/SelfieCameraModal';
 
 // LayoutAnimation is enabled by default in the New Architecture
 
@@ -931,6 +932,9 @@ export default function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifModal, setShowNotifModal] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [pendingPunchParams, setPendingPunchParams] = useState(null);
+  const [tempSelfieBase64, setTempSelfieBase64] = useState('');
 
   const fetchNotifications = async () => {
     try {
@@ -1151,6 +1155,15 @@ export default function Dashboard() {
         return;
       }
 
+      // 0.2 Mandatory Selfie Capture Check (skip if admin disabled requireSelfie for this employee)
+      const userRequiresSelfie = data?.stats?.requireSelfie !== false;
+      if (userRequiresSelfie && !params.selfieBase64) {
+        setPendingPunchParams(params);
+        setShowSelfieModal(true);
+        setLoading(false);
+        return;
+      }
+
       // 1. Get Location
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -1181,31 +1194,27 @@ export default function Dashboard() {
       } catch (ge) { console.error('Geocode error:', ge); }
       setCurrentAddress(addr);
 
-      // 2. Check Geofence
-      const target = data?.stats?.branchCoords;
-      if (target && target.latitude !== 0) {
-        const distance = getDistance(latitude, longitude, target.latitude, target.longitude);
-        const radius = target.radius || 200;
-        
-        if (distance > radius) {
-          if (data?.stats?.requireOutOfRangeReason) {
+      // 2. Check Geofence & Location Confirmation Modal
+      if (!params.confirmedLocation) {
+        const target = data?.stats?.branchCoords;
+        if (target && target.latitude !== 0) {
+          const distance = getDistance(latitude, longitude, target.latitude, target.longitude);
+          const radius = target.radius || 200;
+          
+          if (distance > radius && data?.stats?.requireOutOfRangeReason) {
             setTempLocation({ latitude, longitude });
             setShowGeofenceModal(true);
             setLoading(false);
             return;
-          } else {
-            // Out of range but reason is NOT required -> Proceed to InRange success screen
-            setTempLocation({ latitude, longitude });
-            setShowInRangeModal(true);
-            setLoading(false);
-            return;
           }
-        } else if (distance <= radius) {
-          setTempLocation({ latitude, longitude });
-          setShowInRangeModal(true);
-          setLoading(false);
-          return;
         }
+
+        // Always show Location Confirmation Modal before final punch
+        setTempLocation({ latitude, longitude });
+        setTempSelfieBase64(params.selfieBase64 || '');
+        setShowInRangeModal(true);
+        setLoading(false);
+        return;
       }
 
       // 3. Check network and either submit online or queue offline
@@ -1217,6 +1226,7 @@ export default function Dashboard() {
         lateReason: effectiveLateReason,
         workSummary: effectiveWorkSummary,
         locationAddress: addr,
+        selfieBase64: params.selfieBase64 || '',
         isMocked: loc.mocked || loc.coords?.mocked || false,
         clientTime: new Date().toISOString(),
       };
@@ -1279,6 +1289,7 @@ export default function Dashboard() {
         earlyReason: reasons.earlyReason,
         lateReason: reasons.lateReason,
         locationAddress: reasons.locationAddress,
+        selfieBase64: reasons.selfieBase64,
         isMocked: reasons.isMocked || false,
         clientTime: reasons.clientTime || new Date().toISOString()
       }) 
@@ -1289,6 +1300,8 @@ export default function Dashboard() {
       setShowWorkSummaryModal(false);
       setShowEarlyReasonModal(false);
       setShowLateReasonModal(false);
+      setShowSelfieModal(false);
+      setPendingPunchParams(null);
       setGeofenceReason('');
       setWorkSummary('');
       setEarlyReason('');
@@ -1296,9 +1309,16 @@ export default function Dashboard() {
       Toast.show({ type: 'success', text1: 'Success', text2: json.message });
       await loadData();
     } else {
+      setShowSelfieModal(false);
+      setPendingPunchParams(null);
       Toast.show({ type: 'error', text1: 'Oops', text2: json.message });
       setLoading(false);
     }
+  };
+
+  const handleSelfieConfirm = (photo) => {
+    setShowSelfieModal(false);
+    handlePunch({ ...(pendingPunchParams || {}), selfieBase64: photo.base64 });
   };
 
   const submitWithReason = async () => {
@@ -1722,6 +1742,18 @@ export default function Dashboard() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Selfie Front Camera Modal */}
+      <SelfieCameraModal
+        visible={showSelfieModal}
+        onClose={() => {
+          setShowSelfieModal(false);
+          setPendingPunchParams(null);
+          setLoading(false);
+        }}
+        onConfirm={handleSelfieConfirm}
+        actionType={punchData?.punchedIn ? 'OUT' : 'IN'}
+      />
       {/* Verified: In Range Modal (SweetAlert Style) */}
       <Modal 
         visible={showInRangeModal}
@@ -1769,7 +1801,9 @@ export default function Dashboard() {
                 lateReason,
                 workSummary,
                 geofenceReason,
-                locationAddress: currentAddress
+                selfieBase64: tempSelfieBase64 || pendingPunchParams?.selfieBase64,
+                locationAddress: currentAddress,
+                confirmedLocation: true
               });
             }}>
               <LinearGradient colors={GRADIENTS.success} style={styles.submitBtnGrad} start={{x:0,y:0}} end={{x:1,y:0}}>

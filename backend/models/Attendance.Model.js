@@ -20,6 +20,7 @@ const attendanceSchema = new mongoose.Schema({
         type: { type: String, enum: ["IN", "OUT"], required: true },
         latitude: Number,
         longitude: Number,
+        selfieUrl: { type: String, default: null },
         geofenceReason: String,
         workSummary: String,
         earlyReason: String,

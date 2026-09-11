@@ -3,7 +3,7 @@ import fs from 'fs';
 
 const createDepartment = async (req, res) => {
     try {
-        const { name, branchId, noticePeriodDays } = req.body;
+        const { name, branchId, noticePeriodDays, requireSelfie } = req.body;
         const adminId = req.user._id;
 
         if (!name || !branchId) {
@@ -20,7 +20,8 @@ const createDepartment = async (req, res) => {
             branchId,
             adminId,
             order: count,
-            noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30
+            noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30,
+            requireSelfie: typeof requireSelfie !== 'undefined' ? (requireSelfie === true || requireSelfie === 'true') : true
         });
         await newDepartment.save();
 
@@ -105,16 +106,21 @@ const getDepartments = async (req, res) => {
 const updateDepartment = async (req, res) => {
     try {
         console.log("Update Dept Request:", { id: req.params.id, body: req.body });
-        const { name, branchId, noticePeriodDays } = req.body;
+        const { name, branchId, noticePeriodDays, requireSelfie } = req.body;
         const adminId = req.user._id;
+
+        const updateData = { 
+            name, 
+            branchId, 
+            noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30 
+        };
+        if (typeof requireSelfie !== 'undefined') {
+            updateData.requireSelfie = requireSelfie === true || requireSelfie === 'true';
+        }
 
         const department = await Department.findOneAndUpdate(
             { _id: req.params.id, adminId },
-            { 
-                name, 
-                branchId, 
-                noticePeriodDays: (noticePeriodDays && noticePeriodDays !== "") ? parseInt(noticePeriodDays) : 30 
-            },
+            updateData,
             { new: true }
         );
 

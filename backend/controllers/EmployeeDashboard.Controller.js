@@ -6,6 +6,7 @@ import Attendance from "../models/Attendance.Model.js";
 import Request from "../models/Request.Model.js";
 import EmployeeCTC from "../models/EmployeeCTC.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
+import Department from "../models/Department.Model.js";
 import Holiday from "../models/Holiday.Model.js";
 import { computeWorkingMinutes } from "../utils/attendance.js";
 import { calculatePenaltyAmount } from "./PenaltyRule.Controller.js";
@@ -407,6 +408,20 @@ export const getEmployeeStats = async (req, res) => {
             expectedHoursTotal = Math.round(expectedMinsTotal / 60);
         }
 
+        // Compute Department & Employee level requireSelfie setting
+        let deptRequireSelfie = true;
+        if (emp.department) {
+            const deptObj = await Department.findOne({
+                adminId: emp.adminId || userId,
+                name: (emp.department || '').trim()
+            });
+            if (deptObj && deptObj.requireSelfie === false) {
+                deptRequireSelfie = false;
+            }
+        }
+        const empRequireSelfie = emp.requireSelfie !== false;
+        const effectiveRequireSelfie = empRequireSelfie && deptRequireSelfie;
+
         res.status(200).json({
             success: true,
             employee: {
@@ -442,6 +457,7 @@ export const getEmployeeStats = async (req, res) => {
                 employeeLevel: emp.employeeLevel,
             },
             stats: {
+                requireSelfie: effectiveRequireSelfie,
                 hasLeaveGroup,
                 totalLeaves,
                 leavePolicy: leaveGroup?.leaveBalanceVisibility === 'Multiple of 1' ? 'Multiple of 1' : 'Multiple of 0.5',

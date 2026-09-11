@@ -17,6 +17,7 @@ export const ENDPOINTS = {
   company: '/api/company',
   attendanceToday: '/api/attendance/today',
   togglePunch: '/api/attendance/toggle-punch',
+  uploadSelfie: '/api/attendance/upload-selfie',
   toggleBreak: '/api/attendance/toggle-break',
   attendanceHistory: '/api/attendance/history',
   notifications: '/api/notifications/my',

@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema(
             enum: ["Active", "Inactive", "Onboarding", "Ex-Employee", "Resigned", "Terminated", "Absconding", "Retired"],
             default: "Active"
         },
+        requireSelfie: {
+            type: Boolean,
+            default: true
+        },
         exitDate: {
             type: Date
         },

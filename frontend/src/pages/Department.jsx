@@ -17,7 +17,8 @@ const Department = () => {
     const [formData, setFormData] = useState({
         name: '',
         branchId: '',
-        noticePeriodDays: 30
+        noticePeriodDays: 30,
+        requireSelfie: true
     });
 
     const [bulkDepartments, setBulkDepartments] = useState(['']);
@@ -79,7 +80,7 @@ const Department = () => {
                     showConfirmButton: false
                 });
                 setIsModalOpen(false);
-                setFormData({ name: '', branchId: '', noticePeriodDays: 30 });
+                setFormData({ name: '', branchId: '', noticePeriodDays: 30, requireSelfie: true });
                 setIsEditing(false);
                 fetchInitialData();
             } else {
@@ -137,7 +138,8 @@ const Department = () => {
         setFormData({
             name: dept.name,
             branchId: dept.branchId,
-            noticePeriodDays: dept.noticePeriodDays || 30
+            noticePeriodDays: dept.noticePeriodDays || 30,
+            requireSelfie: dept.requireSelfie !== false
         });
         setCurrentId(dept._id);
         setIsEditing(true);
@@ -225,7 +227,7 @@ const Department = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => { setIsEditing(false); setFormData({ name: '', branchId: branch._id, noticePeriodDays: 30 }); setIsModalOpen(true); }}>
+                                    <button className="btn-hrm btn-hrm-secondary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => { setIsEditing(false); setFormData({ name: '', branchId: branch._id, noticePeriodDays: 30, requireSelfie: true }); setIsModalOpen(true); }}>
                                         <Plus size={14} /> NEW DEPARTMENT
                                     </button>
                                 </div>
@@ -245,6 +247,17 @@ const Department = () => {
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                 <span style={{ fontWeight: '700', color: 'var(--primary-blue)' }}>{dept.noticePeriodDays || 30}</span> Days Notice
                                                             </div>
+                                                            <span style={{
+                                                                padding: '2px 8px',
+                                                                borderRadius: '12px',
+                                                                fontSize: '10px',
+                                                                fontWeight: '700',
+                                                                background: dept.requireSelfie !== false ? '#eff6ff' : '#f1f5f9',
+                                                                color: dept.requireSelfie !== false ? '#2563eb' : '#64748b',
+                                                                border: `1px solid ${dept.requireSelfie !== false ? '#bfdbfe' : '#cbd5e1'}`
+                                                            }}>
+                                                                {dept.requireSelfie !== false ? 'Face Detection Mandatory' : 'Face Detection Exempt'}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -331,6 +344,22 @@ const Department = () => {
                                         min="0" 
                                     />
                                     <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-light)' }}>Standard duration an employee must serve before leaving</p>
+                                </div>
+
+                                <div className="hrm-form-group" style={{ marginTop: '20px', padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            name="requireSelfie" 
+                                            checked={formData.requireSelfie !== false} 
+                                            onChange={(e) => setFormData({ ...formData, requireSelfie: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
+                                        />
+                                        Mandatory Face Detection for Attendance
+                                    </label>
+                                    <span style={{ fontSize: '11px', color: 'var(--text-light)', marginLeft: '28px', display: 'block', marginTop: '2px' }}>
+                                        When enabled, all employees in this department must complete face detection photo during punch-in/out. Uncheck to exempt this entire department.
+                                    </span>
                                 </div>
                             </div>
                             <div className="hrm-modal-footer" style={{ padding: '24px 32px' }}>
