@@ -65,6 +65,16 @@ const requestSchema = new mongoose.Schema({
     },
     adminRemark: {
         type: String
+    },
+    // Track how the request was submitted
+    submittedVia: {
+        type: String,
+        enum: ['App', 'WhatsApp', 'Web', 'Admin'],
+        default: 'App'
+    },
+    // Store leave type name as fallback when leaveType ObjectId is not available
+    leaveTypeName: {
+        type: String
     }
 }, { timestamps: true });
 

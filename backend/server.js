@@ -76,6 +76,7 @@ import packageRoutes from './routes/Package.Routes.js';
 import clientRoutes from './routes/Client.Routes.js';
 import salarySlipRoutes from './routes/SalarySlip.Routes.js';
 import holidayRoutes from './routes/Holiday.Routes.js';
+import whatsappRoutes from './routes/WhatsApp.Routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -191,6 +192,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/salary-slip', salarySlipRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/admin', clientRoutes); // Alias to match requested pattern
+app.use('/api/whatsapp', whatsappRoutes); // WhatsApp Chatbot (Meta Cloud API)
 
 app.get('/', (req, res) => {
     res.send('Updated API is running...');
