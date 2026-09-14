@@ -41,10 +41,16 @@ const UseMobileApp = () => {
         </div>
 
         <div className="use-app-actions">
-           <button className="download-app-btn">
-             <Download size={18} />
-             Download Android App
-           </button>
+            <a 
+              href="https://drive.google.com/drive/folders/1goesOk_Y1IoagJyENUylB2S9uwuMKfAl?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="download-app-btn"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Download size={18} />
+              Download Android App
+            </a>
            <button className="download-app-btn outline">
              <Smartphone size={18} />
              Open on iOS

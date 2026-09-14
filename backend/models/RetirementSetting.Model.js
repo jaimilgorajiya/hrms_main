@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const retirementSettingSchema = new mongoose.Schema({
-    adminId: {
+     adminId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,

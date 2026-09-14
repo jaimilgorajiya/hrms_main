@@ -42,6 +42,7 @@ export const generatePassword = () => {
 export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporaryPassword) => {
     try {
         const clientUrl = process.env.CLIENT_URL || 'https://hrms.ifloriana.com';
+        const androidApkUrl = process.env.ANDROID_APK_URL || 'https://drive.google.com/drive/folders/1goesOk_Y1IoagJyENUylB2S9uwuMKfAl?usp=sharing';
         const mailOptions = {
             from: `"Employee Management System" <${process.env.SMTP_FROM}>`,
             to: userEmail,
@@ -95,7 +96,7 @@ export const sendWelcomeEmail = async (userEmail, userName, employeeId, temporar
                                     Access your attendance, punch in/out, check leave requests, and view pay details directly on your phone or web browser. Choose your preferred platform below:
                                 </p>
                                 <div style="margin-top: 12px;">
-                                    <a href="https://drive.google.com/drive/folders/1s8qm4dIP69mCDoLktQjNb74L7O9SDE6a?usp=sharing" 
+                                    <a href="${androidApkUrl}" 
                                        style="display: inline-block; background: #3b82f6; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2); margin-right: 8px; margin-bottom: 8px;">
                                         🤖 Download Android App (APK)
                                     </a>
