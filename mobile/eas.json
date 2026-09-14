@@ -15,7 +15,6 @@
       },
       "distribution": "internal",
       "channel": "preview",
-      "installCommand": "npm install --legacy-peer-deps",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://hrmsapi.ifloriana.com"
       }
