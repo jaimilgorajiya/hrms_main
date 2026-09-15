@@ -735,10 +735,8 @@ export const handleWebhook = async (req, res) => {
             const employee = await findEmployeeByPhone(waPhone);
 
             if (!employee) {
-                await sendWhatsAppMessage(
-                    waPhone,
-                    `Your WhatsApp number is not linked to any HRMS account.\n\nPlease contact HR to register your number.`
-                );
+                // Silently ignore non-employees so Sendzyy's customers never receive unwanted HRMS bot messages
+                console.log(`[WhatsApp] Ignored message from unregistered number: ${waPhone}`);
                 continue;
             }
 
