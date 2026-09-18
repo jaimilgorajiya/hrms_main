@@ -562,30 +562,60 @@ const handleSalarySlip = async (employee, text, waPhone) => {
                 employeeId: employee._id,
                 month: targetMonthStr
             });
-        } else {
-            // Default to most recent payout
-            payout = await Payout.findOne({
-                employeeId: employee._id
-            }).sort({ month: -1 });
-        }
 
-        if (!payout) {
-            const availablePayouts = await Payout.find({ employeeId: employee._id })
-                .sort({ month: -1 })
-                .limit(6)
-                .select('month');
+            if (!payout) {
+                const publishedPayouts = await Payout.find({ employeeId: employee._id, status: 'Published' })
+                    .sort({ month: -1 })
+                    .limit(6)
+                    .select('month');
 
-            if (availablePayouts && availablePayouts.length > 0) {
-                const monthsList = availablePayouts.map(p => p.month).join(', ');
-                return `No salary slip found for ${targetMonthStr || 'the requested period'}.\n\n` +
-                       `Available salary slips: ${monthsList}\n\n` +
-                       `Try sending: *salary slip ${availablePayouts[0].month}*`;
+                if (publishedPayouts && publishedPayouts.length > 0) {
+                    const monthsList = publishedPayouts.map(p => p.month).join(', ');
+                    return `No salary slip found for ${targetMonthStr}.\n\n` +
+                           `Available published salary slips: ${monthsList}\n\n` +
+                           `Try sending: *salary slip ${publishedPayouts[0].month}*`;
+                }
+
+                return `No salary slip found for ${targetMonthStr}.\n\nPlease contact HR if you believe this is an error.`;
             }
 
-            return `No salary slips found for your account.\n\nPlease contact HR if you believe this is an error.`;
+            // Check if published
+            if (payout.status !== 'Published') {
+                const publishedPayouts = await Payout.find({ employeeId: employee._id, status: 'Published' })
+                    .sort({ month: -1 })
+                    .limit(6)
+                    .select('month');
+
+                let msg = `Salary slip for ${targetMonthStr} is not published yet.\n\nPlease contact HR for further details.`;
+                if (publishedPayouts && publishedPayouts.length > 0) {
+                    const monthsList = publishedPayouts.map(p => p.month).join(', ');
+                    msg += `\n\nAvailable published salary slips: ${monthsList}\n` +
+                           `Try sending: *salary slip ${publishedPayouts[0].month}*`;
+                }
+                return msg;
+            }
+        } else {
+            // Default to most recent PUBLISHED payout
+            payout = await Payout.findOne({
+                employeeId: employee._id,
+                status: 'Published'
+            }).sort({ month: -1 });
+
+            if (!payout) {
+                // Check if any unpublished payout exists to give a specific message
+                const anyPayout = await Payout.findOne({
+                    employeeId: employee._id
+                }).sort({ month: -1 });
+
+                if (anyPayout) {
+                    return `Salary slip for ${anyPayout.month} is not published yet.\n\nPlease contact HR for further details.`;
+                }
+
+                return `No published salary slips found for your account.\n\nPlease contact HR if you believe this is an error.`;
+            }
         }
 
-        // Generate actual PDF document
+        // Generate actual PDF document for published payout
         const { buffer, filename } = await buildPayslipPdfBuffer(payout._id);
 
         const netPay = Math.round(payout.finalPayout || 0).toLocaleString('en-IN');
