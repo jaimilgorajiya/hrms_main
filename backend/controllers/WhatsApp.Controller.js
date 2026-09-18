@@ -24,6 +24,8 @@ import LeaveType from '../models/LeaveType.Model.js';
 import LeaveGroup from '../models/LeaveGroup.Model.js';
 import Branch from '../models/Branch.Model.js';
 import Notification from '../models/Notification.Model.js';
+import Holiday from '../models/Holiday.Model.js';
+import Shift from '../models/Shift.Model.js';
 import WhatsAppSession from '../models/WhatsAppSession.Model.js';
 import { getEmployeeShiftToday, getShiftDurationMinutes } from './Attendance.Controller.js';
 import { computeWorkingMinutes } from '../utils/attendance.js';
@@ -64,6 +66,49 @@ const monthNameToNumber = (name) => {
         july:7, august:8, september:9, october:10, november:11, december:12
     };
     return map[name?.toLowerCase().trim()] || null;
+};
+
+/** Parse YYYY-MM from user text (supports "june 2026", "2026-06", "06 2026", "may", etc.) */
+const parseMonthYearFromText = (text) => {
+    const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    const shortMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+    const lower = text.toLowerCase();
+
+    // 1. Check for YYYY-MM or YYYY/MM pattern e.g. "2026-06"
+    const isoMatch = lower.match(/\b(20\d{2})[-/](0[1-9]|1[0-2])\b/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}`;
+
+    // 2. Check for 4-digit year
+    let year = null;
+    const yearMatch = lower.match(/\b(20\d{2})\b/);
+    if (yearMatch) year = parseInt(yearMatch[1], 10);
+
+    // 3. Check for month name (full or short)
+    let monthNum = null;
+    for (let i = 0; i < monthNames.length; i++) {
+        const regex = new RegExp(`\\b(${monthNames[i]}|${shortMonths[i]})\\b`, 'i');
+        if (regex.test(lower)) {
+            monthNum = i + 1;
+            break;
+        }
+    }
+
+    // 4. Check for digit month + year (e.g. "06 2026" or "6 2026")
+    if (!monthNum && year) {
+        const digitMatch = lower.match(/\b(0?[1-9]|1[0-2])\s+(20\d{2})\b/);
+        if (digitMatch) monthNum = parseInt(digitMatch[1], 10);
+    }
+
+    if (monthNum) {
+        const targetYear = year || new Date().getFullYear();
+        return `${targetYear}-${String(monthNum).padStart(2, '0')}`;
+    }
+
+    return null;
 };
 
 /**
@@ -235,6 +280,19 @@ const detectIntent = (text) => {
 
     // Leave balance
     if (/\b(balance|leave\s*balance|remaining\s*leave|leaves\s*left)\b/.test(t)) return 'LEAVE_BALANCE';
+
+    // Monthly attendance report — e.g. "monthly attendance", "attendance report", "monthly report", "monthly summary"
+    const monthWords = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec';
+    const hasMonthName = new RegExp(`\\b(${monthWords})\\b`, 'i').test(t);
+    const hasMonthDigits = /\b20\d{2}[-/](0[1-9]|1[0-2])\b/.test(t);
+
+    if (/\b(attendance|report)\b/.test(t) && (hasMonthName || hasMonthDigits || /\b(month|monthly|summary)\b/.test(t))) {
+        return 'MONTHLY_ATTENDANCE';
+    }
+
+    if (/\b(monthly\s*attendance|attendance\s*report|monthly\s*report|month\s*attendance|attendance\s*summary|monthly\s*summary)\b/.test(t)) {
+        return 'MONTHLY_ATTENDANCE';
+    }
 
     // Today's attendance status
     if (/\b(attendance|my\s*attendance|status|today)\b/.test(t)) return 'ATTENDANCE_STATUS';
@@ -570,6 +628,8 @@ const handleAttendanceStatus = async (employee) => {
         if (lastOut) msg += `Punch Out: ${formatTimeIST(lastOut.time)}\n`;
         msg += `Working Time: ${hours}h ${mins}m\n`;
         msg += `Currently: ${isPunchedIn ? 'Punched In' : 'Punched Out'}\n`;
+        msg += `─────────────────────\n`;
+        msg += `Send *monthly attendance* for this month's summary.`;
 
         return msg;
     } catch (err) {
@@ -578,51 +638,131 @@ const handleAttendanceStatus = async (employee) => {
     }
 };
 
+/** Handle MONTHLY ATTENDANCE report */
+const handleMonthlyAttendance = async (employee, text) => {
+    try {
+        let targetMonthStr = parseMonthYearFromText(text);
+        if (!targetMonthStr) {
+            // Default to current month in IST
+            const now = new Date();
+            const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            targetMonthStr = ist.toISOString().split('T')[0].substring(0, 7);
+        }
+
+        const [y, m] = targetMonthStr.split('-').map(Number);
+        const startDate = `${targetMonthStr}-01`;
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const endDate = `${targetMonthStr}-${String(daysInMonth).padStart(2, '0')}`;
+        const monthDisplay = new Date(y, m - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+
+        const records = await Attendance.find({
+            employee: employee._id,
+            date: { $gte: startDate, $lte: endDate }
+        }).sort({ date: 1 });
+
+        const holidays = await Holiday.find({
+            adminId: employee.adminId || employee._id,
+            status: 'Active',
+            date: { $gte: startDate, $lte: endDate }
+        });
+
+        // Compute elapsed days if current month
+        const now = new Date();
+        const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+        const isCurrentMonth = ist.getFullYear() === y && (ist.getMonth() + 1) === m;
+        const todayStr = ist.toISOString().split('T')[0];
+        const elapsedDays = isCurrentMonth ? ist.getDate() : daysInMonth;
+
+        let presentCount = 0;
+        let halfDayCount = 0;
+        let onLeaveCount = 0;
+        let absentCount = 0;
+        let totalWorkedMinutes = 0;
+        let lateArrivals = 0;
+        let latePenaltyTotal = 0;
+        let earlyDepartures = 0;
+        let earlyPenaltyTotal = 0;
+        const missingPunches = [];
+
+        records.forEach(r => {
+            if (r.status === 'Present') presentCount++;
+            else if (r.status === 'Half Day') halfDayCount++;
+            else if (r.status === 'On Leave') onLeaveCount++;
+            else if (r.status === 'Absent') absentCount++;
+
+            const mins = computeWorkingMinutes(r.punches, r.breaks || []);
+            totalWorkedMinutes += mins;
+
+            if (r.lateInPenalty?.isLate || (r.lateInPenalty?.amount || 0) > 0) {
+                lateArrivals++;
+                latePenaltyTotal += r.lateInPenalty?.amount || 0;
+            }
+            if (r.earlyOutPenalty?.isEarly || (r.earlyOutPenalty?.amount || 0) > 0) {
+                earlyDepartures++;
+                earlyPenaltyTotal += r.earlyOutPenalty?.amount || 0;
+            }
+
+            // Missing punch: has IN but no OUT (skip today if today is still in progress)
+            const hasIn = r.punches?.some(p => p.type === 'IN');
+            const hasOut = r.punches?.some(p => p.type === 'OUT');
+            if (hasIn && !hasOut && r.date !== todayStr) {
+                missingPunches.push(r.date);
+            }
+        });
+
+        const workedHours = Math.floor(totalWorkedMinutes / 60);
+        const workedMins = totalWorkedMinutes % 60;
+        const workedStr = `${workedHours}h ${workedMins}m`;
+
+        const activeDays = presentCount + (halfDayCount * 0.5);
+        const avgMins = activeDays > 0 ? Math.round(totalWorkedMinutes / activeDays) : 0;
+        const avgStr = `${Math.floor(avgMins / 60)}h ${avgMins % 60}m`;
+
+        let msg = `Monthly Attendance Report — ${monthDisplay}\n`;
+        msg += `─────────────────────\n`;
+        msg += `Employee: ${employee.name} (${employee.employeeId || 'N/A'})\n`;
+        msg += `Department: ${employee.department || 'N/A'}\n\n`;
+
+        msg += `Days Summary:\n`;
+        msg += `• Total Days in Month: ${daysInMonth}\n`;
+        if (isCurrentMonth) {
+            msg += `• Days Elapsed: ${elapsedDays}\n`;
+        }
+        msg += `• Present: ${presentCount} days\n`;
+        if (halfDayCount > 0) msg += `• Half Day: ${halfDayCount} days\n`;
+        if (onLeaveCount > 0) msg += `• On Leave: ${onLeaveCount} days\n`;
+        if (absentCount > 0) msg += `• Absent: ${absentCount} days\n`;
+        if (holidays.length > 0) msg += `• Paid Holidays: ${holidays.length} days\n`;
+
+        msg += `\nWorking Hours:\n`;
+        msg += `• Total Worked: ${workedStr}\n`;
+        if (activeDays > 0) {
+            msg += `• Daily Average: ${avgStr}\n`;
+        }
+
+        msg += `\nPenalties & Deviations:\n`;
+        msg += `• Late Arrivals: ${lateArrivals}${latePenaltyTotal > 0 ? ` (Rs.${latePenaltyTotal.toLocaleString('en-IN')})` : ''}\n`;
+        msg += `• Early Departures: ${earlyDepartures}${earlyPenaltyTotal > 0 ? ` (Rs.${earlyPenaltyTotal.toLocaleString('en-IN')})` : ''}\n`;
+        msg += `• Missing Punches: ${missingPunches.length}\n`;
+        if (missingPunches.length > 0) {
+            msg += `• Missing Out Dates: ${missingPunches.slice(0, 4).join(', ')}${missingPunches.length > 4 ? '...' : ''}\n`;
+        }
+
+        msg += `─────────────────────\n`;
+        msg += `Send *attendance* for today's status.\n`;
+        msg += `Send *monthly attendance ${isCurrentMonth ? 'may 2026' : monthDisplay.toLowerCase()}* to check other months.`;
+
+        return msg;
+    } catch (err) {
+        console.error('[WhatsApp] handleMonthlyAttendance error:', err);
+        return `Could not generate your monthly attendance report. Please try again or contact HR.`;
+    }
+};
+
 /** Handle SALARY SLIP request - generates and delivers actual PDF document */
 const handleSalarySlip = async (employee, text, waPhone) => {
     try {
-        const monthNames = [
-            'january', 'february', 'march', 'april', 'may', 'june',
-            'july', 'august', 'september', 'october', 'november', 'december'
-        ];
-        const shortMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-
-        const lower = text.toLowerCase();
-        let targetMonthStr = null;
-
-        // 1. Check for YYYY-MM or YYYY/MM pattern e.g. "2026-06"
-        const isoMatch = lower.match(/\b(20\d{2})[-/](0[1-9]|1[0-2])\b/);
-        if (isoMatch) {
-            targetMonthStr = `${isoMatch[1]}-${isoMatch[2]}`;
-        }
-
-        // 2. Check for 4-digit year
-        let year = null;
-        const yearMatch = lower.match(/\b(20\d{2})\b/);
-        if (yearMatch) year = parseInt(yearMatch[1], 10);
-
-        // 3. Check for month name (full or short)
-        let monthNum = null;
-        for (let i = 0; i < monthNames.length; i++) {
-            const regex = new RegExp(`\\b(${monthNames[i]}|${shortMonths[i]})\\b`, 'i');
-            if (regex.test(lower)) {
-                monthNum = i + 1;
-                break;
-            }
-        }
-
-        // 4. Check for digit month + year (e.g. "06 2026" or "6 2026")
-        if (!monthNum && year) {
-            const digitMatch = lower.match(/\b(0?[1-9]|1[0-2])\s+(20\d{2})\b/);
-            if (digitMatch) {
-                monthNum = parseInt(digitMatch[1], 10);
-            }
-        }
-
-        if (!targetMonthStr && monthNum) {
-            const targetYear = year || new Date().getFullYear();
-            targetMonthStr = `${targetYear}-${String(monthNum).padStart(2, '0')}`;
-        }
+        let targetMonthStr = parseMonthYearFromText(text);
 
         // If month not specified, default to strict calendar previous month in IST
         if (!targetMonthStr) {
@@ -688,6 +828,8 @@ const handleHelp = (employee) => {
         `*punch in* — Record your attendance when you arrive\n` +
         `*punch out* — Record your attendance & submit daily work report\n` +
         `*attendance* — See today's attendance status\n` +
+        `*monthly attendance* — View your monthly attendance report\n` +
+        `*monthly attendance may 2026* — View a specific month's attendance report\n` +
         `*balance* — Check your remaining leave balance\n` +
         `*apply leave* — Apply for a leave\n` +
         `*salary slip* — Receive your salary slip in PDF\n` +
@@ -1041,6 +1183,9 @@ export const handleWebhook = async (req, res) => {
                         break;
                     case 'ATTENDANCE_STATUS':
                         reply = await handleAttendanceStatus(employee);
+                        break;
+                    case 'MONTHLY_ATTENDANCE':
+                        reply = await handleMonthlyAttendance(employee, text);
                         break;
                     case 'SALARY_SLIP':
                         reply = await handleSalarySlip(employee, text, waPhone);
