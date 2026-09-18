@@ -297,6 +297,15 @@ const detectIntent = (text) => {
     // Today's attendance status
     if (/\b(attendance|my\s*attendance|status|today)\b/.test(t)) return 'ATTENDANCE_STATUS';
 
+    // Numbered shortcuts
+    if (/^(1|1\.)\b/.test(t) || t === '1') return 'PUNCH_IN';
+    if (/^(2|2\.)\b/.test(t) || t === '2') return 'PUNCH_OUT';
+    if (/^(3|3\.)\b/.test(t) || t === '3') return 'ATTENDANCE_STATUS';
+    if (/^(4|4\.)\b/.test(t) || t === '4') return 'MONTHLY_ATTENDANCE';
+    if (/^(5|5\.)\b/.test(t) || t === '5') return 'LEAVE_BALANCE';
+    if (/^(6|6\.)\b/.test(t) || t === '6') return 'APPLY_LEAVE';
+    if (/^(7|7\.)\b/.test(t) || t === '7') return 'SALARY_SLIP';
+
     // Help / Menu
     if (/\b(help|commands|hi|hello|start|menu|options|services|list)\b/.test(t)) return 'HELP';
 
@@ -824,16 +833,19 @@ const handleSalarySlip = async (employee, text, waPhone) => {
 
 /** Handle HELP */
 const handleHelp = (employee) => {
-    return `Hello ${employee.name}! Here are the available commands:\n\n` +
-        `*punch in* — Record your attendance when you arrive\n` +
-        `*punch out* — Record your attendance & submit daily work report\n` +
-        `*attendance* — See today's attendance status\n` +
-        `*monthly attendance* — View your monthly attendance report\n` +
-        `*monthly attendance may 2026* — View a specific month's attendance report\n` +
-        `*balance* — Check your remaining leave balance\n` +
-        `*apply leave* — Apply for a leave\n` +
-        `*salary slip* — Receive your salary slip in PDF\n` +
-        `*salary slip june 2026* — Receive a specific month's PDF slip\n\n` +
+    return `Hello *${employee.name}*!\n\n` +
+        `Here are the available commands:\n\n` +
+        `1. *punch in* — Record your arrival attendance\n` +
+        `2. *punch out* — Record departure & submit work report\n` +
+        `3. *attendance* — View today's attendance status\n` +
+        `4. *monthly attendance* — View monthly attendance report\n` +
+        `5. *balance* — Check remaining leave balance\n` +
+        `6. *apply leave* — Apply for a leave\n` +
+        `7. *salary slip* — Receive salary slip in PDF\n\n` +
+        `*Tips:*\n` +
+        `• Specific month: *monthly attendance may 2026*\n` +
+        `• Specific salary slip: *salary slip june 2026*\n` +
+        `• You can also simply reply with the number (*1* to *7*)\n\n` +
         `For any issues, please contact HR directly.`;
 };
 
