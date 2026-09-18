@@ -556,63 +556,33 @@ const handleSalarySlip = async (employee, text, waPhone) => {
             targetMonthStr = `${targetYear}-${String(monthNum).padStart(2, '0')}`;
         }
 
-        let payout = null;
-        if (targetMonthStr) {
-            payout = await Payout.findOne({
-                employeeId: employee._id,
-                month: targetMonthStr
-            });
+        // If month not specified, default to strict calendar previous month in IST
+        if (!targetMonthStr) {
+            const now = new Date();
+            const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const prev = new Date(ist.getFullYear(), ist.getMonth() - 1, 1);
+            targetMonthStr = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+        }
 
-            if (!payout) {
-                const publishedPayouts = await Payout.find({ employeeId: employee._id, status: 'Published' })
-                    .sort({ month: -1 })
-                    .limit(6)
-                    .select('month');
+        const payout = await Payout.findOne({
+            employeeId: employee._id,
+            month: targetMonthStr
+        });
 
-                if (publishedPayouts && publishedPayouts.length > 0) {
-                    const monthsList = publishedPayouts.map(p => p.month).join(', ');
-                    return `No salary slip found for ${targetMonthStr}.\n\n` +
-                           `Available published salary slips: ${monthsList}\n\n` +
-                           `Try sending: *salary slip ${publishedPayouts[0].month}*`;
-                }
+        // Only send if payout exists and status is Published
+        if (!payout || payout.status !== 'Published') {
+            const publishedPayouts = await Payout.find({ employeeId: employee._id, status: 'Published' })
+                .sort({ month: -1 })
+                .limit(6)
+                .select('month');
 
-                return `No salary slip found for ${targetMonthStr}.\n\nPlease contact HR if you believe this is an error.`;
+            let msg = `Salary slip for ${targetMonthStr} is not published yet.\n\nPlease contact HR for further details.`;
+            if (publishedPayouts && publishedPayouts.length > 0) {
+                const monthsList = publishedPayouts.map(p => p.month).join(', ');
+                msg += `\n\nAvailable published salary slips: ${monthsList}\n` +
+                       `Try sending: *salary slip ${publishedPayouts[0].month}*`;
             }
-
-            // Check if published
-            if (payout.status !== 'Published') {
-                const publishedPayouts = await Payout.find({ employeeId: employee._id, status: 'Published' })
-                    .sort({ month: -1 })
-                    .limit(6)
-                    .select('month');
-
-                let msg = `Salary slip for ${targetMonthStr} is not published yet.\n\nPlease contact HR for further details.`;
-                if (publishedPayouts && publishedPayouts.length > 0) {
-                    const monthsList = publishedPayouts.map(p => p.month).join(', ');
-                    msg += `\n\nAvailable published salary slips: ${monthsList}\n` +
-                           `Try sending: *salary slip ${publishedPayouts[0].month}*`;
-                }
-                return msg;
-            }
-        } else {
-            // Default to most recent PUBLISHED payout
-            payout = await Payout.findOne({
-                employeeId: employee._id,
-                status: 'Published'
-            }).sort({ month: -1 });
-
-            if (!payout) {
-                // Check if any unpublished payout exists to give a specific message
-                const anyPayout = await Payout.findOne({
-                    employeeId: employee._id
-                }).sort({ month: -1 });
-
-                if (anyPayout) {
-                    return `Salary slip for ${anyPayout.month} is not published yet.\n\nPlease contact HR for further details.`;
-                }
-
-                return `No published salary slips found for your account.\n\nPlease contact HR if you believe this is an error.`;
-            }
+            return msg;
         }
 
         // Generate actual PDF document for published payout
