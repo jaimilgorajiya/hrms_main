@@ -313,20 +313,44 @@ const handlePunchOut = async (employee, waPhone) => {
 /** Handle LEAVE BALANCE */
 const handleLeaveBalance = async (employee) => {
     try {
-        const leaveGroup = employee.leaveGroup;
-        if (!leaveGroup || !leaveGroup.leaveTypes || leaveGroup.leaveTypes.length === 0) {
-            return `No leave balance information is configured for your account yet. Please contact HR.`;
-        }
+        const user = await User.findById(employee._id).populate('leaveGroup');
+        const entitlement = Number(user?.noOfPaidLeaves || user?.leaveGroup?.noOfPaidLeaves || 0);
 
-        // Build balance summary
-        const lines = leaveGroup.leaveTypes.map(lt => {
-            const allocated = lt.daysAllotted || 0;
-            const used = lt.daysUsed || 0;
-            const remaining = Math.max(0, allocated - used);
-            return `• ${lt.leaveTypeName}: ${remaining} days remaining (${used} used of ${allocated})`;
+        // Fetch approved leave requests
+        const approvedRequests = await Request.find({
+            employee: employee._id,
+            requestType: 'Leave',
+            status: 'Approved',
+            leaveCategory: 'Paid'
         });
 
-        return `Your Leave Balance:\n\n${lines.join('\n')}\n\nSend *apply leave* to apply for leave.`;
+        let used = 0;
+        approvedRequests.forEach(req => {
+            const start = new Date(req.fromDate);
+            const end = new Date(req.toDate);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+            if (req.leaveDuration === "Full Day") {
+                used += diffDays;
+            } else {
+                used += 0.5;
+            }
+        });
+
+        const remaining = Math.max(0, entitlement - used);
+        const policyName = user?.leaveGroup?.leaveGroupName || 'Standard Leave Policy';
+
+        let msg = `Leave Portfolio — ${user?.name || employee.name}\n`;
+        msg += `─────────────────────\n`;
+        msg += `Policy: ${policyName}\n`;
+        msg += `Total Entitlement: ${entitlement.toFixed(2)} days\n`;
+        msg += `Used: ${used.toFixed(2)} days\n`;
+        msg += `Remaining Balance: ${remaining.toFixed(2)} days\n`;
+        msg += `─────────────────────\n`;
+        msg += `Send *apply leave* to request time off.`;
+
+        return msg;
     } catch (err) {
         console.error('[WhatsApp] handleLeaveBalance error:', err.message);
         return `Could not fetch your leave balance right now. Please try again later or contact HR.`;
