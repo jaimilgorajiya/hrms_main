@@ -310,6 +310,26 @@ const handlePunchOut = async (employee, waPhone) => {
     return `Punched out successfully!\n\nName: ${employee.name}\nTime: ${formatTimeIST(now)}\nDate: ${formatDateNice(date)}\nTotal Working Time: ${workingStr}\n\nHave a great day!`;
 };
 
+// Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
+const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
+    const monthStart = new Date(yearMonthStr + "-01");
+    const [year, month] = yearMonthStr.split('-').map(Number);
+    const monthEnd = new Date(year, month, 0);
+
+    const reqStart = new Date(fromDateStr);
+    const reqEnd = new Date(toDateStr);
+
+    const overlapStart = new Date(Math.max(monthStart.getTime(), reqStart.getTime()));
+    const overlapEnd = new Date(Math.min(monthEnd.getTime(), reqEnd.getTime()));
+
+    if (overlapStart > overlapEnd) return 0;
+
+    const diffMs = overlapEnd.getTime() - overlapStart.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+
+    return leaveDuration === "Full Day" ? diffDays : 0.5;
+};
+
 /** Handle LEAVE BALANCE */
 const handleLeaveBalance = async (employee) => {
     try {
@@ -324,7 +344,7 @@ const handleLeaveBalance = async (employee) => {
             leaveCategory: 'Paid'
         });
 
-        let used = 0;
+        let totalUsed = 0;
         approvedRequests.forEach(req => {
             const start = new Date(req.fromDate);
             const end = new Date(req.toDate);
@@ -332,21 +352,57 @@ const handleLeaveBalance = async (employee) => {
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
             if (req.leaveDuration === "Full Day") {
-                used += diffDays;
+                totalUsed += diffDays;
             } else {
-                used += 0.5;
+                totalUsed += 0.5;
             }
         });
 
-        const remaining = Math.max(0, entitlement - used);
+        const remainingTotal = Math.max(0, entitlement - totalUsed);
         const policyName = user?.leaveGroup?.leaveGroupName || 'Standard Leave Policy';
+
+        // Current Month Calculations
+        const now = new Date();
+        const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+        const currentYearMonth = istNow.toISOString().substring(0, 7);
+        const [cy, cm] = currentYearMonth.split('-').map(Number);
+        const lastDay = new Date(cy, cm, 0).getDate();
+        const calMonthStart = `${currentYearMonth}-01`;
+        const calMonthEnd = `${currentYearMonth}-${String(lastDay).padStart(2, '0')}`;
+        const monthName = istNow.toLocaleString('en-IN', { month: 'long', timeZone: 'Asia/Kolkata' });
+
+        let monthUsed = 0;
+        approvedRequests.forEach(req => {
+            if ((req.fromDate <= calMonthEnd) && (req.toDate >= calMonthStart)) {
+                monthUsed += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, currentYearMonth);
+            }
+        });
+
+        // Max usage per month from employee or policy
+        const maxPerMonth = (user?.maxPLMonth && user.maxPLMonth > 0)
+            ? user.maxPLMonth
+            : (user?.leaveGroup?.maxUseInMonth !== null && user?.leaveGroup?.maxUseInMonth !== undefined
+                ? user.leaveGroup.maxUseInMonth
+                : null);
+
+        let availableThisMonth = remainingTotal;
+        if (maxPerMonth !== null && maxPerMonth !== undefined && maxPerMonth > 0) {
+            availableThisMonth = Math.min(Math.max(0, maxPerMonth - monthUsed), remainingTotal);
+        }
 
         let msg = `Leave Portfolio — ${user?.name || employee.name}\n`;
         msg += `─────────────────────\n`;
         msg += `Policy: ${policyName}\n`;
         msg += `Total Entitlement: ${entitlement.toFixed(2)} days\n`;
-        msg += `Used: ${used.toFixed(2)} days\n`;
-        msg += `Remaining Balance: ${remaining.toFixed(2)} days\n`;
+        msg += `Total Used: ${totalUsed.toFixed(2)} days\n`;
+        msg += `Remaining Balance: ${remainingTotal.toFixed(2)} days\n`;
+        msg += `─────────────────────\n`;
+        msg += `Current Month (${monthName}):\n`;
+        if (maxPerMonth !== null && maxPerMonth !== undefined && maxPerMonth > 0) {
+            msg += `• Monthly Limit: ${maxPerMonth.toFixed(2)} days\n`;
+        }
+        msg += `• Used this Month: ${monthUsed.toFixed(2)} days\n`;
+        msg += `• Available this Month: ${availableThisMonth.toFixed(2)} days\n`;
         msg += `─────────────────────\n`;
         msg += `Send *apply leave* to request time off.`;
 
