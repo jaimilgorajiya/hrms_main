@@ -8,6 +8,8 @@ import PenaltyRule from "../models/PenaltyRule.Model.js";
 import Payout from "../models/Payout.Model.js";
 import Company from '../models/Company.Model.js';
 import SalarySlip from '../models/SalarySlip.Model.js';
+import Shift from '../models/Shift.Model.js';
+import SalaryGroup from '../models/SalaryGroup.Model.js';
 import pdfmake from 'pdfmake';
 
 export const getMonthlyPayoutSummary = async (req, res) => {
@@ -380,28 +382,18 @@ export const getMyPayslips = async (req, res) => {
     }
 };
 
-export const downloadPayslip = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const payout = await Payout.findById(id).populate('employeeId', 'name employeeId department designation adminId');
-        if (!payout) return res.status(404).json({ success: false, message: "Payslip not found" });
+/**
+ * Build payslip PDF buffer and metadata for a given payout ID.
+ * Used by both the download API and WhatsApp chatbot.
+ */
+export const buildPayslipPdfBuffer = async (payoutId) => {
+    const payout = await Payout.findById(payoutId).populate('employeeId', 'name employeeId department designation adminId');
+    if (!payout) throw new Error("Payslip not found");
 
-        // Security: employee can only download their own published slip
-        // Admin can download any slip belonging to their org
-        const isAdmin = req.user.role === 'Admin';
-        const isOwner = payout.employeeId?._id?.toString() === req.user._id.toString();
+    // Fetch company details based on the admin who onboarded this employee
+    const company = await Company.findOne({ adminId: payout.employeeId?.adminId });
 
-        // Ensure that if it is an Admin, the employee belongs to this Admin's company (org validation)
-        const isSameOrg = isAdmin && payout.employeeId?.adminId?.toString() === req.user._id.toString();
-
-        if (!isSameOrg && !isOwner) {
-            return res.status(403).json({ success: false, message: "Access denied." });
-        }
-
-        // Fetch company details based on the admin who onboarded this employee
-        const company = await Company.findOne({ adminId: payout.employeeId?.adminId });
-
-        const [payoutYear, payoutMonthNum] = payout.month.split('-').map(Number);
+    const [payoutYear, payoutMonthNum] = payout.month.split('-').map(Number);
         const salarySlipRecord = await SalarySlip.findOne({
             employeeId: payout.employeeId?._id,
             month: payoutMonthNum,
@@ -852,11 +844,38 @@ export const downloadPayslip = async (req, res) => {
         const pdfDoc = await pdfmake.createPdf(docDefinition);
         const buffer = await pdfDoc.getBuffer();
 
+        return {
+            buffer: Buffer.from(buffer),
+            filename: `payslip-${payout.month}.pdf`,
+            payout
+        };
+};
+
+export const downloadPayslip = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const payout = await Payout.findById(id).populate('employeeId', 'name employeeId department designation adminId');
+        if (!payout) return res.status(404).json({ success: false, message: "Payslip not found" });
+
+        // Security: employee can only download their own published slip
+        // Admin can download any slip belonging to their org
+        const isAdmin = req.user.role === 'Admin';
+        const isOwner = payout.employeeId?._id?.toString() === req.user._id.toString();
+
+        // Ensure that if it is an Admin, the employee belongs to this Admin's company (org validation)
+        const isSameOrg = isAdmin && payout.employeeId?.adminId?.toString() === req.user._id.toString();
+
+        if (!isSameOrg && !isOwner) {
+            return res.status(403).json({ success: false, message: "Access denied." });
+        }
+
+        const { buffer, filename } = await buildPayslipPdfBuffer(id);
+
         res.setHeader('Content-Type', 'application/pdf');
         const disposition = req.query.download === 'true' ? 'attachment' : 'inline';
-        res.setHeader('Content-Disposition', `${disposition}; filename=payslip-${payout.month}.pdf`);
+        res.setHeader('Content-Disposition', `${disposition}; filename=${filename}`);
 
-        res.send(Buffer.from(buffer));
+        res.send(buffer);
 
     } catch (error) {
         console.error("downloadPayslip error:", error);

@@ -19,6 +19,7 @@ import User from '../models/User.Model.js';
 import Attendance from '../models/Attendance.Model.js';
 import Request from '../models/Request.Model.js';
 import SalarySlip from '../models/SalarySlip.Model.js';
+import Payout from '../models/Payout.Model.js';
 import LeaveType from '../models/LeaveType.Model.js';
 import LeaveGroup from '../models/LeaveGroup.Model.js';
 import Branch from '../models/Branch.Model.js';
@@ -26,6 +27,7 @@ import Notification from '../models/Notification.Model.js';
 import WhatsAppSession from '../models/WhatsAppSession.Model.js';
 import { getEmployeeShiftToday, getShiftDurationMinutes } from './Attendance.Controller.js';
 import { computeWorkingMinutes } from '../utils/attendance.js';
+import { buildPayslipPdfBuffer } from './Payroll.Controller.js';
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
@@ -149,6 +151,66 @@ const sendWhatsAppMessage = async (to, message) => {
         console.log(`[WhatsApp] Message successfully sent to ${to} (Message ID: ${resp.data?.messages?.[0]?.id})`);
     } catch (err) {
         console.error('[WhatsApp] Failed to send message:', err.response?.data || err.message);
+    }
+};
+
+/**
+ * Send a document (PDF) to a WhatsApp number.
+ * 1. Uploads media to Meta Cloud API /media endpoint.
+ * 2. Sends a document message referencing the media ID.
+ */
+export const sendWhatsAppDocument = async (to, buffer, filename, caption = '') => {
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0';
+
+    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
+        console.warn('[WhatsApp] Credentials not configured. Skipping document send.');
+        return null;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('messaging_product', 'whatsapp');
+        formData.append('type', 'application/pdf');
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        formData.append('file', blob, filename);
+
+        const uploadRes = await axios.post(`${apiUrl}/${phoneNumberId}/media`, formData, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        const mediaId = uploadRes.data?.id;
+        if (!mediaId) {
+            throw new Error('Meta media upload did not return an id');
+        }
+
+        const payload = {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to,
+            type: 'document',
+            document: {
+                id: mediaId,
+                filename,
+                ...(caption ? { caption } : {})
+            }
+        };
+
+        const msgRes = await axios.post(`${apiUrl}/${phoneNumberId}/messages`, payload, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log(`[WhatsApp] PDF Document sent to ${to} (Message ID: ${msgRes.data?.messages?.[0]?.id})`);
+        return msgRes.data;
+    } catch (err) {
+        console.error('[WhatsApp] Failed to send document:', err.response?.data || err.message);
+        throw err;
     }
 };
 
@@ -448,81 +510,107 @@ const handleAttendanceStatus = async (employee) => {
     }
 };
 
-/** Handle SALARY SLIP request */
-const handleSalarySlip = async (employee, text) => {
+/** Handle SALARY SLIP request - generates and delivers actual PDF document */
+const handleSalarySlip = async (employee, text, waPhone) => {
     try {
-        // Try to extract month and year from text
-        // e.g. "salary slip january 2025" or "salary slip 01 2025" or just "salary slip"
-        const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-        let targetMonth = null;
-        let targetYear = null;
+        const monthNames = [
+            'january', 'february', 'march', 'april', 'may', 'june',
+            'july', 'august', 'september', 'october', 'november', 'december'
+        ];
+        const shortMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-        // Try named month
-        for (const mn of monthNames) {
-            if (text.toLowerCase().includes(mn)) {
-                targetMonth = monthNames.indexOf(mn) + 1;
+        const lower = text.toLowerCase();
+        let targetMonthStr = null;
+
+        // 1. Check for YYYY-MM or YYYY/MM pattern e.g. "2026-06"
+        const isoMatch = lower.match(/\b(20\d{2})[-/](0[1-9]|1[0-2])\b/);
+        if (isoMatch) {
+            targetMonthStr = `${isoMatch[1]}-${isoMatch[2]}`;
+        }
+
+        // 2. Check for 4-digit year
+        let year = null;
+        const yearMatch = lower.match(/\b(20\d{2})\b/);
+        if (yearMatch) year = parseInt(yearMatch[1], 10);
+
+        // 3. Check for month name (full or short)
+        let monthNum = null;
+        for (let i = 0; i < monthNames.length; i++) {
+            const regex = new RegExp(`\\b(${monthNames[i]}|${shortMonths[i]})\\b`, 'i');
+            if (regex.test(lower)) {
+                monthNum = i + 1;
                 break;
             }
         }
 
-        // Try year (4-digit)
-        const yearMatch = text.match(/\b(20\d{2})\b/);
-        if (yearMatch) targetYear = parseInt(yearMatch[1]);
-
-        // Default to last month if not specified
-        if (!targetMonth || !targetYear) {
-            const now = new Date();
-            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            targetMonth = targetMonth || (last.getMonth() + 1);
-            targetYear = targetYear || last.getFullYear();
+        // 4. Check for digit month + year (e.g. "06 2026" or "6 2026")
+        if (!monthNum && year) {
+            const digitMatch = lower.match(/\b(0?[1-9]|1[0-2])\s+(20\d{2})\b/);
+            if (digitMatch) {
+                monthNum = parseInt(digitMatch[1], 10);
+            }
         }
 
-        const slip = await SalarySlip.findOne({
-            employeeId: employee._id,
-            month: targetMonth,
-            year: targetYear
-        });
-
-        const monthStr = new Date(targetYear, targetMonth - 1, 1).toLocaleString('en-IN', { month: 'long' });
-
-        if (!slip) {
-            return `No salary slip found for ${monthStr} ${targetYear}.\n\nPlease contact HR if you believe this is an error.\n\nTip: Try *salary slip december 2024* to request a specific month.`;
+        if (!targetMonthStr && monthNum) {
+            const targetYear = year || new Date().getFullYear();
+            targetMonthStr = `${targetYear}-${String(monthNum).padStart(2, '0')}`;
         }
 
-        // Format salary slip as a text summary (PDF sending requires media upload, we'll send summary)
-        let msg = `Salary Slip — ${monthStr} ${targetYear}\n`;
-        msg += `─────────────────────\n`;
-        msg += `Employee: ${employee.name}\n`;
-        msg += `Employee ID: ${employee.employeeId || 'N/A'}\n`;
-        msg += `Department: ${employee.department || 'N/A'}\n`;
-        msg += `\nEarnings:\n`;
-
-        if (slip.earnings?.length > 0) {
-            slip.earnings.forEach(e => {
-                msg += `  ${e.componentName}: Rs.${e.calculatedAmount?.toLocaleString('en-IN') || 0}\n`;
+        let payout = null;
+        if (targetMonthStr) {
+            payout = await Payout.findOne({
+                employeeId: employee._id,
+                month: targetMonthStr
             });
+        } else {
+            // Default to most recent payout
+            payout = await Payout.findOne({
+                employeeId: employee._id
+            }).sort({ month: -1 });
         }
 
-        msg += `\nDeductions:\n`;
-        if (slip.deductions?.length > 0) {
-            slip.deductions.forEach(d => {
-                msg += `  ${d.componentName}: Rs.${d.calculatedAmount?.toLocaleString('en-IN') || 0}\n`;
-            });
+        if (!payout) {
+            const availablePayouts = await Payout.find({ employeeId: employee._id })
+                .sort({ month: -1 })
+                .limit(6)
+                .select('month');
+
+            if (availablePayouts && availablePayouts.length > 0) {
+                const monthsList = availablePayouts.map(p => p.month).join(', ');
+                return `No salary slip found for ${targetMonthStr || 'the requested period'}.\n\n` +
+                       `Available salary slips: ${monthsList}\n\n` +
+                       `Try sending: *salary slip ${availablePayouts[0].month}*`;
+            }
+
+            return `No salary slips found for your account.\n\nPlease contact HR if you believe this is an error.`;
         }
 
-        const grossPay = slip.grossPay || slip.earnings?.reduce((s, e) => s + (e.calculatedAmount || 0), 0) || 0;
-        const totalDeductions = slip.totalDeductions || slip.deductions?.reduce((s, d) => s + (d.calculatedAmount || 0), 0) || 0;
-        const netPay = slip.finalPayout || slip.netPay || (grossPay - totalDeductions);
+        // Generate actual PDF document
+        const { buffer, filename } = await buildPayslipPdfBuffer(payout._id);
 
-        msg += `\nGross Pay: Rs.${grossPay.toLocaleString('en-IN')}\n`;
-        msg += `Total Deductions: Rs.${totalDeductions.toLocaleString('en-IN')}\n`;
-        msg += `─────────────────────\n`;
-        msg += `Net Pay: Rs.${netPay.toLocaleString('en-IN')}\n`;
+        const netPay = Math.round(payout.finalPayout || 0).toLocaleString('en-IN');
 
-        return msg;
+        // Send PDF document via WhatsApp Meta Cloud API
+        if (waPhone) {
+            await sendWhatsAppDocument(
+                waPhone,
+                buffer,
+                filename,
+                `Salary Slip for ${payout.month}`
+            );
+        }
+
+        return `Salary Slip — ${payout.month}\n` +
+               `─────────────────────\n` +
+               `Employee: ${employee.name}\n` +
+               `Employee ID: ${employee.employeeId || 'N/A'}\n` +
+               `Department: ${employee.department || 'N/A'}\n` +
+               `Net Pay: Rs.${netPay}\n` +
+               `─────────────────────\n` +
+               `Your PDF salary slip has been sent above.`;
     } catch (err) {
-        console.error('[WhatsApp] handleSalarySlip error:', err.message);
-        return `Could not fetch your salary slip. Please try again or contact HR.`;
+        console.error('[WhatsApp] handleSalarySlip error:', err);
+        return `Could not generate your salary slip PDF. Please contact HR or try again later.`;
     }
 };
 
@@ -534,8 +622,8 @@ const handleHelp = (employee) => {
         `*attendance* — See today's attendance status\n` +
         `*balance* — Check your remaining leave balance\n` +
         `*apply leave* — Apply for a leave\n` +
-        `*salary slip* — Get your last month's salary slip\n` +
-        `*salary slip january 2025* — Get a specific month's salary slip\n\n` +
+        `*salary slip* — Receive your salary slip in PDF\n` +
+        `*salary slip june 2026* — Receive a specific month's PDF slip\n\n` +
         `For any issues, please contact HR directly.`;
 };
 
@@ -879,7 +967,7 @@ export const handleWebhook = async (req, res) => {
                         reply = await handleAttendanceStatus(employee);
                         break;
                     case 'SALARY_SLIP':
-                        reply = await handleSalarySlip(employee, text);
+                        reply = await handleSalarySlip(employee, text, waPhone);
                         break;
                     case 'APPLY_LEAVE':
                         reply = await handleLeaveFlow(employee, text, null, waPhone);
