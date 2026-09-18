@@ -84,15 +84,33 @@ const normalizePhone = (waPhone) => {
  */
 const findEmployeeByPhone = async (waPhone) => {
     const normalized = normalizePhone(waPhone);
-    // Try plain 10-digit, full with country code, with + prefix
+    // Try plain 10-digit, full with country code, with + prefix, or ending with the 10-digit number
     const variants = [normalized, waPhone, `+${waPhone}`, `91${normalized}`, `+91${normalized}`];
-    for (const variant of variants) {
-        const user = await User.findOne({ phone: variant, role: 'employee' })
+    
+    // First try exact variants
+    let user = await User.findOne({
+        phone: { $in: variants },
+        role: { $in: ['Employee', 'employee', 'Manager', 'Admin'] },
+        status: { $nin: ['Inactive', 'Ex-Employee', 'Terminated', 'Absconding', 'Retired'] }
+    })
+        .populate('leaveGroup')
+        .select('_id name employeeId phone adminId branch department designation leaveGroup requireSelfie whatsAppPunchEnabled');
+
+    if (user) return user;
+
+    // Fallback: match any phone ending with the 10 digits
+    if (normalized && normalized.length >= 10) {
+        const last10 = normalized.slice(-10);
+        user = await User.findOne({
+            phone: { $regex: new RegExp(last10 + '$') },
+            role: { $in: ['Employee', 'employee', 'Manager', 'Admin'] },
+            status: { $nin: ['Inactive', 'Ex-Employee', 'Terminated', 'Absconding', 'Retired'] }
+        })
             .populate('leaveGroup')
             .select('_id name employeeId phone adminId branch department designation leaveGroup requireSelfie whatsAppPunchEnabled');
-        if (user) return user;
     }
-    return null;
+
+    return user || null;
 };
 
 // ─────────────────────────────────────────────────────────────────
