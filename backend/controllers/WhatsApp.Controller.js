@@ -259,93 +259,12 @@ export const sendWhatsAppDocument = async (to, buffer, filename, caption = '') =
     }
 };
 
-/**
- * Send an interactive menu with clickable options using Meta Cloud API.
- * Renders as a "Select Option" button that opens all available HRMS actions.
- */
-export const sendWhatsAppInteractiveMenu = async (to, employee) => {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0';
-
-    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
-        console.warn('[WhatsApp] Credentials not configured. Skipping interactive menu send.');
-        return null;
-    }
-
-    const payload = {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'interactive',
-        interactive: {
-            type: 'list',
-            header: {
-                type: 'text',
-                text: 'HRMS Portal'
-            },
-            body: {
-                text: `Hello ${employee.name}! Please tap the button below to choose an action:`
-            },
-            footer: {
-                text: 'Iflora Info Pvt Ltd'
-            },
-            action: {
-                button: 'Select Option',
-                sections: [
-                    {
-                        title: 'Attendance',
-                        rows: [
-                            { id: 'CMD_PUNCH_IN', title: 'Punch In', description: 'Record arrival attendance' },
-                            { id: 'CMD_PUNCH_OUT', title: 'Punch Out', description: 'Submit report & punch out' },
-                            { id: 'CMD_ATTENDANCE', title: 'Today Attendance', description: 'View today punch record' },
-                            { id: 'CMD_MONTHLY_ATTENDANCE', title: 'Monthly Report', description: 'View monthly attendance' }
-                        ]
-                    },
-                    {
-                        title: 'Leaves & Payroll',
-                        rows: [
-                            { id: 'CMD_LEAVE_BALANCE', title: 'Leave Balance', description: 'Check remaining leaves' },
-                            { id: 'CMD_APPLY_LEAVE', title: 'Apply Leave', description: 'Submit a leave request' },
-                            { id: 'CMD_SALARY_SLIP', title: 'Salary Slip', description: 'Download salary slip PDF' }
-                        ]
-                    }
-                ]
-            }
-        }
-    };
-
-    try {
-        const res = await axios.post(`${apiUrl}/${phoneNumberId}/messages`, payload, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        console.log(`[WhatsApp] Interactive menu sent to ${to} (Message ID: ${res.data?.messages?.[0]?.id})`);
-        return res.data;
-    } catch (err) {
-        console.error('[WhatsApp] Failed to send interactive menu:', err.response?.data || err.message);
-        throw err;
-    }
-};
-
 // ─────────────────────────────────────────────────────────────────
 // INTENT DETECTION
 // ─────────────────────────────────────────────────────────────────
 
 const detectIntent = (text) => {
     const t = text.toLowerCase().trim();
-
-    // Direct command IDs from interactive menu buttons/lists
-    if (t === 'cmd_punch_in') return 'PUNCH_IN';
-    if (t === 'cmd_punch_out') return 'PUNCH_OUT';
-    if (t === 'cmd_attendance') return 'ATTENDANCE_STATUS';
-    if (t === 'cmd_monthly_attendance') return 'MONTHLY_ATTENDANCE';
-    if (t === 'cmd_leave_balance') return 'LEAVE_BALANCE';
-    if (t === 'cmd_apply_leave') return 'APPLY_LEAVE';
-    if (t === 'cmd_salary_slip') return 'SALARY_SLIP';
-    if (t === 'cmd_help' || t === 'cmd_menu') return 'HELP';
 
     // Punch in
     if (/\b(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in|in)\b/.test(t)) return 'PUNCH_IN';
@@ -903,17 +822,8 @@ const handleSalarySlip = async (employee, text, waPhone) => {
     }
 };
 
-/** Handle HELP — sends interactive menu with clickable options */
-const handleHelp = async (employee, waPhone) => {
-    if (waPhone) {
-        try {
-            await sendWhatsAppInteractiveMenu(waPhone, employee);
-            return null; // Menu sent directly as interactive message
-        } catch (err) {
-            console.error('[WhatsApp] Failed to send interactive menu, falling back to text:', err.message);
-        }
-    }
-
+/** Handle HELP */
+const handleHelp = (employee) => {
     return `Hello ${employee.name}! Here are the available commands:\n\n` +
         `*punch in* — Record your attendance when you arrive\n` +
         `*punch out* — Record your attendance & submit daily work report\n` +
@@ -1211,28 +1121,19 @@ export const handleWebhook = async (req, res) => {
         if (!messages || messages.length === 0) return;
 
         for (const message of messages) {
-            const waPhone = message.from; // e.g. "919876543210"
-            let text = '';
-
-            // Support plain text and interactive list/button responses
-            if (message.type === 'text') {
-                text = message.text?.body?.trim() || '';
-            } else if (message.type === 'interactive') {
-                const interactive = message.interactive;
-                if (interactive?.type === 'list_reply') {
-                    text = interactive.list_reply?.id || interactive.list_reply?.title || '';
-                } else if (interactive?.type === 'button_reply') {
-                    text = interactive.button_reply?.id || interactive.button_reply?.title || '';
-                }
-            } else {
+            // Only handle text messages
+            if (message.type !== 'text') {
                 await sendWhatsAppMessage(
-                    waPhone,
-                    `I can only process text and menu selections right now.\n\nSend *menu* to view available options.`
+                    message.from,
+                    `I can only process text messages right now.\n\nSend *help* to see available commands.`
                 );
                 continue;
             }
 
-            console.log(`[WhatsApp] Message from ${waPhone}: "${text}" (Type: ${message.type})`);
+            const waPhone = message.from; // e.g. "919876543210"
+            const text = message.text?.body?.trim() || '';
+
+            console.log(`[WhatsApp] Message from ${waPhone}: "${text}"`);
 
             // ── Find which employee this phone number belongs to ──
             const employee = await findEmployeeByPhone(waPhone);
@@ -1254,7 +1155,7 @@ export const handleWebhook = async (req, res) => {
                 // Allow cancel and help to break out of flow
                 if (intent === 'HELP') {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = await handleHelp(employee, waPhone);
+                    reply = handleHelp(employee);
                 } else {
                     reply = await handleLeaveFlow(employee, text, session, waPhone);
                 }
@@ -1262,7 +1163,7 @@ export const handleWebhook = async (req, res) => {
                 const intent = detectIntent(text);
                 if (intent === 'HELP') {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = await handleHelp(employee, waPhone);
+                    reply = handleHelp(employee);
                 } else {
                     reply = await handlePunchOutReport(employee, text, session, waPhone);
                 }
@@ -1293,11 +1194,10 @@ export const handleWebhook = async (req, res) => {
                         reply = await handleLeaveFlow(employee, text, null, waPhone);
                         break;
                     case 'HELP':
-                        reply = await handleHelp(employee, waPhone);
+                        reply = handleHelp(employee);
                         break;
                     default:
-                        reply = await handleHelp(employee, waPhone);
-                        break;
+                        reply = `I did not understand that.\n\nSend *help* to see all available commands.`;
                 }
             }
 
