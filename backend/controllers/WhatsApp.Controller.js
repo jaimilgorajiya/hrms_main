@@ -329,28 +329,20 @@ const handlePunchIn = async (employee, waPhone) => {
     return `Punched in successfully!\n\nName: ${employee.name}\nTime: ${formatTimeIST(now)}\nDate: ${formatDateNice(date)}\nStatus: ${punchStatus}\n\nSend *punch out* when you leave.`;
 };
 
-/** Handle PUNCH OUT */
-const handlePunchOut = async (employee, waPhone) => {
-    const date = getTodayStr();
+/** Execute and save PUNCH OUT with work report */
+const completePunchOut = async (employee, record, workReport, waPhone) => {
     const now = new Date();
-
-    const record = await Attendance.findOne({ employee: employee._id, date });
-    if (!record || record.punches.length === 0) {
-        return `You have not punched in yet today.\nSend *punch in* to start your attendance.`;
-    }
-
-    const lastPunch = record.punches[record.punches.length - 1];
-    if (lastPunch.type === 'OUT') {
-        return `You already punched out today at ${formatTimeIST(lastPunch.time)}.`;
-    }
+    const date = record.date || getTodayStr();
 
     const punchEntry = {
         time: now,
         type: 'OUT',
+        workSummary: workReport,
         locationAddress: 'Via WhatsApp'
     };
 
     record.punches.push(punchEntry);
+    record.workSummary = workReport;
     await record.save();
 
     const workingMinutes = computeWorkingMinutes(record.punches, record.breaks || []);
@@ -364,12 +356,88 @@ const handlePunchOut = async (employee, waPhone) => {
         await Notification.create({
             user: employee.adminId,
             title: 'Employee Punched Out (WhatsApp)',
-            message: `${employee.name} (${employee.employeeId || ''}) punched out via WhatsApp at ${timeStr} on ${formatDateNice(date)}. Total: ${workingStr}.`,
+            message: `${employee.name} (${employee.employeeId || ''}) punched out via WhatsApp at ${timeStr} on ${formatDateNice(date)}. Total: ${workingStr}.\nWork Report: ${workReport}`,
             type: 'Attendance'
         });
     } catch (_) { /* Non-critical */ }
 
-    return `Punched out successfully!\n\nName: ${employee.name}\nTime: ${formatTimeIST(now)}\nDate: ${formatDateNice(date)}\nTotal Working Time: ${workingStr}\n\nHave a great day!`;
+    return `Punched out successfully!\n\n` +
+           `Name: ${employee.name}\n` +
+           `Time: ${formatTimeIST(now)}\n` +
+           `Date: ${formatDateNice(date)}\n` +
+           `Total Working Time: ${workingStr}\n\n` +
+           `Work Report:\n${workReport}\n\n` +
+           `Have a great evening!`;
+};
+
+/** Handle PUNCH OUT request - asks for work report before punching out */
+const handlePunchOut = async (employee, waPhone, text = '') => {
+    const date = getTodayStr();
+
+    const record = await Attendance.findOne({ employee: employee._id, date });
+    if (!record || record.punches.length === 0) {
+        return `You have not punched in yet today.\nSend *punch in* to start your attendance.`;
+    }
+
+    const lastPunch = record.punches[record.punches.length - 1];
+    if (lastPunch.type === 'OUT') {
+        return `You already punched out today at ${formatTimeIST(lastPunch.time)}.`;
+    }
+
+    // Check if the employee already provided work summary in the same message e.g. "punch out: fixed login bug"
+    const directSummary = text.replace(/^(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out)[:\s-]*/i, '').trim();
+    if (directSummary.length >= 5) {
+        return await completePunchOut(employee, record, directSummary, waPhone);
+    }
+
+    // Otherwise, start multi-step session asking for daily work report
+    await WhatsAppSession.findOneAndUpdate(
+        { phone: waPhone },
+        {
+            phone: waPhone,
+            flow: 'punch_out',
+            step: 'awaiting_work_report',
+            data: { date },
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+        },
+        { upsert: true, new: true }
+    );
+
+    return `Please share your work report before punching out:\n\n` +
+           `What work did you complete today? Reply with a summary of your tasks.\n\n` +
+           `Send *cancel* to cancel punch out.`;
+};
+
+/** Handle WORK REPORT submission for Punch Out */
+const handlePunchOutReport = async (employee, text, session, waPhone) => {
+    const t = text.trim();
+
+    if (t.toLowerCase() === 'cancel') {
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return `Punch out cancelled. Send *punch out* when you are ready to submit your work report.`;
+    }
+
+    if (t.length < 3) {
+        return `Please provide a valid work report describing what you completed today.\n\nSend *cancel* to cancel punch out.`;
+    }
+
+    const date = getTodayStr();
+    const record = await Attendance.findOne({ employee: employee._id, date });
+
+    if (!record || record.punches.length === 0) {
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return `You have not punched in yet today.\nSend *punch in* to start your attendance.`;
+    }
+
+    const hasPunchedOut = record.punches.some(p => p.type === 'OUT');
+    if (hasPunchedOut) {
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        const outPunch = record.punches.slice().reverse().find(p => p.type === 'OUT');
+        return `You have already punched out for today at ${formatTimeIST(outPunch.time)}.`;
+    }
+
+    await WhatsAppSession.deleteOne({ phone: waPhone });
+    return await completePunchOut(employee, record, t, waPhone);
 };
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
@@ -618,7 +686,7 @@ const handleSalarySlip = async (employee, text, waPhone) => {
 const handleHelp = (employee) => {
     return `Hello ${employee.name}! Here are the available commands:\n\n` +
         `*punch in* — Record your attendance when you arrive\n` +
-        `*punch out* — Record your attendance when you leave\n` +
+        `*punch out* — Record your attendance & submit daily work report\n` +
         `*attendance* — See today's attendance status\n` +
         `*balance* — Check your remaining leave balance\n` +
         `*apply leave* — Apply for a leave\n` +
@@ -949,6 +1017,14 @@ export const handleWebhook = async (req, res) => {
                 } else {
                     reply = await handleLeaveFlow(employee, text, session, waPhone);
                 }
+            } else if (session?.flow === 'punch_out') {
+                const intent = detectIntent(text);
+                if (intent === 'HELP') {
+                    await WhatsAppSession.deleteOne({ phone: waPhone });
+                    reply = handleHelp(employee);
+                } else {
+                    reply = await handlePunchOutReport(employee, text, session, waPhone);
+                }
             } else {
                 // Detect intent from fresh message
                 const intent = detectIntent(text);
@@ -958,7 +1034,7 @@ export const handleWebhook = async (req, res) => {
                         reply = await handlePunchIn(employee, waPhone);
                         break;
                     case 'PUNCH_OUT':
-                        reply = await handlePunchOut(employee, waPhone);
+                        reply = await handlePunchOut(employee, waPhone, text);
                         break;
                     case 'LEAVE_BALANCE':
                         reply = await handleLeaveBalance(employee);

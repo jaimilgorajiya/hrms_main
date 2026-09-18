@@ -69,6 +69,10 @@ const attendanceSchema = new mongoose.Schema({
         type: String,
         enum: ["Pending", "Approved", "Rejected"],
         default: "Pending"
+    },
+    workSummary: {
+        type: String,
+        default: ""
     }
 }, { timestamps: true });
 
