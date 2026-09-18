@@ -131,7 +131,7 @@ const sendWhatsAppMessage = async (to, message) => {
     }
 
     try {
-        await axios.post(
+        const resp = await axios.post(
             `${process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0'}/${phoneNumberId}/messages`,
             {
                 messaging_product: 'whatsapp',
@@ -146,6 +146,7 @@ const sendWhatsAppMessage = async (to, message) => {
                 }
             }
         );
+        console.log(`[WhatsApp] Message successfully sent to ${to} (Message ID: ${resp.data?.messages?.[0]?.id})`);
     } catch (err) {
         console.error('[WhatsApp] Failed to send message:', err.response?.data || err.message);
     }
