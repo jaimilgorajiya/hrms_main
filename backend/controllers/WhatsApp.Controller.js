@@ -200,6 +200,13 @@ const handlePunchIn = async (employee, waPhone) => {
         return `You are already punched in today at ${formatTimeIST(lastPunch.time)}.\nSend *punch out* when you leave.`;
     }
 
+    // Block punch-in if already punched out today
+    const hasPunchedOut = record?.punches?.some(p => p.type === 'OUT');
+    if (hasPunchedOut) {
+        const outPunch = record.punches.slice().reverse().find(p => p.type === 'OUT');
+        return `You have already punched out for today at ${formatTimeIST(outPunch.time)}.\n\nYou cannot punch in again today. See you tomorrow!`;
+    }
+
     if (record?.status === 'On Leave') {
         return `You are marked as "On Leave" for today. Attendance cannot be logged.`;
     }
