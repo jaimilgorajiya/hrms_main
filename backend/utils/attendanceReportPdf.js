@@ -62,23 +62,9 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
     ];
 
     records.forEach((rec, idx) => {
-        let statusColor = '#166534'; // Green
-        let statusBg = '#dcfce7';
-
-        if (rec.status === 'Absent') {
-            statusColor = '#991b1b'; // Red
-            statusBg = '#fee2e2';
-        } else if (rec.status === 'Half Day') {
-            statusColor = '#9a3412'; // Amber / Orange
-            statusBg = '#ffedd5';
-        } else if (rec.status === 'On Leave' || rec.status?.includes('Leave')) {
-            statusColor = '#1e40af'; // Blue
-            statusBg = '#dbeafe';
-        }
-
         tableBody.push([
-            { text: (idx + 1).toString(), alignment: 'center', fontSize: 8, color: '#64748b' },
-            { text: rec.name || '—', fontSize: 8.5, bold: true, color: '#1e293b', alignment: 'left' },
+            { text: (idx + 1).toString(), alignment: 'center', fontSize: 8, color: '#334155' },
+            { text: rec.name || '—', fontSize: 8.5, bold: true, color: '#0f172a', alignment: 'left' },
             { text: rec.empId || '—', fontSize: 8, alignment: 'center', color: '#475569' },
             { text: rec.dept || '—', fontSize: 8, color: '#334155', alignment: 'left' },
             { text: rec.punchIn || '--:--', fontSize: 8, alignment: 'center', color: rec.punchIn !== '--:--' ? '#0f172a' : '#94a3b8' },
@@ -86,10 +72,9 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
             { text: rec.workHours || '0h 0m', fontSize: 8, alignment: 'center', color: '#334155' },
             {
                 text: rec.status,
-                fontSize: 7.5,
+                fontSize: 8,
                 bold: true,
-                color: statusColor,
-                fillColor: statusBg,
+                color: '#0f172a',
                 alignment: 'center',
                 margin: [0, 2, 0, 2]
             }
@@ -114,13 +99,13 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
                     {
                         text: `Generated at 07:00 PM IST  •  Confidential`,
                         fontSize: 7.5,
-                        color: '#94a3b8'
+                        color: '#64748b'
                     },
                     {
                         text: `Page ${currentPage} of ${pageCount}`,
                         alignment: 'right',
                         fontSize: 7.5,
-                        color: '#94a3b8'
+                        color: '#64748b'
                     }
                 ]
             };
@@ -133,29 +118,29 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
                         width: '*',
                         stack: [
                             { text: companyName.toUpperCase(), fontSize: 13, bold: true, color: '#0f172a', margin: [0, 0, 0, 2] },
-                            companyAddress ? { text: companyAddress, fontSize: 8, color: '#64748b', margin: [0, 0, 0, 1] } : null,
-                            companyContactInfo ? { text: companyContactInfo, fontSize: 8, color: '#64748b' } : null
+                            companyAddress ? { text: companyAddress, fontSize: 8, color: '#475569', margin: [0, 0, 0, 1] } : null,
+                            companyContactInfo ? { text: companyContactInfo, fontSize: 8, color: '#475569' } : null
                         ].filter(Boolean)
                     },
                     {
                         width: 'auto',
                         alignment: 'right',
                         stack: [
-                            { text: 'DAILY ATTENDANCE REPORT', fontSize: 11, bold: true, color: '#1e293b', margin: [0, 0, 0, 2] },
-                            { text: formattedDate, fontSize: 8.5, color: '#475569', bold: true, margin: [0, 0, 0, 1] },
-                            { text: `Attendance Rate: ${attendanceRate}%`, fontSize: 8, color: attendanceRate >= 75 ? '#166534' : '#991b1b', bold: true }
+                            { text: 'DAILY ATTENDANCE REPORT', fontSize: 11, bold: true, color: '#0f172a', margin: [0, 0, 0, 2] },
+                            { text: formattedDate, fontSize: 8.5, color: '#334155', bold: true, margin: [0, 0, 0, 1] },
+                            { text: `Attendance Rate: ${attendanceRate}%`, fontSize: 8, color: '#334155', bold: true }
                         ]
                     }
                 ]
             },
 
-            // ── Thin Divider ──
+            // ── Clean Thin Divider ──
             {
                 margin: [0, 8, 0, 10],
-                canvas: [{ type: 'line', x1: 0, y1: 0, x2: 525, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }]
+                canvas: [{ type: 'line', x1: 0, y1: 0, x2: 525, y2: 0, lineWidth: 1, lineColor: '#cbd5e1' }]
             },
 
-            // ── Simple KPI Metrics Bar ──
+            // ── Simple Non-Colored KPI Cards ──
             {
                 table: {
                     widths: ['20%', '20%', '20%', '20%', '20%'],
@@ -164,37 +149,37 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
                             {
                                 stack: [
                                     { text: 'TOTAL STAFF', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
-                                    { text: `${stats.total}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 2, 0, 0] }
+                                    { text: `${stats.total}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 3, 0, 0] }
                                 ],
-                                fillColor: '#f8fafc'
+                                fillColor: '#ffffff'
                             },
                             {
                                 stack: [
-                                    { text: 'PRESENT', fontSize: 7.5, bold: true, color: '#166534', alignment: 'center' },
-                                    { text: `${stats.present}`, fontSize: 13, bold: true, color: '#166534', alignment: 'center', margin: [0, 2, 0, 0] }
+                                    { text: 'PRESENT', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
+                                    { text: `${stats.present}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 3, 0, 0] }
                                 ],
-                                fillColor: '#f0fdf4'
+                                fillColor: '#ffffff'
                             },
                             {
                                 stack: [
-                                    { text: 'HALF DAY', fontSize: 7.5, bold: true, color: '#9a3412', alignment: 'center' },
-                                    { text: `${stats.halfDay || 0}`, fontSize: 13, bold: true, color: '#9a3412', alignment: 'center', margin: [0, 2, 0, 0] }
+                                    { text: 'HALF DAY', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
+                                    { text: `${stats.halfDay || 0}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 3, 0, 0] }
                                 ],
-                                fillColor: '#fff7ed'
+                                fillColor: '#ffffff'
                             },
                             {
                                 stack: [
-                                    { text: 'ON LEAVE', fontSize: 7.5, bold: true, color: '#1e40af', alignment: 'center' },
-                                    { text: `${stats.onLeave || 0}`, fontSize: 13, bold: true, color: '#1e40af', alignment: 'center', margin: [0, 2, 0, 0] }
+                                    { text: 'ON LEAVE', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
+                                    { text: `${stats.onLeave || 0}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 3, 0, 0] }
                                 ],
-                                fillColor: '#eff6ff'
+                                fillColor: '#ffffff'
                             },
                             {
                                 stack: [
-                                    { text: 'ABSENT', fontSize: 7.5, bold: true, color: '#991b1b', alignment: 'center' },
-                                    { text: `${stats.absent}`, fontSize: 13, bold: true, color: '#991b1b', alignment: 'center', margin: [0, 2, 0, 0] }
+                                    { text: 'ABSENT', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
+                                    { text: `${stats.absent}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 3, 0, 0] }
                                 ],
-                                fillColor: '#fef2f2'
+                                fillColor: '#ffffff'
                             }
                         ]
                     ]
@@ -202,12 +187,12 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
                 layout: {
                     hLineWidth: () => 1,
                     vLineWidth: () => 1,
-                    hLineColor: () => '#e2e8f0',
-                    vLineColor: () => '#e2e8f0',
+                    hLineColor: () => '#94a3b8',
+                    vLineColor: () => '#94a3b8',
                     paddingLeft: () => 6,
                     paddingRight: () => 6,
-                    paddingTop: () => 5,
-                    paddingBottom: () => 5
+                    paddingTop: () => 6,
+                    paddingBottom: () => 6
                 },
                 margin: [0, 0, 0, 12]
             },
@@ -220,11 +205,11 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
                     body: tableBody
                 },
                 layout: {
-                    fillColor: (rowIndex) => (rowIndex === 0 ? '#1e293b' : rowIndex % 2 === 0 ? '#f8fafc' : '#ffffff'),
+                    fillColor: (rowIndex) => (rowIndex === 0 ? '#f1f5f9' : '#ffffff'),
                     hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 1 : 0.5),
                     vLineWidth: () => 0.5,
-                    hLineColor: () => '#cbd5e1',
-                    vLineColor: () => '#e2e8f0',
+                    hLineColor: () => '#94a3b8',
+                    vLineColor: () => '#cbd5e1',
                     paddingLeft: () => 4,
                     paddingRight: () => 4,
                     paddingTop: () => 5,
@@ -236,7 +221,7 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
             th: {
                 bold: true,
                 fontSize: 8,
-                color: '#ffffff',
+                color: '#0f172a',
                 margin: [0, 2, 0, 2]
             }
         },
