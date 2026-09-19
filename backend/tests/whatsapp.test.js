@@ -284,36 +284,51 @@ test('First Half and Second Half are correctly identified as half-day types', ()
 
 console.log('\nFeature 6 — Attendance Regularization Time Parsing:');
 
-const parseTimeToDate = (timeStr, dateStr) => {
+const parseTimeToDate = (timeStr, dateStr, isPunchOut = false) => {
     const t = timeStr.toLowerCase().trim();
     let hours = null, mins = 0;
+    let hasAmPm = false;
 
     const colonMatch = t.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
     if (colonMatch) {
-        hours = parseInt(colonMatch[1]);
-        mins = parseInt(colonMatch[2]);
-        if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
-        if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+        hours = parseInt(colonMatch[1], 10);
+        mins = parseInt(colonMatch[2], 10);
+        if (colonMatch[3]) {
+            hasAmPm = true;
+            if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
+            if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+        }
     } else {
         const numMatch = t.match(/^(\d{3,4})$/);
         if (numMatch) {
             const n = numMatch[1].padStart(4, '0');
-            hours = parseInt(n.slice(0, 2));
-            mins = parseInt(n.slice(2));
+            hours = parseInt(n.slice(0, 2), 10);
+            mins = parseInt(n.slice(2), 10);
         }
     }
 
     if (hours === null || hours > 23 || mins > 59) return null;
 
-    const d = new Date(`${dateStr}T00:00:00.000+05:30`);
-    d.setHours(hours - 5, mins - 30, 0, 0);
-    return d;
+    if (isPunchOut && !hasAmPm && hours >= 1 && hours <= 11) {
+        hours += 12;
+    }
+
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(mins).padStart(2, '0');
+    return new Date(`${dateStr}T${hh}:${mm}:00.000+05:30`);
 };
 
-test('Parses "09:30" (24h) to a valid Date', () => {
-    const d = parseTimeToDate('09:30', '2026-09-18');
+test('Parses "09:30" (24h) to exact 09:30 AM in IST', () => {
+    const d = parseTimeToDate('09:30', '2026-09-18', false);
     assert.ok(d instanceof Date, 'Should return a Date');
-    assert.ok(!isNaN(d.getTime()), 'Date should be valid');
+    const formatted = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+    assert.strictEqual(formatted, '09:30 am');
+});
+
+test('Parses "06:30" (for punch-out) intelligently to 06:30 PM in IST', () => {
+    const d = parseTimeToDate('06:30', '2026-09-18', true);
+    const formatted = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+    assert.strictEqual(formatted, '06:30 pm');
 });
 
 test('Parses "9:30 AM" (12h with AM) to a valid Date', () => {

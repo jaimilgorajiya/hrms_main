@@ -1122,34 +1122,43 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Parse a time string like "09:30", "9:30 AM", "930" into a Date object for today.
+ * Parse a time string like "09:30", "9:30 AM", "06:30 PM", "930" into a Date object for a given date in IST.
  */
-const parseTimeToDate = (timeStr, dateStr) => {
+const parseTimeToDate = (timeStr, dateStr, isPunchOut = false) => {
     const t = timeStr.toLowerCase().trim();
     let hours = null, mins = 0;
+    let hasAmPm = false;
 
-    // Matches: "9:30 am", "09:30", "9:30"
+    // Matches: "9:30 am", "09:30", "9:30", "6:30 pm", "18:30"
     const colonMatch = t.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
     if (colonMatch) {
-        hours = parseInt(colonMatch[1]);
-        mins = parseInt(colonMatch[2]);
-        if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
-        if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+        hours = parseInt(colonMatch[1], 10);
+        mins = parseInt(colonMatch[2], 10);
+        if (colonMatch[3]) {
+            hasAmPm = true;
+            if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
+            if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+        }
     } else {
-        // Matches: "930", "1430"
+        // Matches: "930", "1430", "1830"
         const numMatch = t.match(/^(\d{3,4})$/);
         if (numMatch) {
             const n = numMatch[1].padStart(4, '0');
-            hours = parseInt(n.slice(0, 2));
-            mins = parseInt(n.slice(2));
+            hours = parseInt(n.slice(0, 2), 10);
+            mins = parseInt(n.slice(2), 10);
         }
     }
 
     if (hours === null || hours > 23 || mins > 59) return null;
 
-    const d = new Date(`${dateStr}T00:00:00.000+05:30`);
-    d.setHours(hours - 5, mins - 30, 0, 0); // convert IST to UTC
-    return d;
+    // For punch-out, if no AM/PM was specified and hours is in 1..11 (e.g. 06:30), assume PM
+    if (isPunchOut && !hasAmPm && hours >= 1 && hours <= 11) {
+        hours += 12;
+    }
+
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(mins).padStart(2, '0');
+    return new Date(`${dateStr}T${hh}:${mm}:00.000+05:30`);
 };
 
 /**
@@ -1205,7 +1214,7 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
     if (step === 'awaiting_punch_in') {
         let manualIn = null;
         if (t.toLowerCase() !== 'skip') {
-            manualIn = parseTimeToDate(t, data.correctionDate);
+            manualIn = parseTimeToDate(t, data.correctionDate, false);
             if (!manualIn) return `Invalid time format. Please use HH:MM (e.g. *09:30* or *9:30 AM*):`;
         }
 
@@ -1225,7 +1234,7 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
     if (step === 'awaiting_punch_out') {
         let manualOut = null;
         if (t.toLowerCase() !== 'skip') {
-            manualOut = parseTimeToDate(t, data.correctionDate);
+            manualOut = parseTimeToDate(t, data.correctionDate, true);
             if (!manualOut) return `Invalid time format. Please use HH:MM (e.g. *06:30 PM*):`;
         }
 
