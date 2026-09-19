@@ -30,6 +30,7 @@ import { getEmployeeShiftToday, getShiftDurationMinutes } from './Attendance.Con
 import { computeWorkingMinutes } from '../utils/attendance.js';
 import { buildPayslipPdfBuffer } from './Payroll.Controller.js';
 import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
+import { calculateLeaveSplit } from '../utils/leaveSplit.js';
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
@@ -923,66 +924,123 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
         return `To date: *${t}*\n\nPlease enter the *reason* for your leave:`;
     }
 
-    // ── STEP 6: Receive reason, confirm ──
+    // ── STEP 6: Receive reason, calculate split, confirm ──
     if (step === 'awaiting_reason') {
         const reason = t;
+        const fromDate = data.fromDate;
+        const toDate = data.toDate || data.fromDate;
+        const duration = data.duration || 'Full Day';
+        const leaveTypeName = data.leaveType || 'Paid Leave';
+        const isUnpaidSelected = leaveTypeName.toLowerCase().includes('unpaid');
+
+        // Populate employee with leaveGroup for accurate quota calculation
+        let empWithPolicy = employee;
+        if (!empWithPolicy.leaveGroup || !empWithPolicy.leaveGroup.leaveGroupName) {
+            empWithPolicy = await User.findById(employee._id).populate('leaveGroup');
+        }
+
+        const splitInfo = await calculateLeaveSplit({
+            employee: empWithPolicy,
+            fromDate,
+            toDate,
+            leaveDuration: duration,
+            leaveCategory: isUnpaidSelected ? 'Unpaid' : 'Paid'
+        });
 
         await WhatsAppSession.findOneAndUpdate(
             { phone: waPhone },
             {
                 step: 'confirming',
-                data: { ...data, reason },
+                data: { ...data, reason, splitInfo },
                 expiresAt: new Date(Date.now() + 10 * 60 * 1000)
             }
         );
 
-        const [fy, fm, fd] = data.fromDate.split('-');
-        const [ty, tm, td] = (data.toDate || data.fromDate).split('-');
+        const [fy, fm, fd] = fromDate.split('-');
+        const [ty, tm, td] = toDate.split('-');
 
-        return `Please confirm your leave request:\n\n` +
-            `Leave Type: ${data.leaveType}\n` +
-            `Duration: ${data.duration}\n` +
+        let confirmMsg = `Please confirm your leave request:\n\n` +
+            `Leave Type: ${leaveTypeName}\n` +
+            `Duration: ${duration}\n` +
             `From: ${fd}-${fm}-${fy}\n` +
-            `To: ${td || fd}-${tm || fm}-${ty || fy}\n` +
-            `Reason: ${reason}\n\n` +
-            `Reply *yes* to confirm or *cancel* to cancel.`;
+            `To: ${td}-${tm}-${ty} (${splitInfo.requestedDays} day${splitInfo.requestedDays > 1 ? 's' : ''})\n` +
+            `Reason: ${reason}\n\n`;
+
+        if (splitInfo.isSplit && splitInfo.segments.length > 1) {
+            const seg1 = splitInfo.segments[0];
+            const seg2 = splitInfo.segments[1];
+            const [s1fy, s1fm, s1fd] = seg1.fromDate.split('-');
+            const [s1ty, s1tm, s1td] = seg1.toDate.split('-');
+            const [s2fy, s2fm, s2fd] = seg2.fromDate.split('-');
+            const [s2ty, s2tm, s2td] = seg2.toDate.split('-');
+
+            confirmMsg += `Auto-Split Policy Breakdown:\n` +
+                `1. Paid Leave: ${seg1.days} day(s) (${s1fd}-${s1fm}-${s1fy} to ${s1td}-${s1tm}-${s1ty})\n` +
+                `2. Unpaid Leave (LOP): ${seg2.days} day(s) (${s2fd}-${s2fm}-${s2fy} to ${s2td}-${s2tm}-${s2ty})\n` +
+                `Note: ${splitInfo.reasonForSplit || 'Monthly/annual paid leave quota utilized'}\n\n`;
+        } else if (splitInfo.isSplit && splitInfo.paidDays === 0) {
+            confirmMsg += `Note: Recorded as Unpaid Leave (${splitInfo.reasonForSplit || 'Paid leave quota exhausted'})\n\n`;
+        }
+
+        confirmMsg += `Reply *yes* to confirm or *cancel* to cancel.`;
+        return confirmMsg;
     }
 
     // ── STEP 7: Final confirmation ──
     if (step === 'confirming') {
         if (t.toLowerCase() !== 'yes') {
             await WhatsAppSession.deleteOne({ phone: waPhone });
-            return `Leave application cancelled.`;
+            return `Leave application cancelled. Send *help* to see all commands.`;
         }
 
         try {
+            const splitInfo = data.splitInfo || {
+                isSplit: false,
+                requestedDays: data.duration === 'Full Day' ? 1 : 0.5,
+                segments: [{ fromDate: data.fromDate, toDate: data.toDate || data.fromDate, duration: data.duration, category: 'Paid', days: 1 }]
+            };
+
             // Find leave type ID
             const leaveTypeDoc = await LeaveType.findOne({
                 adminId: employee.adminId,
                 name: { $regex: new RegExp(data.leaveType, 'i') }
             });
 
-            const request = await Request.create({
-                employee: employee._id,
-                adminId: employee.adminId,
-                requestType: 'Leave',
-                leaveType: leaveTypeDoc?._id || null,
-                leaveTypeName: data.leaveType,
-                leaveDuration: data.duration,
-                fromDate: data.fromDate,
-                toDate: data.toDate || data.fromDate,
-                date: data.fromDate,
-                reason: data.reason,
-                status: 'Pending',
-                submittedVia: 'WhatsApp'
-            });
+            const createdRequests = [];
+
+            for (const seg of splitInfo.segments) {
+                const segReq = await Request.create({
+                    employee: employee._id,
+                    adminId: employee.adminId,
+                    requestType: 'Leave',
+                    leaveType: seg.category === 'Paid' ? (leaveTypeDoc?._id || null) : null,
+                    leaveTypeName: seg.category === 'Paid' ? data.leaveType : 'Unpaid Leave',
+                    leaveCategory: seg.category,
+                    leaveDuration: seg.duration,
+                    fromDate: seg.fromDate,
+                    toDate: seg.toDate,
+                    date: seg.fromDate,
+                    reason: seg.category === 'Unpaid' && splitInfo.isSplit && splitInfo.segments.length > 1
+                        ? `${data.reason} (Auto-Split: Unpaid Leave / Quota Exceeded)`
+                        : data.reason,
+                    status: 'Pending',
+                    submittedVia: 'WhatsApp'
+                });
+                createdRequests.push(segReq);
+            }
 
             // Notify admin (in-app)
             try {
+                let adminMsg = `${employee.name} (${employee.employeeId || ''}) applied for ${data.leaveType} leave from ${data.fromDate} to ${data.toDate || data.fromDate} via WhatsApp.`;
+                if (splitInfo.isSplit && splitInfo.segments.length > 1) {
+                    adminMsg += ` [Auto-Split: ${splitInfo.paidDays} Paid + ${splitInfo.unpaidDays} Unpaid days].`;
+                }
+                adminMsg += ` Reason: ${data.reason}`;
+
                 await Notification.create({
                     user: employee.adminId,
                     title: 'Leave Request (WhatsApp)',
-                    message: `${employee.name} (${employee.employeeId || ''}) applied for ${data.leaveType} leave from ${data.fromDate} to ${data.toDate || data.fromDate} via WhatsApp. Reason: ${data.reason}`,
+                    message: adminMsg,
                     type: 'Leave'
                 });
             } catch (_) { /* Non-critical */ }
@@ -1000,15 +1058,21 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
                     if (managerPhone) {
                         const [fy, fm, fd] = data.fromDate.split('-');
                         const [ty, tm, td] = (data.toDate || data.fromDate).split('-');
-                        const managerMsg =
+                        let managerMsg =
                             `New Leave Request — Action Required\n\n` +
                             `Employee: ${employee.name} (${employee.employeeId || 'N/A'})\n` +
                             `Leave Type: ${data.leaveType}\n` +
                             `Duration: ${data.duration}\n` +
                             `From: ${fd}-${fm}-${fy}\n` +
-                            `To: ${td}-${tm}-${ty}\n` +
+                            `To: ${td}-${tm}-${ty}\n`;
+
+                        if (splitInfo.isSplit && splitInfo.segments.length > 1) {
+                            managerMsg += `Allocation: ${splitInfo.paidDays} Paid Day(s) + ${splitInfo.unpaidDays} Unpaid Day(s)\n`;
+                        }
+
+                        managerMsg +=
                             `Reason: ${data.reason}\n` +
-                            `Request ID: ${request._id}\n\n` +
+                            `Request ID: ${createdRequests.map(r => r._id).join(', ')}\n\n` +
                             `Please log in to the HRMS portal to approve or reject this request.`;
 
                         // Normalize to international format
@@ -1026,13 +1090,24 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
 
             await WhatsAppSession.deleteOne({ phone: waPhone });
 
-            return `Your leave request has been submitted successfully!\n\n` +
+            const [rfy, rfm, rfd] = data.fromDate.split('-');
+            const [rty, rtm, rtd] = (data.toDate || data.fromDate).split('-');
+
+            let userReply = `Your leave request has been submitted successfully!\n\n` +
                 `Leave Type: ${data.leaveType}\n` +
                 `Duration: ${data.duration}\n` +
-                `From: ${data.fromDate}\n` +
-                `To: ${data.toDate || data.fromDate}\n` +
-                `Status: Pending (Awaiting HR Approval)\n\n` +
-                `You will be notified once your request is approved or rejected.`;
+                `From: ${rfd}-${rfm}-${rfy}\n` +
+                `To: ${rtd}-${rtm}-${rty}\n` +
+                `Status: Pending (Awaiting HR Approval)\n\n`;
+
+            if (splitInfo.isSplit && splitInfo.segments.length > 1) {
+                userReply += `Leave Allocation:\n` +
+                    `1. Paid Leave: ${splitInfo.paidDays} day(s)\n` +
+                    `2. Unpaid Leave: ${splitInfo.unpaidDays} day(s)\n\n`;
+            }
+
+            userReply += `You will be notified once your request is approved or rejected.`;
+            return userReply;
         } catch (err) {
             console.error('[WhatsApp] Leave submission error:', err.message);
             await WhatsAppSession.deleteOne({ phone: waPhone });

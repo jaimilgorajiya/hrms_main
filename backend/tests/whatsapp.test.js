@@ -431,6 +431,147 @@ test('"6" numeric shortcut maps to APPLY_LEAVE', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+// FEATURE 7: Auto-Split Paid / Unpaid Leave Logic
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 7 — Auto-Split Paid / Unpaid Leave:');
+
+const computeLeaveSplitPure = ({ totalDays, entitlement, totalUsedAnnual, maxInMonth, usedInMonth, fromDate, toDate, isHalfDay }) => {
+    const remainingAnnual = Math.max(0, entitlement - totalUsedAnnual);
+    const remainingMonthly = maxInMonth > 0 ? Math.max(0, maxInMonth - usedInMonth) : 9999;
+    const maxPaidDays = Math.max(0, Math.min(totalDays, remainingAnnual, remainingMonthly));
+
+    if (maxPaidDays >= totalDays) {
+        return {
+            isSplit: false,
+            requestedDays: totalDays,
+            paidDays: totalDays,
+            unpaidDays: 0,
+            segments: [{ fromDate, toDate, category: 'Paid', days: totalDays }]
+        };
+    }
+
+    if (maxPaidDays === 0) {
+        return {
+            isSplit: true,
+            requestedDays: totalDays,
+            paidDays: 0,
+            unpaidDays: totalDays,
+            segments: [{ fromDate, toDate, category: 'Unpaid', days: totalDays }]
+        };
+    }
+
+    const paidCount = Math.floor(maxPaidDays);
+    const unpaidCount = totalDays - paidCount;
+
+    const sDate = new Date(fromDate);
+    const paidEndD = new Date(sDate);
+    paidEndD.setDate(paidEndD.getDate() + (paidCount - 1));
+    const paidEndStr = paidEndD.toISOString().split('T')[0];
+
+    const unpaidStartD = new Date(sDate);
+    unpaidStartD.setDate(unpaidStartD.getDate() + paidCount);
+    const unpaidStartStr = unpaidStartD.toISOString().split('T')[0];
+
+    return {
+        isSplit: true,
+        requestedDays: totalDays,
+        paidDays: paidCount,
+        unpaidDays: unpaidCount,
+        segments: [
+            { fromDate, toDate: paidEndStr, category: 'Paid', days: paidCount },
+            { fromDate: unpaidStartStr, toDate, category: 'Unpaid', days: unpaidCount }
+        ]
+    };
+};
+
+test('8 days requested with 5 days monthly limit splits into 5 Paid + 3 Unpaid', () => {
+    const res = computeLeaveSplitPure({
+        totalDays: 8,
+        entitlement: 18,
+        totalUsedAnnual: 0,
+        maxInMonth: 5,
+        usedInMonth: 0,
+        fromDate: '2026-09-20',
+        toDate: '2026-09-27',
+        isHalfDay: false
+    });
+
+    assert.strictEqual(res.isSplit, true, 'Should be split');
+    assert.strictEqual(res.paidDays, 5, 'Should allocate 5 paid days');
+    assert.strictEqual(res.unpaidDays, 3, 'Should allocate 3 unpaid days');
+    assert.strictEqual(res.segments.length, 2, 'Should have 2 segments');
+    assert.strictEqual(res.segments[0].category, 'Paid');
+    assert.strictEqual(res.segments[0].fromDate, '2026-09-20');
+    assert.strictEqual(res.segments[0].toDate, '2026-09-24');
+    assert.strictEqual(res.segments[0].days, 5);
+    assert.strictEqual(res.segments[1].category, 'Unpaid');
+    assert.strictEqual(res.segments[1].fromDate, '2026-09-25');
+    assert.strictEqual(res.segments[1].toDate, '2026-09-27');
+    assert.strictEqual(res.segments[1].days, 3);
+});
+
+test('3 days requested within 5 days monthly limit does NOT split (all Paid)', () => {
+    const res = computeLeaveSplitPure({
+        totalDays: 3,
+        entitlement: 18,
+        totalUsedAnnual: 0,
+        maxInMonth: 5,
+        usedInMonth: 0,
+        fromDate: '2026-09-20',
+        toDate: '2026-09-22',
+        isHalfDay: false
+    });
+
+    assert.strictEqual(res.isSplit, false);
+    assert.strictEqual(res.paidDays, 3);
+    assert.strictEqual(res.unpaidDays, 0);
+    assert.strictEqual(res.segments.length, 1);
+    assert.strictEqual(res.segments[0].category, 'Paid');
+});
+
+test('Leave requested when monthly quota already exhausted becomes 100% Unpaid', () => {
+    const res = computeLeaveSplitPure({
+        totalDays: 4,
+        entitlement: 18,
+        totalUsedAnnual: 5,
+        maxInMonth: 5,
+        usedInMonth: 5, // Already used 5 this month
+        fromDate: '2026-09-20',
+        toDate: '2026-09-23',
+        isHalfDay: false
+    });
+
+    assert.strictEqual(res.isSplit, true);
+    assert.strictEqual(res.paidDays, 0);
+    assert.strictEqual(res.unpaidDays, 4);
+    assert.strictEqual(res.segments[0].category, 'Unpaid');
+});
+
+test('Partial remaining quota (e.g. 2 remaining out of 5) splits correctly for 4 days request', () => {
+    const res = computeLeaveSplitPure({
+        totalDays: 4,
+        entitlement: 18,
+        totalUsedAnnual: 3,
+        maxInMonth: 5,
+        usedInMonth: 3, // 2 remaining
+        fromDate: '2026-09-20',
+        toDate: '2026-09-23',
+        isHalfDay: false
+    });
+
+    assert.strictEqual(res.isSplit, true);
+    assert.strictEqual(res.paidDays, 2);
+    assert.strictEqual(res.unpaidDays, 2);
+    assert.strictEqual(res.segments[0].days, 2);
+    assert.strictEqual(res.segments[1].days, 2);
+    assert.strictEqual(res.segments[0].fromDate, '2026-09-20');
+    assert.strictEqual(res.segments[0].toDate, '2026-09-21');
+    assert.strictEqual(res.segments[1].fromDate, '2026-09-22');
+    assert.strictEqual(res.segments[1].toDate, '2026-09-23');
+});
+
+// ─────────────────────────────────────────────────────────────────
 // RESULTS
 // ─────────────────────────────────────────────────────────────────
 

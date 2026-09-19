@@ -7,6 +7,7 @@ import LeaveGroup from "../models/LeaveGroup.Model.js";
 import Holiday from "../models/Holiday.Model.js";
 import { isMonthLocked } from "../utils/payoutLock.js";
 import { sendWhatsAppLeaveStatusNotification } from "./WhatsApp.Controller.js";
+import { calculateLeaveSplit } from "../utils/leaveSplit.js";
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
 const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
@@ -130,75 +131,70 @@ export const submitRequest = async (req, res) => {
                 return res.status(400).json({ success: false, message: "Back-dated leave is restricted for this leave type." });
             }
 
-            // 3. Paid Leave Balance and Monthly Limit Check
+            // 3. Paid Leave Balance and Monthly Limit Check with Auto-Split
             if (leaveCategory === 'Paid') {
-                const leaveGroup = employee.leaveGroup;
-                const entitlement = Number(employee.noOfPaidLeaves || leaveGroup?.noOfPaidLeaves || 0);
-
-                // Calculate requested days for the current request
-                const reqStart = new Date(startStr);
-                const reqEnd = new Date(endStr);
-                const reqDiffDays = Math.ceil(Math.abs(reqEnd - reqStart) / (1000 * 60 * 60 * 24)) + 1;
-                const requestedDays = leaveDuration === "Full Day" ? reqDiffDays : 0.5;
-
-                // Calculate total used/pending paid leaves so far (excluding Rejected status)
-                const allApprovedRequests = await Request.find({
-                    employee: employeeId,
-                    requestType: 'Leave',
-                    status: { $ne: 'Rejected' },
-                    leaveCategory: 'Paid'
+                const splitInfo = await calculateLeaveSplit({
+                    employee,
+                    fromDate: startStr,
+                    toDate: endStr,
+                    leaveDuration: leaveDuration || "Full Day",
+                    leaveCategory: "Paid"
                 });
 
-                let totalUsed = 0;
-                allApprovedRequests.forEach(r => {
-                    const start = new Date(r.fromDate);
-                    const end = new Date(r.toDate);
-                    const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
-                    totalUsed += (r.leaveDuration === "Full Day" ? diffDays : 0.5);
-                });
-
-                const remainingBalance = entitlement - totalUsed;
-                if (requestedDays > remainingBalance) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Insufficient Paid Leave balance: You have only ${remainingBalance.toFixed(2)} days remaining, but requested ${requestedDays} days.`
-                    });
-                }
-
-                // Enforce monthly limit check
-                const maxInMonth = (employee.maxPLMonth && employee.maxPLMonth > 0) 
-                    ? employee.maxPLMonth 
-                    : (leaveGroup?.maxUseInMonth || 0);
-
-                if (maxInMonth > 0) {
-                    const daysPerMonth = getDaysPerMonth(startStr, endStr, leaveDuration);
-                    for (const [ym, reqDaysForYm] of Object.entries(daysPerMonth)) {
-                        const [year, month] = ym.split('-').map(Number);
-                        const lastDay = new Date(year, month, 0).getDate();
-                        const monthStart = `${ym}-01`;
-                        const monthEnd = `${ym}-${String(lastDay).padStart(2, '0')}`;
-
-                        const approvedRequests = await Request.find({
+                if (splitInfo.isSplit && splitInfo.segments.length > 1) {
+                    const createdRequests = [];
+                    for (const seg of splitInfo.segments) {
+                        const segReq = new Request({
                             employee: employeeId,
+                            adminId,
                             requestType: 'Leave',
-                            status: { $ne: 'Rejected' },
-                            leaveCategory: 'Paid',
-                            fromDate: { $lte: monthEnd },
-                            toDate: { $gte: monthStart }
+                            leaveType: seg.category === 'Paid' ? (leaveType || undefined) : undefined,
+                            leaveTypeName: seg.category === 'Paid' ? (lt?.name || 'Paid Leave') : 'Unpaid Leave',
+                            leaveDuration: seg.duration,
+                            leaveCategory: seg.category,
+                            fromDate: seg.fromDate,
+                            toDate: seg.toDate,
+                            date: seg.fromDate,
+                            reason: seg.category === 'Unpaid'
+                                ? `${reason} (Auto-Split: Unpaid Leave / Quota Exceeded)`
+                                : reason,
+                            submittedVia: 'Web'
                         });
-
-                        let usedInMonth = 0;
-                        approvedRequests.forEach(req => {
-                            usedInMonth += getOverlappingDaysInMonth(req.fromDate, req.toDate, req.leaveDuration, ym);
-                        });
-
-                        if ((usedInMonth + reqDaysForYm) > maxInMonth) {
-                            return res.status(400).json({ 
-                                success: false, 
-                                message: `Monthly Paid Leave Limit Reached: For ${ym}, you have already used/applied ${usedInMonth} out of ${maxInMonth} allowed paid leave days. This request would add ${reqDaysForYm} day(s).` 
-                            });
-                        }
+                        await segReq.save();
+                        createdRequests.push(segReq);
                     }
+
+                    return res.status(201).json({
+                        success: true,
+                        message: `Leave submitted with Auto-Split: ${splitInfo.paidDays} day(s) Paid and ${splitInfo.unpaidDays} day(s) Unpaid (Loss of Pay).`,
+                        request: createdRequests[0],
+                        requests: createdRequests,
+                        splitInfo
+                    });
+                } else if (splitInfo.isSplit && splitInfo.paidDays === 0) {
+                    // Entire leave converted to Unpaid
+                    const unpaidReq = new Request({
+                        employee: employeeId,
+                        adminId,
+                        requestType: 'Leave',
+                        leaveType: undefined,
+                        leaveTypeName: 'Unpaid Leave',
+                        leaveDuration: leaveDuration || "Full Day",
+                        leaveCategory: "Unpaid",
+                        fromDate: startStr,
+                        toDate: endStr,
+                        date: startStr,
+                        reason: `${reason} (${splitInfo.reasonForSplit || 'Unpaid Leave / Quota Exhausted'})`,
+                        submittedVia: 'Web'
+                    });
+                    await unpaidReq.save();
+
+                    return res.status(201).json({
+                        success: true,
+                        message: `Leave submitted as Unpaid Leave (${splitInfo.reasonForSplit || 'Quota exhausted'}).`,
+                        request: unpaidReq,
+                        splitInfo
+                    });
                 }
             }
         }
