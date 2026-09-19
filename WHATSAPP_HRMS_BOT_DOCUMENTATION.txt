@@ -1,0 +1,473 @@
+# HRMS WhatsApp Bot — Complete Feature & Technical Documentation
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. Overview & Architecture
+2. Configuration & Environment Variables
+3. Webhook Setup & Meta Cloud API Configuration
+4. Employee Phone Resolution & Security
+5. Core Chatbot Commands & Interactive Flows (1 to 8)
+   - Command 1: Punch In
+   - Command 2: Punch Out & Daily Report
+   - Command 3: Today's Attendance Status
+   - Command 4: Monthly Attendance Report
+   - Command 5: Leave Balance Portfolio
+   - Command 6: Apply Leave (with Half-Day & Auto-Split)
+   - Command 7: Salary Slip (Instant PDF Delivery)
+   - Command 8: Attendance Regularization / Missed Punch
+6. Proactive Background & Event-Driven Features
+   - Feature A: HR Approval & Rejection Notifications (Leave & Regularization)
+   - Feature B: Reporting Manager WhatsApp Alert
+   - Feature C: Automated Shift Reminders (Punch-In & Punch-Out Cron)
+   - Feature D: Auto Salary Slip Push on Payroll Publishing
+   - Feature E: Automatic Paid / Unpaid Leave Split Engine
+7. Project Structure & Codebase References
+8. Automated Testing & Verification
+9. Production Deployment Best Practices
+
+================================================================================
+1. OVERVIEW & ARCHITECTURE
+================================================================================
+The HRMS WhatsApp Bot is a production-grade, conversational HR assistant powered
+by the Meta WhatsApp Cloud API and Node.js/Express backend. It allows employees to
+perform all daily HR operations (attendance, regularization, leave, payslips)
+directly via WhatsApp without logging into the web portal.
+
+Message Flow:
+  [Employee on WhatsApp]
+          │ (WhatsApp message)
+          ▼
+  [Meta WhatsApp Cloud API]
+          │ (HTTP POST Webhook)
+          ▼
+  [Backend Webhook Route: /api/whatsapp/webhook]
+          │
+          ├── Verify Token & Authentication
+          ├── Lookup Employee by Phone Number
+          ├── Intent Detection (Regex + Keywords + Numeric Shortcuts)
+          ├── Multi-Step Conversation State Engine (MongoDB Session TTL)
+          └── Action Execution (Attendance, Leave, PDF Generation, Cron)
+          │
+          ▼
+  [WhatsApp Meta Cloud API] (HTTP POST messages endpoint)
+          │
+          ▼
+  [Employee receives clean, corporate WhatsApp reply / PDF document]
+
+Design Constraints Enforced:
+  • Tone: Clean, corporate, and professional.
+  • Formatting: Numbered lists, clean dividers, zero unnecessary clutter.
+  • Zero Emojis: Strictly clean typography.
+  • Privacy: Technical database ObjectIds (Request IDs) are excluded from user messages.
+
+================================================================================
+2. CONFIGURATION & ENVIRONMENT VARIABLES
+================================================================================
+The following keys in `backend/.env` power the WhatsApp bot:
+
+  PORT=7000
+  MONGO_URI=mongodb+srv://...
+  JWT_SECRET=your_jwt_secret
+  
+  # Meta WhatsApp Cloud API Credentials
+  WHATSAPP_TOKEN=EAA... (Meta System User Permanent Access Token)
+  WHATSAPP_PHONE_NUMBER_ID=100378036487140 (Meta Phone Number ID)
+  WHATSAPP_VERIFY_TOKEN=hrms_webhook_secret_2025 (Verification string set in Meta)
+  
+  # Backend Server URL (for asset links & webhook)
+  APP_URL=https://your-domain.com
+
+================================================================================
+3. WEBHOOK SETUP & META CLOUD API CONFIGURATION
+================================================================================
+In the Meta for Developers Console (developers.facebook.com):
+  1. Go to your App -> Products -> "Whatsapp Business Account" -> Configuration.
+  2. Click "Edit" under Webhooks.
+  3. Callback URL: https://<your-domain-or-tunnel>/api/whatsapp/webhook
+  4. Verify Token: hrms_webhook_secret_2025
+  5. Click "Verify and Save".
+  6. Under "Webhook fields", subscribe to: `messages`.
+
+================================================================================
+4. EMPLOYEE PHONE RESOLUTION & SECURITY
+================================================================================
+The system automatically normalizes incoming WhatsApp phone numbers:
+  • Removes all non-digit symbols (+, -, spaces, parentheses).
+  • Normalizes Indian 10-digit numbers to `91xxxxxxxxxx` international format.
+  • Queries the `User` model matching `phone` or `whatsAppNumber`.
+  • Pulls full employee profile: branch, department, shift, reporting manager,
+    leave group, annual paid leaves, monthly limits, and selfie requirements.
+
+Non-Registered Numbers:
+  If a message is received from an unregistered number, the bot politely responds:
+  "Your phone number is not registered in the HRMS system. Please contact HR
+  to register your phone number."
+
+================================================================================
+5. CORE CHATBOT COMMANDS & INTERACTIVE FLOWS (1 TO 8)
+================================================================================
+
+--------------------------------------------------------------------------------
+COMMAND 1: PUNCH IN
+--------------------------------------------------------------------------------
+Trigger Keywords: `punch in`, `check in`, `checkin`, `signin`, `login`, `1`
+Flow:
+  1. Validates employee registration and WhatsApp punch authorization.
+  2. Checks if the employee has already punched in today.
+  3. Records attendance in `Attendance.Model.js` with current IST timestamp.
+  4. Detects Late Arrival against assigned shift start time.
+  5. Responds with arrival confirmation and shift details.
+
+Sample Response:
+  Punch In Successful
+
+  Employee: Jaimil Gorajiya
+  Time: 09:30 am
+  Date: 19-09-2026
+  Status: On Time (Shift: 09:00 AM - 06:30 PM)
+
+--------------------------------------------------------------------------------
+COMMAND 2: PUNCH OUT & DAILY WORK REPORT
+--------------------------------------------------------------------------------
+Trigger Keywords: `punch out`, `checkout`, `signout`, `logout`, `2`
+Flow:
+  1. Verifies that the employee has an active Punch-In for today.
+  2. Starts a 2-step conversational flow asking for the Daily Work Report summary.
+  3. Saves the punch-out time, computes total working minutes, and stores the work report.
+  4. Detects Early Departure if punched out before shift end.
+
+Sample Response:
+  Punch Out Successful
+
+  Employee: Jaimil Gorajiya
+  Time: 06:30 pm
+  Total Working Hours: 9 hrs 0 mins
+  Daily Report: Completed WhatsApp bot integration and test suite.
+
+--------------------------------------------------------------------------------
+COMMAND 3: TODAY'S ATTENDANCE STATUS
+--------------------------------------------------------------------------------
+Trigger Keywords: `attendance`, `today`, `status`, `my attendance`, `3`
+Flow:
+  1. Fetches today's attendance record for the employee.
+  2. Displays all punches (IN & OUT), total working hours, and current status
+     (Present, Absent, On Leave, Half Day).
+
+Sample Response:
+  Today's Attendance Status — 19 Sep 2026
+
+  Employee: Jaimil Gorajiya
+  Status: Present
+  Punch In: 09:30 am
+  Punch Out: 06:30 pm
+  Total Hours: 9 hrs 0 mins
+
+--------------------------------------------------------------------------------
+COMMAND 4: MONTHLY ATTENDANCE REPORT
+--------------------------------------------------------------------------------
+Trigger Keywords: `monthly attendance`, `attendance report`, `monthly report`, `4`,
+                  or specific month e.g. `monthly attendance august 2026`
+Flow:
+  1. Parses target month and year (defaults to current month).
+  2. Aggregates attendance records, approved leaves, holidays, and week-offs.
+  3. Computes: Present Days, Absent Days, Half Days, Paid Leaves, Unpaid Leaves,
+     Late Arrivals, Early Departures, Missing Punches, and Daily Average Working Hours.
+
+Sample Response:
+  Monthly Attendance Report — September 2026
+
+  Employee: Jaimil Gorajiya (IFLORA-0004)
+  Department: Web Development
+
+  Summary:
+  • Total Working Days: 26
+  • Present Days: 22
+  • Half Days: 1
+  • Paid Leaves: 2
+  • Unpaid Leaves: 1
+  • Absent Days: 0
+  • Daily Average: 8 hrs 45 mins
+
+  Penalties & Deviations:
+  • Late Arrivals: 1
+  • Early Departures: 0
+  • Missing Punches: 0
+
+--------------------------------------------------------------------------------
+COMMAND 5: LEAVE BALANCE PORTFOLIO
+--------------------------------------------------------------------------------
+Trigger Keywords: `balance`, `leave balance`, `leaves`, `my leaves`, `5`
+Flow:
+  1. Fetches employee's active leave policy group.
+  2. Calculates:
+     - Total Annual Entitlement
+     - Total Used Paid Leaves (approved full and half days)
+     - Remaining Annual Paid Leave Balance
+     - Current Month Paid Leave Quota and Usage
+
+Sample Response:
+  Leave Balance Portfolio
+
+  Employee: Jaimil Gorajiya
+  Policy: Corporate Paid Leave Policy
+
+  Annual Paid Leaves:
+  • Entitlement: 18.00 days
+  • Used: 5.00 days
+  • Remaining Balance: 13.00 days
+
+  Monthly Quota (September 2026):
+  • Monthly Limit: 4.00 days
+  • Used This Month: 2.00 days
+  • Remaining This Month: 2.00 days
+
+--------------------------------------------------------------------------------
+COMMAND 6: APPLY LEAVE (WITH HALF-DAY & AUTO-SPLIT)
+--------------------------------------------------------------------------------
+Trigger Keywords: `apply leave`, `leave apply`, `take leave`, `leave request`, `6`
+Flow (Multi-Step State Machine):
+  Step 1: Displays numbered list of available Leave Types (e.g. Casual Leave, Sick Leave).
+  Step 2: User selects leave type by number (e.g. 1) or name.
+  Step 3: User selects Duration:
+          1. Full Day
+          2. First Half (morning off)
+          3. Second Half (afternoon off)
+  Step 4: User inputs From Date (DD-MM-YYYY). (If Half-Day, skips To Date).
+  Step 5: User inputs To Date (DD-MM-YYYY).
+  Step 6: User inputs Reason.
+  Step 7: Auto-Split Calculation & Confirmation Prompt:
+          - Automatically checks monthly and annual paid leave limits.
+          - If request exceeds quota, presents the exact Paid + Unpaid breakdown.
+  Step 8: Final Confirmation (reply "yes" to submit, "cancel" to abort).
+
+Sample Auto-Split Confirmation Prompt:
+  Please confirm your leave request:
+
+  Leave Type: Paid Leave
+  Duration: Full Day
+  From: 20-09-2026
+  To: 27-09-2026 (8 days)
+  Reason: Family Vacation
+
+  Auto-Split Policy Breakdown:
+  1. Paid Leave: 5 day(s) (20-09-2026 to 24-09-2026)
+  2. Unpaid Leave (LOP): 3 day(s) (25-09-2026 to 27-09-2026)
+  Note: Monthly Paid Leave quota (5 days/month) reached
+
+  Reply yes to confirm or cancel to cancel.
+
+--------------------------------------------------------------------------------
+COMMAND 7: SALARY SLIP (INSTANT PDF DELIVERY)
+--------------------------------------------------------------------------------
+Trigger Keywords: `salary slip`, `payslip`, `salary`, `pay slip`, `7`,
+                  or specific month e.g. `salary slip august 2026`
+Flow:
+  1. Identifies the requested month (defaults to previous calendar month).
+  2. Queries `Payout` model for `status === 'Published'`.
+  3. Compiles the payslip into a formatted PDF buffer using `buildPayslipPdfBuffer`.
+  4. Sends the actual PDF file directly to the employee's WhatsApp chat via
+     Meta Cloud API Document endpoint (`sendWhatsAppDocument`).
+  5. Follows up with a text summary of Net Pay.
+
+Sample Text Followup:
+  Salary Slip — 2026-08
+
+  Employee: Jaimil Gorajiya
+  Employee ID: IFLORA-0004
+  Department: Web Development
+  Net Pay: Rs.45,000
+
+  Your PDF salary slip has been sent above.
+
+--------------------------------------------------------------------------------
+COMMAND 8: ATTENDANCE REGULARIZATION / MISSED PUNCH
+--------------------------------------------------------------------------------
+Trigger Keywords: `regularize`, `missed punch`, `correction`, `attendance correction`,
+                  `forgot punch`, `8`
+Flow (Multi-Step State Machine):
+  Step 1: User inputs date to correct in DD-MM-YYYY format (e.g. 19-09-2026).
+  Step 2: User inputs actual Punch-In time (e.g. 09:30 or 9:30 AM or "skip").
+  Step 3: User inputs actual Punch-Out time (e.g. 06:30 PM or 18:30 or "skip").
+          *Smart Detection: Times like 06:30 for punch-out automatically resolve to PM.
+  Step 4: User inputs reason for missed punch.
+  Step 5: Review confirmation with formatted times.
+  Step 6: Submission creates `Attendance Correction` request for HR review.
+
+Sample Submission Confirmation:
+  Your attendance correction request has been submitted successfully!
+
+  Date: 19-09-2026
+  Punch-in: 09:30 am
+  Punch-out: 06:30 pm
+  Status: Pending (Awaiting HR Approval)
+
+  You will be notified once it is reviewed.
+
+================================================================================
+6. PROACTIVE BACKGROUND & EVENT-DRIVEN FEATURES
+================================================================================
+
+--------------------------------------------------------------------------------
+FEATURE A: HR APPROVAL & REJECTION AUTO-NOTIFICATIONS
+--------------------------------------------------------------------------------
+Triggered whenever HR acts on a request in the Admin Portal (`updateRequestStatus`):
+
+1. Approved Attendance Correction:
+   Attendance Correction Approved
+
+   Date: 19-09-2026
+   Punch-in: 09:30 am
+   Punch-out: 06:30 pm
+   Remark: Verified by Team Lead
+
+   Your attendance correction has been approved and your attendance record has been updated.
+
+2. Rejected Attendance Correction:
+   Attendance Correction Rejected
+
+   Date: 19-09-2026
+   Remark: Missing punch cannot be verified
+
+   Your attendance correction request was not approved. Please contact HR if you have any questions.
+
+3. Approved Leave Request:
+   Leave Request Approved
+
+   Leave Type: Casual Leave
+   Duration: Full Day
+   From: 20-09-2026
+   To: 24-09-2026
+
+   Your leave has been recorded. Enjoy your time off.
+
+4. Rejected Leave Request:
+   Leave Request Rejected
+
+   Leave Type: Casual Leave
+   Duration: Full Day
+   From: 20-09-2026
+   To: 24-09-2026
+   Remark: Critical release scheduled
+
+   Your leave request was not approved. Please contact HR if you have any questions.
+
+--------------------------------------------------------------------------------
+FEATURE B: REPORTING MANAGER WHATSAPP ALERT
+--------------------------------------------------------------------------------
+Triggered when an employee applies for leave on WhatsApp.
+Looks up the manager via `employee.reportingTo` and dispatches an instant WhatsApp alert:
+
+Sample Manager Alert:
+  New Leave Request — Action Required
+
+  Employee: Jaimil Gorajiya (IFLORA-0004)
+  Leave Type: Casual Leave
+  Duration: Full Day
+  From: 20-09-2026
+  To: 24-09-2026
+  Reason: Going outstation
+
+  Please log in to the HRMS portal to approve or reject this request.
+
+--------------------------------------------------------------------------------
+FEATURE C: AUTOMATED SHIFT REMINDERS (CRON ENGINE)
+--------------------------------------------------------------------------------
+Defined in `backend/utils/cronJobs.js` running every 5 minutes in IST timezone:
+
+1. Punch-In Reminder:
+   • Scans active employees who have a shift scheduled today.
+   • If current time is 15 to 60 minutes AFTER shift start and no punch-in exists:
+   • Dispatches WhatsApp reminder:
+     "Shift Reminder: You have not recorded your arrival attendance for today's shift (started at 09:00 AM). Please punch in on WhatsApp by replying 'punch in'."
+
+2. Punch-Out Reminder:
+   • Scans employees whose last punch is still `IN` 15 to 60 minutes AFTER shift end.
+   • Dispatches WhatsApp reminder:
+     "Shift Reminder: Your shift ended at 06:30 PM. Please record your departure attendance by replying 'punch out'."
+
+*Deduplication: In-memory Maps keyed by `employeeId:YYYY-MM-DD` ensure reminders fire at most ONCE per employee per day.
+
+--------------------------------------------------------------------------------
+FEATURE D: AUTO SALARY SLIP PUSH ON PAYROLL PUBLISHING
+--------------------------------------------------------------------------------
+Triggered when HR clicks "Publish All" or publishes an individual payout in `Payroll.Controller.js`.
+  • Asynchronously generates the PDF payslip buffer via `buildPayslipPdfBuffer(payoutId)`.
+  • Pushes the PDF directly to every eligible employee on WhatsApp.
+  • Provides automatic text fallback if document delivery fails.
+
+--------------------------------------------------------------------------------
+FEATURE E: AUTOMATIC PAID / UNPAID LEAVE SPLIT ENGINE
+--------------------------------------------------------------------------------
+Implemented in `backend/utils/leaveSplit.js`.
+  • Evaluates requested days against both:
+    1. Employee's Annual Entitlement (`noOfPaidLeaves` / `leaveGroup.noOfPaidLeaves`)
+    2. Employee's Monthly Limit (`maxPLMonth` / `leaveGroup.maxUseInMonth`)
+  • If an 8-day leave is requested with a 5-day monthly limit:
+    - Segregates into 5 Paid Days + 3 Unpaid (Loss of Pay) Days.
+    - Creates separate linked Request records.
+    - Accurately deducts only 5 days from annual entitlement.
+    - Automatically marks 3 days as Unpaid in attendance and feeds into payroll LOP deduction.
+
+================================================================================
+7. PROJECT STRUCTURE & CODEBASE REFERENCES
+================================================================================
+Key files implementing the WhatsApp bot system:
+
+  • `backend/controllers/WhatsApp.Controller.js`
+    Core webhook handler, intent router, and conversational state machines.
+
+  • `backend/utils/whatsappNotify.js`
+    Reusable WhatsApp message and document transmission utility (Meta Cloud API).
+
+  • `backend/utils/leaveSplit.js`
+    Calculation engine for splitting leave requests into Paid and Unpaid segments.
+
+  • `backend/utils/cronJobs.js`
+    Automated shift reminders (Punch-in / Punch-out) and midnight attendance jobs.
+
+  • `backend/controllers/Request.Controller.js`
+    Web portal request submission, auto-split handling, and HR approval/rejection webhooks.
+
+  • `backend/controllers/Payroll.Controller.js`
+    Payslip PDF builder and automatic WhatsApp payslip delivery on publishing.
+
+  • `backend/models/WhatsAppSession.Model.js`
+    MongoDB TTL-backed session manager for multi-step conversation flows (10-15 min timeout).
+
+  • `backend/tests/whatsapp.test.js`
+    46 automated unit and integration tests covering all features.
+
+================================================================================
+8. AUTOMATED TESTING & VERIFICATION
+================================================================================
+To execute the automated WhatsApp bot test suite:
+
+  cd backend
+  node tests/whatsapp.test.js
+
+Test Coverage (46 / 46 Passing):
+  ✓ Feature 1: Leave & Attendance Correction status notification formatting
+  ✓ Feature 2: Phone number international normalization & manager alert dispatch
+  ✓ Feature 3: Shift reminder timing windows and edge conditions
+  ✓ Feature 4: Salary slip PDF and fallback message generation
+  ✓ Feature 5: Half-day duration parsing (First Half / Second Half)
+  ✓ Feature 6: Regularization time parsing (12h, 24h, smart PM detection)
+  ✓ Feature 7: Auto-split quota calculation (annual balance & monthly limits)
+  ✓ Bonus: Intent detection keywords and numeric shortcuts (1 to 8)
+
+================================================================================
+9. PRODUCTION DEPLOYMENT BEST PRACTICES
+================================================================================
+1. Named Cloudflare Tunnel:
+   For local development or dedicated servers without a static public IP, use a
+   named Cloudflare tunnel with a custom domain to avoid URL expiry on restart.
+   Command: `cloudflared tunnel run <tunnel-name>`
+
+2. Meta API Token:
+   Use a Permanent System User Access Token from Meta Business Manager with
+   `whatsapp_business_messaging` and `whatsapp_business_management` permissions.
+
+3. Process Management:
+   Run the Node.js backend using PM2 for automated restarts and log management:
+   `pm2 start server.js --name hrms-backend`

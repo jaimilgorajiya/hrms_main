@@ -148,7 +148,8 @@ test('Duration "First Half" is shown correctly in notification', () => {
 console.log('\nFeature 2 — Manager Alert Phone Normalization:');
 
 const normalizeToWa = (phone) => {
-    const cleaned = phone.replace(/\D/g, '');
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
     if (cleaned.startsWith('91') && cleaned.length === 12) return cleaned;
     if (cleaned.length === 10) return `91${cleaned}`;
     return cleaned;
@@ -621,6 +622,84 @@ test('Partial remaining quota (e.g. 2 remaining out of 5) splits correctly for 4
 });
 
 // ─────────────────────────────────────────────────────────────────
+// FEATURE 8: Daily 7 PM Attendance PDF Report Generation
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 8 — Daily Attendance PDF Report & Recipient Resolution:');
+
+import { buildDailyAttendanceReportPdfBuffer } from '../utils/attendanceReportPdf.js';
+
+test('Recipient normalization handles various company contact formats', () => {
+    assert.strictEqual(normalizeToWa('9099705065'), '919099705065');
+    assert.strictEqual(normalizeToWa('+91 90997 05065'), '919099705065');
+    assert.strictEqual(normalizeToWa('09099705065'), '919099705065');
+    assert.strictEqual(normalizeToWa('919099705065'), '919099705065');
+});
+
+test('Company details fallback hierarchy resolves companyContact before admin phone', () => {
+    const company = { companyContact: '9099705065' };
+    const admin = { whatsAppNumber: '9876543210', phone: '9123456780' };
+    const target = company.companyContact || admin.whatsAppNumber || admin.phone;
+    assert.strictEqual(target, '9099705065');
+});
+
+test('Company details fallback hierarchy falls back to admin WhatsApp when company contact is missing', () => {
+    const company = { companyContact: '' };
+    const admin = { whatsAppNumber: '9876543210', phone: '9123456780' };
+    const target = company.companyContact || admin.whatsAppNumber || admin.phone;
+    assert.strictEqual(target, '9876543210');
+});
+
+await asyncTest('buildDailyAttendanceReportPdfBuffer generates a valid PDF buffer', async () => {
+    const mockCompany = {
+        companyName: 'Iflora Info PVT. LTD.',
+        companyAddress: 'D&C Capstone, Kalgi Char Rasta, Paldi, Ahmedabad',
+        companyContact: '9099705065',
+        companyEmail: 'jaimilgorajiya4763@gmail.com'
+    };
+    const mockDateStr = '2026-09-19';
+    const mockStats = {
+        total: 2,
+        present: 1,
+        absent: 1,
+        halfDay: 0,
+        onLeave: 0
+    };
+    const mockRecords = [
+        {
+            name: 'John Doe',
+            empId: 'EMP001',
+            dept: 'Engineering',
+            punchIn: '09:30 am',
+            punchOut: '06:30 pm',
+            workHours: '9.0 hrs',
+            status: 'Present'
+        },
+        {
+            name: 'Jane Smith',
+            empId: 'EMP002',
+            dept: 'Design',
+            punchIn: '--:--',
+            punchOut: '--:--',
+            workHours: '0h 0m',
+            status: 'Absent'
+        }
+    ];
+
+    const pdfBuffer = await buildDailyAttendanceReportPdfBuffer({
+        company: mockCompany,
+        dateStr: mockDateStr,
+        stats: mockStats,
+        records: mockRecords
+    });
+
+    assert.ok(Buffer.isBuffer(pdfBuffer), 'Must return a Node Buffer');
+    assert.ok(pdfBuffer.length > 500, 'PDF buffer should have substantial byte length');
+    // PDF Magic number %PDF-
+    assert.strictEqual(pdfBuffer.subarray(0, 4).toString(), '%PDF', 'PDF buffer header must start with %PDF');
+});
+
+// ─────────────────────────────────────────────────────────────────
 // RESULTS
 // ─────────────────────────────────────────────────────────────────
 
@@ -629,3 +708,4 @@ console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 if (failed > 0) {
     process.exit(1);
 }
+
