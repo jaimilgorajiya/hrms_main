@@ -135,6 +135,8 @@ const findEmployeeByPhone = async (waPhone) => {
     // Try plain 10-digit, full with country code, with + prefix, or ending with the 10-digit number
     const variants = [normalized, waPhone, `+${waPhone}`, `91${normalized}`, `+91${normalized}`];
     
+    const selectFields = '_id name employeeId phone whatsAppNumber adminId branch department designation leaveGroup noOfPaidLeaves maxPLMonth canApplyUnpaidLeave reportingTo gender requireSelfie whatsAppPunchEnabled';
+
     // First try exact variants
     let user = await User.findOne({
         phone: { $in: variants },
@@ -142,7 +144,7 @@ const findEmployeeByPhone = async (waPhone) => {
         status: { $nin: ['Inactive', 'Ex-Employee', 'Terminated', 'Absconding', 'Retired'] }
     })
         .populate('leaveGroup')
-        .select('_id name employeeId phone adminId branch department designation leaveGroup requireSelfie whatsAppPunchEnabled');
+        .select(selectFields);
 
     if (user) return user;
 
@@ -155,7 +157,7 @@ const findEmployeeByPhone = async (waPhone) => {
             status: { $nin: ['Inactive', 'Ex-Employee', 'Terminated', 'Absconding', 'Retired'] }
         })
             .populate('leaveGroup')
-            .select('_id name employeeId phone adminId branch department designation leaveGroup requireSelfie whatsAppPunchEnabled');
+            .select(selectFields);
     }
 
     return user || null;
@@ -933,11 +935,8 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
         const leaveTypeName = data.leaveType || 'Paid Leave';
         const isUnpaidSelected = leaveTypeName.toLowerCase().includes('unpaid');
 
-        // Populate employee with leaveGroup for accurate quota calculation
-        let empWithPolicy = employee;
-        if (!empWithPolicy.leaveGroup || !empWithPolicy.leaveGroup.leaveGroupName) {
-            empWithPolicy = await User.findById(employee._id).populate('leaveGroup');
-        }
+        // Fetch fresh employee document with leaveGroup for accurate quota calculation
+        const empWithPolicy = await User.findById(employee._id).populate('leaveGroup');
 
         const splitInfo = await calculateLeaveSplit({
             employee: empWithPolicy,
