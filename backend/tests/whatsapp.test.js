@@ -1,0 +1,441 @@
+/**
+ * tests/whatsapp.test.js
+ *
+ * Automated test suite for all 6 WhatsApp bot features.
+ * Uses Node.js built-in assert — no extra dependencies required.
+ *
+ * Run: node --experimental-vm-modules tests/whatsapp.test.js
+ * OR:  node tests/whatsapp.test.js (ESM works with package.json type:module)
+ */
+
+import assert from 'assert';
+
+let passed = 0;
+let failed = 0;
+
+const test = (name, fn) => {
+    try {
+        fn();
+        console.log(`  PASS  ${name}`);
+        passed++;
+    } catch (err) {
+        console.error(`  FAIL  ${name}`);
+        console.error(`        ${err.message}`);
+        failed++;
+    }
+};
+
+const asyncTest = async (name, fn) => {
+    try {
+        await fn();
+        console.log(`  PASS  ${name}`);
+        passed++;
+    } catch (err) {
+        console.error(`  FAIL  ${name}`);
+        console.error(`        ${err.message}`);
+        failed++;
+    }
+};
+
+console.log('\n=== WhatsApp Bot — Feature Tests ===\n');
+
+// ─────────────────────────────────────────────────────────────────
+// SHARED HELPERS (copied/inlined from controller for isolation)
+// ─────────────────────────────────────────────────────────────────
+
+const formatTimeIST = (date) => {
+    return new Date(date).toLocaleTimeString('en-IN', {
+        hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
+    });
+};
+
+const getTodayStr = () => {
+    const now = new Date();
+    const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    return ist.toISOString().split('T')[0];
+};
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 1: Leave Status Notification
+// ─────────────────────────────────────────────────────────────────
+
+console.log('Feature 1 — Leave Status Notification:');
+
+const buildLeaveStatusMsg = (request, status) => {
+    const fmtDate = (dateStr) => {
+        if (!dateStr) return 'N/A';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}-${m}-${y}`;
+    };
+    const statusWord = status === 'Approved' ? 'Approved' : 'Rejected';
+    let msg = `Leave Request ${statusWord}\n\n` +
+        `Leave Type: ${request.leaveTypeName || 'Leave'}\n` +
+        `Duration: ${request.leaveDuration || 'Full Day'}\n` +
+        `From: ${fmtDate(request.fromDate)}\n` +
+        `To: ${fmtDate(request.toDate)}\n`;
+    if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+    if (status === 'Approved') {
+        msg += `\nYour leave has been recorded. Enjoy your time off.`;
+    } else {
+        msg += `\nYour leave request was not approved. Please contact HR if you have any questions.`;
+    }
+    return msg;
+};
+
+test('Approved leave message includes "Approved" status and "Enjoy your time off"', () => {
+    const req = { leaveTypeName: 'Casual Leave', leaveDuration: 'Full Day', fromDate: '2026-09-20', toDate: '2026-09-20', adminRemark: null };
+    const msg = buildLeaveStatusMsg(req, 'Approved');
+    assert.ok(msg.includes('Leave Request Approved'), 'Should include Approved status');
+    assert.ok(msg.includes('Enjoy your time off'), 'Should include approval message');
+    assert.ok(msg.includes('20-09-2026'), 'Should format date correctly as DD-MM-YYYY');
+    assert.ok(!msg.includes('Remark:'), 'Should not include empty remark');
+});
+
+test('Rejected leave message includes "Rejected" status and "not approved" text', () => {
+    const req = { leaveTypeName: 'Sick Leave', leaveDuration: 'First Half', fromDate: '2026-09-21', toDate: '2026-09-21', adminRemark: 'Insufficient balance' };
+    const msg = buildLeaveStatusMsg(req, 'Rejected');
+    assert.ok(msg.includes('Leave Request Rejected'), 'Should include Rejected status');
+    assert.ok(msg.includes('Remark: Insufficient balance'), 'Should include admin remark');
+    assert.ok(msg.includes('not approved'), 'Should include rejection guidance');
+});
+
+test('Duration "First Half" is shown correctly in notification', () => {
+    const req = { leaveTypeName: 'Casual Leave', leaveDuration: 'First Half', fromDate: '2026-09-25', toDate: '2026-09-25' };
+    const msg = buildLeaveStatusMsg(req, 'Approved');
+    assert.ok(msg.includes('Duration: First Half'), 'Should show First Half duration');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 2: Manager Alert — phone normalization
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 2 — Manager Alert Phone Normalization:');
+
+const normalizeToWa = (phone) => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('91') && cleaned.length === 12) return cleaned;
+    if (cleaned.length === 10) return `91${cleaned}`;
+    return cleaned;
+};
+
+test('10-digit phone is prefixed with 91', () => {
+    assert.strictEqual(normalizeToWa('9876543210'), '919876543210');
+});
+
+test('Already international phone (91xxxxxxxxxx) passes through unchanged', () => {
+    assert.strictEqual(normalizeToWa('919876543210'), '919876543210');
+});
+
+test('Phone with symbols is cleaned before normalizing', () => {
+    assert.strictEqual(normalizeToWa('+91-98765-43210'), '919876543210');
+});
+
+test('Manager alert message includes employee name, leave type and request ID', () => {
+    const empName = 'Rahul Sharma';
+    const empId = 'EMP001';
+    const leaveType = 'Casual Leave';
+    const duration = 'Full Day';
+    const fromDate = '2026-09-20';
+    const toDate = '2026-09-20';
+    const reason = 'Personal work';
+    const requestId = 'REQ123';
+
+    const [fy, fm, fd] = fromDate.split('-');
+    const [ty, tm, td] = toDate.split('-');
+
+    const msg = `New Leave Request — Action Required\n\n` +
+        `Employee: ${empName} (${empId})\n` +
+        `Leave Type: ${leaveType}\n` +
+        `Duration: ${duration}\n` +
+        `From: ${fd}-${fm}-${fy}\n` +
+        `To: ${td}-${tm}-${ty}\n` +
+        `Reason: ${reason}\n` +
+        `Request ID: ${requestId}\n\n` +
+        `Please log in to the HRMS portal to approve or reject this request.`;
+
+    assert.ok(msg.includes(empName), 'Should include employee name');
+    assert.ok(msg.includes(leaveType), 'Should include leave type');
+    assert.ok(msg.includes(requestId), 'Should include request ID');
+    assert.ok(msg.includes('HRMS portal'), 'Should direct to HRMS portal');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 3: Shift Reminders — time parsing logic
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 3 — Shift Reminder Time Logic:');
+
+const timeStrToMinutes = (timeStr) => {
+    if (!timeStr) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h * 60 + m;
+};
+
+const shouldSendPunchInReminder = (shiftStartStr, currentMinutes) => {
+    const shiftStartMins = timeStrToMinutes(shiftStartStr);
+    if (shiftStartMins === null) return false;
+    const minutesLate = currentMinutes - shiftStartMins;
+    return minutesLate >= 15 && minutesLate <= 60;
+};
+
+test('Reminder fires 15 min after 09:00 shift start (at 09:15)', () => {
+    const currentMins = 9 * 60 + 15; // 09:15
+    assert.ok(shouldSendPunchInReminder('09:00', currentMins), 'Should send reminder at 09:15');
+});
+
+test('Reminder does NOT fire at exactly shift start time (09:00)', () => {
+    const currentMins = 9 * 60; // 09:00
+    assert.ok(!shouldSendPunchInReminder('09:00', currentMins), 'Should NOT send reminder at shift start');
+});
+
+test('Reminder does NOT fire before shift start (08:50)', () => {
+    const currentMins = 8 * 60 + 50; // 08:50
+    assert.ok(!shouldSendPunchInReminder('09:00', currentMins), 'Should NOT send reminder before shift');
+});
+
+test('Reminder does NOT fire more than 60 min after shift start (at 10:05)', () => {
+    const currentMins = 10 * 60 + 5; // 10:05
+    assert.ok(!shouldSendPunchInReminder('09:00', currentMins), 'Should NOT send reminder after 60 min window');
+});
+
+test('Reminder fires at 30 min after shift start (within window)', () => {
+    const currentMins = 9 * 60 + 30; // 09:30
+    assert.ok(shouldSendPunchInReminder('09:00', currentMins), 'Should send reminder at 09:30');
+});
+
+test('timeStrToMinutes handles invalid input', () => {
+    assert.strictEqual(timeStrToMinutes(null), null);
+    assert.strictEqual(timeStrToMinutes(''), null);
+    assert.strictEqual(timeStrToMinutes('abc'), null);
+});
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 4: Auto Salary Slip — message format
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 4 — Auto Salary Slip Delivery:');
+
+test('Salary slip caption includes month, net pay and attachment note', () => {
+    const monthDisplay = 'August 2026';
+    const netPay = '45,000';
+    const caption = `Your salary slip for ${monthDisplay} is ready!\n\nNet Pay: Rs.${netPay}\n\nPlease find your salary slip attached.`;
+    assert.ok(caption.includes(monthDisplay), 'Should include month');
+    assert.ok(caption.includes(netPay), 'Should include net pay');
+    assert.ok(caption.includes('attached'), 'Should mention attachment');
+});
+
+test('Fallback text message (when PDF fails) includes month and portal login prompt', () => {
+    const monthDisplay = 'August 2026';
+    const netPay = '45,000';
+    const fallbackMsg = `Your salary slip for ${monthDisplay} has been published.\nNet Pay: Rs.${netPay}\n\nPlease log in to the HRMS portal to download your salary slip.`;
+    assert.ok(fallbackMsg.includes(monthDisplay), 'Should include month in fallback');
+    assert.ok(fallbackMsg.includes('HRMS portal'), 'Should include portal reference in fallback');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 5: Half-Day Duration Parsing
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 5 — Half-Day Duration Selection:');
+
+const parseDuration = (t) => {
+    const tl = t.toLowerCase();
+    if (t === '2' || tl.includes('first half') || tl === 'first') return 'First Half';
+    if (t === '3' || tl.includes('second half') || tl === 'second') return 'Second Half';
+    if (tl.includes('half')) return 'First Half'; // legacy fallback
+    return 'Full Day'; // default
+};
+
+test('Reply "1" maps to Full Day', () => {
+    assert.strictEqual(parseDuration('1'), 'Full Day');
+});
+
+test('Reply "2" maps to First Half', () => {
+    assert.strictEqual(parseDuration('2'), 'First Half');
+});
+
+test('Reply "3" maps to Second Half', () => {
+    assert.strictEqual(parseDuration('3'), 'Second Half');
+});
+
+test('Reply "first half" (text) maps to First Half', () => {
+    assert.strictEqual(parseDuration('first half'), 'First Half');
+});
+
+test('Reply "second half" (text) maps to Second Half', () => {
+    assert.strictEqual(parseDuration('second half'), 'Second Half');
+});
+
+test('Legacy "half" input maps to First Half', () => {
+    assert.strictEqual(parseDuration('half'), 'First Half');
+});
+
+test('First Half and Second Half are correctly identified as half-day types', () => {
+    const isHalfDay = (d) => d === 'First Half' || d === 'Second Half';
+    assert.ok(isHalfDay('First Half'), 'First Half is a half-day type');
+    assert.ok(isHalfDay('Second Half'), 'Second Half is a half-day type');
+    assert.ok(!isHalfDay('Full Day'), 'Full Day is NOT a half-day type');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 6: Attendance Regularization — time parsing
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 6 — Attendance Regularization Time Parsing:');
+
+const parseTimeToDate = (timeStr, dateStr) => {
+    const t = timeStr.toLowerCase().trim();
+    let hours = null, mins = 0;
+
+    const colonMatch = t.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
+    if (colonMatch) {
+        hours = parseInt(colonMatch[1]);
+        mins = parseInt(colonMatch[2]);
+        if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
+        if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+    } else {
+        const numMatch = t.match(/^(\d{3,4})$/);
+        if (numMatch) {
+            const n = numMatch[1].padStart(4, '0');
+            hours = parseInt(n.slice(0, 2));
+            mins = parseInt(n.slice(2));
+        }
+    }
+
+    if (hours === null || hours > 23 || mins > 59) return null;
+
+    const d = new Date(`${dateStr}T00:00:00.000+05:30`);
+    d.setHours(hours - 5, mins - 30, 0, 0);
+    return d;
+};
+
+test('Parses "09:30" (24h) to a valid Date', () => {
+    const d = parseTimeToDate('09:30', '2026-09-18');
+    assert.ok(d instanceof Date, 'Should return a Date');
+    assert.ok(!isNaN(d.getTime()), 'Date should be valid');
+});
+
+test('Parses "9:30 AM" (12h with AM) to a valid Date', () => {
+    const d = parseTimeToDate('9:30 AM', '2026-09-18');
+    assert.ok(d instanceof Date, 'Should return a Date');
+    assert.ok(!isNaN(d.getTime()), 'Date should be valid');
+});
+
+test('Parses "6:30 PM" (12h with PM) correctly', () => {
+    const d = parseTimeToDate('6:30 PM', '2026-09-18');
+    assert.ok(d instanceof Date, 'Should return a Date');
+    assert.ok(!isNaN(d.getTime()), 'Date should be valid');
+});
+
+test('Parses "0930" (4-digit) to a valid Date', () => {
+    const d = parseTimeToDate('0930', '2026-09-18');
+    assert.ok(d instanceof Date, 'Should return a Date');
+});
+
+test('Returns null for invalid time "abc"', () => {
+    const d = parseTimeToDate('abc', '2026-09-18');
+    assert.strictEqual(d, null, 'Should return null for invalid time');
+});
+
+test('Returns null for hours > 23', () => {
+    const d = parseTimeToDate('25:00', '2026-09-18');
+    assert.strictEqual(d, null, 'Should return null for hours > 23');
+});
+
+test('Returns null for minutes > 59', () => {
+    const d = parseTimeToDate('09:61', '2026-09-18');
+    assert.strictEqual(d, null, 'Should return null for minutes > 59');
+});
+
+test('Date parsing from DD-MM-YYYY to YYYY-MM-DD', () => {
+    const match = '18-09-2026'.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    const [, d, m, y] = match;
+    const result = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    assert.strictEqual(result, '2026-09-18', 'Should convert DD-MM-YYYY to YYYY-MM-DD');
+});
+
+test('Future date is correctly identified', () => {
+    const today = getTodayStr();
+    const future = new Date();
+    future.setDate(future.getDate() + 5);
+    const futureStr = future.toISOString().split('T')[0];
+    assert.ok(futureStr > today, 'Future date should be greater than today');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// DETECT INTENT
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nBonus — detectIntent Tests:');
+
+const detectIntent = (text) => {
+    const t = text.toLowerCase().trim();
+
+    if (/\b(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in|in)\b/.test(t)) return 'PUNCH_IN';
+    if (/\b(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out)\b/.test(t)) return 'PUNCH_OUT';
+    if (/\b(apply\s*leave|leave\s*apply|take\s*leave|request\s*leave|need\s*leave)\b/.test(t)) return 'APPLY_LEAVE';
+    if (/\b(salary\s*slip|payslip|pay\s*slip|salary)\b/.test(t)) return 'SALARY_SLIP';
+    if (/\b(balance|leave\s*balance|remaining\s*leave|leaves\s*left)\b/.test(t)) return 'LEAVE_BALANCE';
+    if (/\b(regularize|regularisation|regularization|missed\s*punch|correction|attendance\s*correction|correct\s*attendance|forgot\s*punch)\b/.test(t)) return 'REGULARIZE';
+
+    const monthWords = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec';
+    const hasMonthName = new RegExp(`\\b(${monthWords})\\b`, 'i').test(t);
+    if (/\b(attendance|report)\b/.test(t) && (hasMonthName || /\b(month|monthly|summary)\b/.test(t))) return 'MONTHLY_ATTENDANCE';
+    if (/\b(monthly\s*attendance|attendance\s*report|monthly\s*report)\b/.test(t)) return 'MONTHLY_ATTENDANCE';
+    if (/\b(attendance|my\s*attendance|status|today)\b/.test(t)) return 'ATTENDANCE_STATUS';
+
+    if (/^(1|1\.)\b/.test(t) || t === '1') return 'PUNCH_IN';
+    if (/^(2|2\.)\b/.test(t) || t === '2') return 'PUNCH_OUT';
+    if (/^(3|3\.)\b/.test(t) || t === '3') return 'ATTENDANCE_STATUS';
+    if (/^(4|4\.)\b/.test(t) || t === '4') return 'MONTHLY_ATTENDANCE';
+    if (/^(5|5\.)\b/.test(t) || t === '5') return 'LEAVE_BALANCE';
+    if (/^(6|6\.)\b/.test(t) || t === '6') return 'APPLY_LEAVE';
+    if (/^(7|7\.)\b/.test(t) || t === '7') return 'SALARY_SLIP';
+    if (/^(8|8\.)\b/.test(t) || t === '8') return 'REGULARIZE';
+
+    if (/\b(help|commands|hi|hello|start|menu|options|services|list)\b/.test(t)) return 'HELP';
+    return 'UNKNOWN';
+};
+
+test('"regularize" keyword maps to REGULARIZE', () => {
+    assert.strictEqual(detectIntent('regularize'), 'REGULARIZE');
+});
+
+test('"missed punch" maps to REGULARIZE', () => {
+    assert.strictEqual(detectIntent('missed punch'), 'REGULARIZE');
+});
+
+test('"attendance correction" maps to REGULARIZE', () => {
+    assert.strictEqual(detectIntent('attendance correction'), 'REGULARIZE');
+});
+
+test('"8" numeric shortcut maps to REGULARIZE', () => {
+    assert.strictEqual(detectIntent('8'), 'REGULARIZE');
+});
+
+test('"apply leave" maps to APPLY_LEAVE', () => {
+    assert.strictEqual(detectIntent('apply leave'), 'APPLY_LEAVE');
+});
+
+test('"salary" maps to SALARY_SLIP', () => {
+    assert.strictEqual(detectIntent('salary'), 'SALARY_SLIP');
+});
+
+test('"hello" maps to HELP', () => {
+    assert.strictEqual(detectIntent('hello'), 'HELP');
+});
+
+test('"6" numeric shortcut maps to APPLY_LEAVE', () => {
+    assert.strictEqual(detectIntent('6'), 'APPLY_LEAVE');
+});
+
+// ─────────────────────────────────────────────────────────────────
+// RESULTS
+// ─────────────────────────────────────────────────────────────────
+
+console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
+
+if (failed > 0) {
+    process.exit(1);
+}

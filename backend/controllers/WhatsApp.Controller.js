@@ -14,7 +14,6 @@
  *  6. We send a reply back to the employee on WhatsApp
  */
 
-import axios from 'axios';
 import User from '../models/User.Model.js';
 import Attendance from '../models/Attendance.Model.js';
 import Request from '../models/Request.Model.js';
@@ -30,6 +29,7 @@ import WhatsAppSession from '../models/WhatsAppSession.Model.js';
 import { getEmployeeShiftToday, getShiftDurationMinutes } from './Attendance.Controller.js';
 import { computeWorkingMinutes } from '../utils/attendance.js';
 import { buildPayslipPdfBuffer } from './Payroll.Controller.js';
+import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
@@ -161,103 +161,10 @@ const findEmployeeByPhone = async (waPhone) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// SEND MESSAGE VIA META CLOUD API
+// sendWhatsAppMessage and sendWhatsAppDocument are imported from
+// utils/whatsappNotify.js to allow shared use by cronJobs.js
+// without circular dependency.
 // ─────────────────────────────────────────────────────────────────
-
-/**
- * Send a plain text message to a WhatsApp number.
- * Uses Meta Cloud API v19.0
- */
-const sendWhatsAppMessage = async (to, message) => {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-
-    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
-        console.warn('[WhatsApp] Credentials not configured. Skipping send.');
-        return;
-    }
-
-    try {
-        const resp = await axios.post(
-            `${process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0'}/${phoneNumberId}/messages`,
-            {
-                messaging_product: 'whatsapp',
-                to,
-                type: 'text',
-                text: { body: message }
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-        console.log(`[WhatsApp] Message successfully sent to ${to} (Message ID: ${resp.data?.messages?.[0]?.id})`);
-    } catch (err) {
-        console.error('[WhatsApp] Failed to send message:', err.response?.data || err.message);
-    }
-};
-
-/**
- * Send a document (PDF) to a WhatsApp number.
- * 1. Uploads media to Meta Cloud API /media endpoint.
- * 2. Sends a document message referencing the media ID.
- */
-export const sendWhatsAppDocument = async (to, buffer, filename, caption = '') => {
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0';
-
-    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
-        console.warn('[WhatsApp] Credentials not configured. Skipping document send.');
-        return null;
-    }
-
-    try {
-        const formData = new FormData();
-        formData.append('messaging_product', 'whatsapp');
-        formData.append('type', 'application/pdf');
-        const blob = new Blob([buffer], { type: 'application/pdf' });
-        formData.append('file', blob, filename);
-
-        const uploadRes = await axios.post(`${apiUrl}/${phoneNumberId}/media`, formData, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        const mediaId = uploadRes.data?.id;
-        if (!mediaId) {
-            throw new Error('Meta media upload did not return an id');
-        }
-
-        const payload = {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to,
-            type: 'document',
-            document: {
-                id: mediaId,
-                filename,
-                ...(caption ? { caption } : {})
-            }
-        };
-
-        const msgRes = await axios.post(`${apiUrl}/${phoneNumberId}/messages`, payload, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        console.log(`[WhatsApp] PDF Document sent to ${to} (Message ID: ${msgRes.data?.messages?.[0]?.id})`);
-        return msgRes.data;
-    } catch (err) {
-        console.error('[WhatsApp] Failed to send document:', err.response?.data || err.message);
-        throw err;
-    }
-};
 
 // ─────────────────────────────────────────────────────────────────
 // INTENT DETECTION
@@ -297,6 +204,9 @@ const detectIntent = (text) => {
     // Today's attendance status
     if (/\b(attendance|my\s*attendance|status|today)\b/.test(t)) return 'ATTENDANCE_STATUS';
 
+    // Attendance regularization / missed punch
+    if (/\b(regularize|regularisation|regularization|missed\s*punch|correction|attendance\s*correction|correct\s*attendance|forgot\s*punch)\b/.test(t)) return 'REGULARIZE';
+
     // Numbered shortcuts
     if (/^(1|1\.)\b/.test(t) || t === '1') return 'PUNCH_IN';
     if (/^(2|2\.)\b/.test(t) || t === '2') return 'PUNCH_OUT';
@@ -305,6 +215,7 @@ const detectIntent = (text) => {
     if (/^(5|5\.)\b/.test(t) || t === '5') return 'LEAVE_BALANCE';
     if (/^(6|6\.)\b/.test(t) || t === '6') return 'APPLY_LEAVE';
     if (/^(7|7\.)\b/.test(t) || t === '7') return 'SALARY_SLIP';
+    if (/^(8|8\.)\b/.test(t) || t === '8') return 'REGULARIZE';
 
     // Help / Menu
     if (/\b(help|commands|hi|hello|start|menu|options|services|list)\b/.test(t)) return 'HELP';
@@ -841,11 +752,12 @@ const handleHelp = (employee) => {
         `4. *monthly attendance* — View monthly attendance report\n` +
         `5. *balance* — Check remaining leave balance\n` +
         `6. *apply leave* — Apply for a leave\n` +
-        `7. *salary slip* — Receive salary slip in PDF\n\n` +
+        `7. *salary slip* — Receive salary slip in PDF\n` +
+        `8. *regularize* — Request attendance correction for missed punch\n\n` +
         `*Tips:*\n` +
         `• Specific month: *monthly attendance may 2026*\n` +
         `• Specific salary slip: *salary slip june 2026*\n` +
-        `• You can also simply reply with the number (*1* to *7*)\n\n` +
+        `• You can also simply reply with the number (*1* to *8*)\n\n` +
         `For any issues, please contact HR directly.`;
 };
 
@@ -926,13 +838,18 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
             }
         );
 
-        return `Leave type: *${selectedType}*\n\nIs this a full day or half day?\n1. Full Day\n2. Half Day\n\nReply with *1* or *2*.`;
+        return `Leave type: *${selectedType}*\n\nSelect leave duration:\n1. Full Day\n2. First Half (morning off)\n3. Second Half (afternoon off)\n\nReply with *1*, *2*, or *3*.`;
     }
 
     // ── STEP 3: Receive duration ──
     if (step === 'awaiting_duration') {
         let duration = 'Full Day';
-        if (t === '2' || t.toLowerCase().includes('half')) duration = 'Half Day';
+        const tl = t.toLowerCase();
+        if (t === '2' || tl.includes('first half') || tl === 'first') duration = 'First Half';
+        else if (t === '3' || tl.includes('second half') || tl === 'second') duration = 'Second Half';
+        else if (tl.includes('half')) duration = 'First Half'; // legacy fallback
+
+        const isHalfDay = duration === 'First Half' || duration === 'Second Half';
 
         await WhatsAppSession.findOneAndUpdate(
             { phone: waPhone },
@@ -943,7 +860,8 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
             }
         );
 
-        return `Duration: *${duration}*\n\nEnter the *from date* in DD-MM-YYYY format.\nExample: *15-09-2025*`;
+        const halfDayNote = isHalfDay ? '\n(Half day: only one date needed)' : '';
+        return `Duration: *${duration}*${halfDayNote}\n\nEnter the *from date* in DD-MM-YYYY format.\nExample: *15-09-2025*`;
     }
 
     // ── STEP 4: Receive from date ──
@@ -955,8 +873,8 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
         const [, d, m, y] = dateMatch;
         const fromDate = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
 
-        if (data.duration === 'Half Day') {
-            // Half day: no to-date needed
+        if (data.duration === 'First Half' || data.duration === 'Second Half') {
+            // Half day: no to-date needed, same day
             await WhatsAppSession.findOneAndUpdate(
                 { phone: waPhone },
                 {
@@ -1059,7 +977,7 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
                 submittedVia: 'WhatsApp'
             });
 
-            // Notify admin
+            // Notify admin (in-app)
             try {
                 await Notification.create({
                     user: employee.adminId,
@@ -1069,14 +987,52 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
                 });
             } catch (_) { /* Non-critical */ }
 
+            // ── FEATURE 2: Notify Reporting Manager via WhatsApp ──
+            try {
+                if (employee.reportingTo) {
+                    const manager = await User.findOne({
+                        name: employee.reportingTo,
+                        adminId: employee.adminId,
+                        status: { $nin: ['Inactive', 'Ex-Employee', 'Terminated', 'Absconding', 'Retired'] }
+                    }).select('phone whatsAppNumber name');
+
+                    const managerPhone = manager?.whatsAppNumber || manager?.phone;
+                    if (managerPhone) {
+                        const [fy, fm, fd] = data.fromDate.split('-');
+                        const [ty, tm, td] = (data.toDate || data.fromDate).split('-');
+                        const managerMsg =
+                            `New Leave Request — Action Required\n\n` +
+                            `Employee: ${employee.name} (${employee.employeeId || 'N/A'})\n` +
+                            `Leave Type: ${data.leaveType}\n` +
+                            `Duration: ${data.duration}\n` +
+                            `From: ${fd}-${fm}-${fy}\n` +
+                            `To: ${td}-${tm}-${ty}\n` +
+                            `Reason: ${data.reason}\n` +
+                            `Request ID: ${request._id}\n\n` +
+                            `Please log in to the HRMS portal to approve or reject this request.`;
+
+                        // Normalize to international format
+                        const normalizedPhone = managerPhone.replace(/\D/g, '');
+                        const waManagerPhone = normalizedPhone.startsWith('91') && normalizedPhone.length === 12
+                            ? normalizedPhone
+                            : `91${normalizedPhone}`;
+
+                        await sendWhatsAppMessage(waManagerPhone, managerMsg);
+                    }
+                }
+            } catch (mgErr) {
+                console.error('[WhatsApp] Manager alert error (non-critical):', mgErr.message);
+            }
+
             await WhatsAppSession.deleteOne({ phone: waPhone });
 
             return `Your leave request has been submitted successfully!\n\n` +
                 `Leave Type: ${data.leaveType}\n` +
+                `Duration: ${data.duration}\n` +
                 `From: ${data.fromDate}\n` +
                 `To: ${data.toDate || data.fromDate}\n` +
                 `Status: Pending (Awaiting HR Approval)\n\n` +
-                `You will be notified once HR approves or rejects your request.`;
+                `You will be notified once your request is approved or rejected.`;
         } catch (err) {
             console.error('[WhatsApp] Leave submission error:', err.message);
             await WhatsAppSession.deleteOne({ phone: waPhone });
@@ -1088,7 +1044,264 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// MAIN WEBHOOK HANDLERS
+// ATTENDANCE REGULARIZATION FLOW (Feature 6)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Parse a time string like "09:30", "9:30 AM", "930" into a Date object for today.
+ */
+const parseTimeToDate = (timeStr, dateStr) => {
+    const t = timeStr.toLowerCase().trim();
+    let hours = null, mins = 0;
+
+    // Matches: "9:30 am", "09:30", "9:30"
+    const colonMatch = t.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/);
+    if (colonMatch) {
+        hours = parseInt(colonMatch[1]);
+        mins = parseInt(colonMatch[2]);
+        if (colonMatch[3] === 'pm' && hours < 12) hours += 12;
+        if (colonMatch[3] === 'am' && hours === 12) hours = 0;
+    } else {
+        // Matches: "930", "1430"
+        const numMatch = t.match(/^(\d{3,4})$/);
+        if (numMatch) {
+            const n = numMatch[1].padStart(4, '0');
+            hours = parseInt(n.slice(0, 2));
+            mins = parseInt(n.slice(2));
+        }
+    }
+
+    if (hours === null || hours > 23 || mins > 59) return null;
+
+    const d = new Date(`${dateStr}T00:00:00.000+05:30`);
+    d.setHours(hours - 5, mins - 30, 0, 0); // convert IST to UTC
+    return d;
+};
+
+/**
+ * Multi-step Attendance Regularization flow.
+ * Steps: awaiting_date → awaiting_punch_in → awaiting_punch_out → awaiting_reason → confirming
+ */
+const handleRegularizationFlow = async (employee, text, session, waPhone) => {
+    const t = text.trim();
+
+    // ── STEP 1: Start flow ──
+    if (!session || session.flow !== 'regularize_attendance') {
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                phone: waPhone,
+                flow: 'regularize_attendance',
+                step: 'awaiting_date',
+                data: {},
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            },
+            { upsert: true, new: true }
+        );
+        return `Attendance Regularization\n\nEnter the *date* you want to correct in DD-MM-YYYY format.\nExample: *18-09-2025*\n\nSend *cancel* to cancel.`;
+    }
+
+    // Cancel anytime
+    if (t.toLowerCase() === 'cancel') {
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return `Attendance regularization cancelled. Send *help* to see all commands.`;
+    }
+
+    const { step, data } = session;
+
+    // ── STEP 2: Receive date ──
+    if (step === 'awaiting_date') {
+        const dateMatch = t.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+        if (!dateMatch) return `Invalid date format. Please use DD-MM-YYYY.\nExample: *18-09-2025*`;
+        const [, d, m, y] = dateMatch;
+        const correctionDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+
+        // Prevent future dates
+        const todayStr = getTodayStr();
+        if (correctionDate > todayStr) return `You cannot request a correction for a future date. Please enter a past date.`;
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            { step: 'awaiting_punch_in', data: { correctionDate }, expiresAt: new Date(Date.now() + 15 * 60 * 1000) }
+        );
+        return `Date: *${t}*\n\nEnter your *actual punch-in time* in HH:MM format (24h or 12h).\nExample: *09:30* or *9:30 AM*\n\nIf only punch-out was missed, type *skip*.`;
+    }
+
+    // ── STEP 3: Receive punch-in time ──
+    if (step === 'awaiting_punch_in') {
+        let manualIn = null;
+        if (t.toLowerCase() !== 'skip') {
+            manualIn = parseTimeToDate(t, data.correctionDate);
+            if (!manualIn) return `Invalid time format. Please use HH:MM (e.g. *09:30* or *9:30 AM*):`;
+        }
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                step: 'awaiting_punch_out',
+                data: { ...data, manualIn: manualIn ? manualIn.toISOString() : null, skipIn: !manualIn },
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            }
+        );
+        const inDisplay = manualIn ? formatTimeIST(manualIn) : 'Skipped';
+        return `Punch-in: *${inDisplay}*\n\nEnter your *actual punch-out time* in HH:MM format.\nExample: *06:30 PM*\n\nIf only punch-in was missed, type *skip*.`;
+    }
+
+    // ── STEP 4: Receive punch-out time ──
+    if (step === 'awaiting_punch_out') {
+        let manualOut = null;
+        if (t.toLowerCase() !== 'skip') {
+            manualOut = parseTimeToDate(t, data.correctionDate);
+            if (!manualOut) return `Invalid time format. Please use HH:MM (e.g. *06:30 PM*):`;
+        }
+
+        if (!data.manualIn && !manualOut) {
+            return `You must provide at least one of punch-in or punch-out time. Please enter a time:`;
+        }
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                step: 'awaiting_reason',
+                data: { ...data, manualOut: manualOut ? manualOut.toISOString() : null },
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            }
+        );
+        const outDisplay = manualOut ? formatTimeIST(manualOut) : 'Skipped';
+        return `Punch-out: *${outDisplay}*\n\nPlease enter the *reason* for the missed punch:`;
+    }
+
+    // ── STEP 5: Receive reason, confirm ──
+    if (step === 'awaiting_reason') {
+        if (t.length < 3) return `Please provide a valid reason (at least 3 characters):`;
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                step: 'confirming',
+                data: { ...data, reason: t },
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            }
+        );
+
+        const [dy, dm, dd] = data.correctionDate.split('-');
+        const inDisplay = data.manualIn ? formatTimeIST(new Date(data.manualIn)) : 'Not provided';
+        const outDisplay = data.manualOut ? formatTimeIST(new Date(data.manualOut)) : 'Not provided';
+
+        return `Please confirm your attendance correction request:\n\n` +
+            `Date: ${dd}-${dm}-${dy}\n` +
+            `Punch-in: ${inDisplay}\n` +
+            `Punch-out: ${outDisplay}\n` +
+            `Reason: ${t}\n\n` +
+            `Reply *yes* to submit or *cancel* to cancel.`;
+    }
+
+    // ── STEP 6: Final confirmation ──
+    if (step === 'confirming') {
+        if (t.toLowerCase() !== 'yes') {
+            await WhatsAppSession.deleteOne({ phone: waPhone });
+            return `Regularization request cancelled.`;
+        }
+
+        try {
+            const requestPayload = {
+                employee: employee._id,
+                adminId: employee.adminId,
+                requestType: 'Attendance Correction',
+                date: data.correctionDate,
+                fromDate: data.correctionDate,
+                toDate: data.correctionDate,
+                reason: data.reason,
+                status: 'Pending',
+                submittedVia: 'WhatsApp'
+            };
+            if (data.manualIn) requestPayload.manualIn = new Date(data.manualIn);
+            if (data.manualOut) requestPayload.manualOut = new Date(data.manualOut);
+
+            const corrReq = await Request.create(requestPayload);
+
+            // In-app notification to admin
+            try {
+                await Notification.create({
+                    user: employee.adminId,
+                    title: 'Attendance Correction Request (WhatsApp)',
+                    message: `${employee.name} (${employee.employeeId || ''}) submitted an attendance correction for ${data.correctionDate} via WhatsApp. Reason: ${data.reason}`,
+                    type: 'Other'
+                });
+            } catch (_) { /* Non-critical */ }
+
+            await WhatsAppSession.deleteOne({ phone: waPhone });
+
+            return `Your attendance correction request has been submitted!\n\n` +
+                `Date: ${data.correctionDate}\n` +
+                `Request ID: ${corrReq._id}\n` +
+                `Status: Pending (Awaiting HR Approval)\n\n` +
+                `You will be notified once it is reviewed.`;
+        } catch (err) {
+            console.error('[WhatsApp] Regularization submission error:', err.message);
+            await WhatsAppSession.deleteOne({ phone: waPhone });
+            return `Failed to submit the correction request. Please try again or contact HR.`;
+        }
+    }
+
+    return null;
+};
+
+// ─────────────────────────────────────────────────────────────────
+// FEATURE 1: LEAVE STATUS NOTIFICATION (called from Request.Controller.js)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Send a WhatsApp notification to an employee when their leave is approved or rejected.
+ * Called from Request.Controller.js after admin action.
+ *
+ * @param {Object} request - Mongoose Request document
+ * @param {string} status - 'Approved' or 'Rejected'
+ */
+export const sendWhatsAppLeaveStatusNotification = async (request, status) => {
+    try {
+        // Fetch employee with phone
+        const employee = await User.findById(request.employee).select('name phone whatsAppNumber employeeId');
+        if (!employee) return;
+
+        const phone = employee.whatsAppNumber || employee.phone;
+        if (!phone) return;
+
+        // Normalize to international format (India 91 prefix)
+        const cleaned = phone.replace(/\D/g, '');
+        const waPhone = cleaned.startsWith('91') && cleaned.length === 12 ? cleaned : `91${cleaned}`;
+
+        // Format dates
+        const fmtDate = (dateStr) => {
+            if (!dateStr) return 'N/A';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}-${m}-${y}`;
+        };
+
+        const statusWord = status === 'Approved' ? 'Approved' : 'Rejected';
+        const leaveTypeName = request.leaveTypeName || 'Leave';
+
+        let msg = `Leave Request ${statusWord}\n\n` +
+            `Leave Type: ${leaveTypeName}\n` +
+            `Duration: ${request.leaveDuration || 'Full Day'}\n` +
+            `From: ${fmtDate(request.fromDate)}\n` +
+            `To: ${fmtDate(request.toDate)}\n`;
+
+        if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+
+        if (status === 'Approved') {
+            msg += `\nYour leave has been recorded. Enjoy your time off.`;
+        } else {
+            msg += `\nYour leave request was not approved. Please contact HR if you have any questions.`;
+        }
+
+        await sendWhatsAppMessage(waPhone, msg);
+        console.log(`[WhatsApp] Leave ${statusWord} notification sent to ${waPhone} for employee ${employee.name}`);
+    } catch (err) {
+        console.error('[WhatsApp] sendWhatsAppLeaveStatusNotification error:', err.message);
+    }
+};
+
 // ─────────────────────────────────────────────────────────────────
 
 /**
@@ -1182,6 +1395,14 @@ export const handleWebhook = async (req, res) => {
                 } else {
                     reply = await handlePunchOutReport(employee, text, session, waPhone);
                 }
+            } else if (session?.flow === 'regularize_attendance') {
+                const intent = detectIntent(text);
+                if (intent === 'HELP') {
+                    await WhatsAppSession.deleteOne({ phone: waPhone });
+                    reply = handleHelp(employee);
+                } else {
+                    reply = await handleRegularizationFlow(employee, text, session, waPhone);
+                }
             } else {
                 // Detect intent from fresh message
                 const intent = detectIntent(text);
@@ -1207,6 +1428,9 @@ export const handleWebhook = async (req, res) => {
                         break;
                     case 'APPLY_LEAVE':
                         reply = await handleLeaveFlow(employee, text, null, waPhone);
+                        break;
+                    case 'REGULARIZE':
+                        reply = await handleRegularizationFlow(employee, text, null, waPhone);
                         break;
                     case 'HELP':
                         reply = handleHelp(employee);

@@ -6,6 +6,7 @@ import LeaveType from "../models/LeaveType.Model.js";
 import LeaveGroup from "../models/LeaveGroup.Model.js";
 import Holiday from "../models/Holiday.Model.js";
 import { isMonthLocked } from "../utils/payoutLock.js";
+import { sendWhatsAppLeaveStatusNotification } from "./WhatsApp.Controller.js";
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
 const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
@@ -392,6 +393,15 @@ export const updateRequestStatus = async (req, res) => {
             message: `Your ${request.requestType} for ${request.date} has been ${status.toLowerCase()}.`,
             type: request.requestType === "Leave" ? "Leave" : "Other"
         });
+
+        // Feature 1: Send WhatsApp notification to employee for leave status change
+        if (request.requestType === 'Leave') {
+            try {
+                await sendWhatsAppLeaveStatusNotification(request, status);
+            } catch (waErr) {
+                console.error('WhatsApp leave notification error (non-critical):', waErr.message);
+            }
+        }
 
         res.status(200).json({ success: true, message: `Request ${status} successfully`, request });
     } catch (error) {

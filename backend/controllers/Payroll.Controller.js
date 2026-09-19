@@ -11,6 +11,7 @@ import SalarySlip from '../models/SalarySlip.Model.js';
 import Shift from '../models/Shift.Model.js';
 import SalaryGroup from '../models/SalaryGroup.Model.js';
 import pdfmake from 'pdfmake';
+import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
 
 export const getMonthlyPayoutSummary = async (req, res) => {
     try {
@@ -359,6 +360,45 @@ export const publishSalarySlip = async (req, res) => {
         );
 
         res.status(200).json({ success: true, message: "Salary slips published to employees" });
+
+        // Feature 4: Auto-deliver salary slips via WhatsApp (async, after response sent)
+        setImmediate(async () => {
+            for (const payoutId of payoutIds) {
+                try {
+                    const payout = await Payout.findById(payoutId)
+                        .populate('employeeId', 'name employeeId phone whatsAppNumber department designation adminId');
+                    if (!payout || payout.status !== 'Published') continue;
+
+                    const emp = payout.employeeId;
+                    const phone = emp?.whatsAppNumber || emp?.phone;
+                    if (!phone) continue;
+
+                    const cleaned = phone.replace(/\D/g, '');
+                    const waPhone = cleaned.startsWith('91') && cleaned.length === 12 ? cleaned : `91${cleaned}`;
+
+                    // Build month display
+                    const [y, m] = payout.month.split('-').map(Number);
+                    const monthDisplay = new Date(y, m - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+                    const netPay = payout.finalPayout?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0';
+
+                    try {
+                        const { buffer, filename } = await buildPayslipPdfBuffer(payoutId);
+                        const caption = `Your salary slip for ${monthDisplay} is ready!\n\nNet Pay: Rs.${netPay}\n\nPlease find your salary slip attached.`;
+                        await sendWhatsAppDocument(waPhone, buffer, filename, caption);
+                    } catch (pdfErr) {
+                        // PDF failed — send text notification instead
+                        console.error(`[WhatsApp] Auto slip PDF failed for ${emp?.name}:`, pdfErr.message);
+                        await sendWhatsAppMessage(
+                            waPhone,
+                            `Your salary slip for ${monthDisplay} has been published.\nNet Pay: Rs.${netPay}\n\nPlease log in to the HRMS portal to download your salary slip.`
+                        );
+                    }
+                } catch (empErr) {
+                    console.error(`[WhatsApp] Auto slip delivery error for payout ${payoutId}:`, empErr.message);
+                }
+            }
+            console.log(`[WhatsApp] Auto salary slip delivery completed for ${payoutIds.length} payouts.`);
+        });
     } catch (error) {
         console.error("publishSalarySlip error:", error);
         res.status(500).json({ success: false, message: "Failed to publish slips" });
