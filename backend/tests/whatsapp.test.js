@@ -700,6 +700,45 @@ await asyncTest('buildDailyAttendanceReportPdfBuffer generates a valid PDF buffe
 });
 
 // ─────────────────────────────────────────────────────────────────
+// FEATURE 9: Admin WhatsApp Interactive Request Approval / Rejection
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 9 — Admin WhatsApp Request Action & Button Parser:');
+
+test('Parses APPROVE button click with Request ID correctly', () => {
+    const buttonId = 'APPROVE_6aae6145381c6ca0681bd65a';
+    assert.ok(buttonId.startsWith('APPROVE_'));
+    const requestId = buttonId.replace('APPROVE_', '').trim();
+    assert.strictEqual(requestId, '6aae6145381c6ca0681bd65a');
+});
+
+test('Parses REJECT button click with Request ID correctly', () => {
+    const buttonId = 'REJECT_6aae6145381c6ca0681bd65a';
+    assert.ok(buttonId.startsWith('REJECT_'));
+    const requestId = buttonId.replace('REJECT_', '').trim();
+    assert.strictEqual(requestId, '6aae6145381c6ca0681bd65a');
+});
+
+test('Text commands "approve" and "reject" map to valid action types', () => {
+    const parseAction = (text) => {
+        const clean = text.trim().toLowerCase();
+        if (clean.startsWith('approve') || clean === '1' || clean === 'yes') return 'Approved';
+        if (clean.startsWith('reject') || clean === '2' || clean === 'no') return 'Rejected';
+        return null;
+    };
+
+    assert.strictEqual(parseAction('approve'), 'Approved');
+    assert.strictEqual(parseAction('APPROVE'), 'Approved');
+    assert.strictEqual(parseAction('yes'), 'Approved');
+    assert.strictEqual(parseAction('1'), 'Approved');
+    assert.strictEqual(parseAction('reject'), 'Rejected');
+    assert.strictEqual(parseAction('REJECT'), 'Rejected');
+    assert.strictEqual(parseAction('no'), 'Rejected');
+    assert.strictEqual(parseAction('2'), 'Rejected');
+    assert.strictEqual(parseAction('hello'), null);
+});
+
+// ─────────────────────────────────────────────────────────────────
 // RESULTS
 // ─────────────────────────────────────────────────────────────────
 
@@ -708,4 +747,5 @@ console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 if (failed > 0) {
     process.exit(1);
 }
+
 

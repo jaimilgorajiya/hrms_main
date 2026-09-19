@@ -8,6 +8,7 @@ import Holiday from "../models/Holiday.Model.js";
 import { isMonthLocked } from "../utils/payoutLock.js";
 import { sendWhatsAppRequestStatusNotification } from "./WhatsApp.Controller.js";
 import { calculateLeaveSplit } from "../utils/leaveSplit.js";
+import { notifyAdminNewRequestViaWhatsApp, processRequestApproval } from "../utils/requestWhatsAppAction.js";
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
 const getOverlappingDaysInMonth = (fromDateStr, toDateStr, leaveDuration, yearMonthStr) => {
@@ -162,6 +163,8 @@ export const submitRequest = async (req, res) => {
                         });
                         await segReq.save();
                         createdRequests.push(segReq);
+                        // Notify company admin on WhatsApp for each segment
+                        notifyAdminNewRequestViaWhatsApp(segReq).catch(() => {});
                     }
 
                     return res.status(201).json({
@@ -188,6 +191,7 @@ export const submitRequest = async (req, res) => {
                         submittedVia: 'Web'
                     });
                     await unpaidReq.save();
+                    notifyAdminNewRequestViaWhatsApp(unpaidReq).catch(() => {});
 
                     return res.status(201).json({
                         success: true,
@@ -216,6 +220,9 @@ export const submitRequest = async (req, res) => {
         });
 
         await newRequest.save();
+
+        // Notify company admin on WhatsApp with Interactive Approve/Reject buttons
+        notifyAdminNewRequestViaWhatsApp(newRequest).catch(() => {});
 
         res.status(201).json({ success: true, message: "Request submitted successfully", request: newRequest });
     } catch (error) {
@@ -292,114 +299,20 @@ export const updateRequestStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid status" });
         }
 
-        const request = await Request.findOne({ _id: requestId, adminId: req.user._id });
-        if (!request) return res.status(404).json({ success: false, message: "Request not found" });
-
-        // Check if month is locked (month-end lock feature)
-        const checkStart = request.fromDate || request.date;
-        const checkEnd = request.toDate || request.date;
-        if (checkStart) {
-            if (await isMonthLocked(request.employee, checkStart, checkEnd)) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Attendance/Leave for this month has been locked and cannot be modified." 
-                });
-            }
-        }
-
-        request.status = status;
-        request.adminRemark = adminRemark;
-        request.actionDate = new Date();
-        await request.save();
-
-        if (status === "Approved") {
-            if (request.requestType === "Attendance Correction") {
-                // Find existing record
-                const existing = await Attendance.findOne({ employee: request.employee, date: request.date });
-                
-                if (existing && existing.punches.length > 0 && !existing.punches.some(p => p.type === 'OUT')) {
-                    // It's a ghost punch correction: just append the OUT
-                    await Attendance.findOneAndUpdate(
-                        { _id: existing._id },
-                        {
-                            $set: { status: "Present", approvalStatus: "Approved", adminId: request.adminId },
-                            $push: {
-                                punches: { 
-                                    time: request.manualOut, 
-                                    type: "OUT", 
-                                    locationAddress: "Manual Entry (Correction)", 
-                                    workSummary: request.workSummary || "Missed Punch Correction" 
-                                }
-                            }
-                        }
-                    );
-                } else {
-                    // No existing record or already has OUT: replace/set fully
-                    await Attendance.findOneAndUpdate(
-                        { employee: request.employee, date: request.date },
-                        {
-                            $set: {
-                                adminId: request.adminId,
-                                status: "Present",
-                                approvalStatus: "Approved",
-                                punches: [
-                                    { time: request.manualIn, type: "IN", locationAddress: "Manual Entry" },
-                                    { time: request.manualOut, type: "OUT", locationAddress: "Manual Entry", workSummary: request.workSummary }
-                                ]
-                            }
-                        },
-                        { upsert: true, new: true }
-                    );
-                }
-            } else if (request.requestType === "Leave") {
-                // Loop through all dates from fromDate to toDate
-                const start = new Date(request.fromDate);
-                const end = new Date(request.toDate);
-
-                // Half-day leaves mark attendance as "Half Day" so payroll correctly
-                // counts 0.5 days via halfDaysCount instead of treating it as a full
-                // "On Leave" day. Full-day leaves remain "On Leave".
-                const isHalfDay = request.leaveDuration === "First Half" || request.leaveDuration === "Second Half";
-                const attendanceStatus = isHalfDay ? "Half Day" : "On Leave";
-                
-                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    const dateStr = d.toISOString().split('T')[0];
-                    await Attendance.findOneAndUpdate(
-                        { employee: request.employee, date: dateStr },
-                        {
-                            $set: {
-                                adminId: request.adminId,
-                                status: attendanceStatus,
-                                approvalStatus: "Approved",
-                                leaveCategory: request.leaveCategory, // Pass Paid/Unpaid to attendance
-                                leaveDuration: request.leaveDuration, // Track which half for reporting
-                                punches: [] // Clear punches for leave day
-                            }
-                        },
-                        { upsert: true, new: true }
-                    );
-                }
-            }
-        }
-
-        // Send notification to employee
-        await Notification.create({
-            user: request.employee,
-            title: `Request ${status}`,
-            message: `Your ${request.requestType} for ${request.date} has been ${status.toLowerCase()}.`,
-            type: request.requestType === "Leave" ? "Leave" : "Other"
+        const result = await processRequestApproval({
+            requestId,
+            adminId: req.user._id,
+            status,
+            adminRemark
         });
 
-        // Send WhatsApp notification to employee for request status change (Leave & Attendance Correction)
-        try {
-            await sendWhatsAppRequestStatusNotification(request, status);
-        } catch (waErr) {
-            console.error('WhatsApp request status notification error (non-critical):', waErr.message);
-        }
-
-        res.status(200).json({ success: true, message: `Request ${status} successfully`, request });
+        res.status(200).json({
+            success: true,
+            message: `Request ${status} successfully`,
+            request: result.request
+        });
     } catch (error) {
         console.error("updateRequestStatus error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
     }
 };

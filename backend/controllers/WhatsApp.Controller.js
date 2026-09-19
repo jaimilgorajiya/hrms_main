@@ -31,6 +31,7 @@ import { computeWorkingMinutes } from '../utils/attendance.js';
 import { buildPayslipPdfBuffer } from './Payroll.Controller.js';
 import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
 import { calculateLeaveSplit } from '../utils/leaveSplit.js';
+import { notifyAdminNewRequestViaWhatsApp, handleAdminWhatsAppAction } from '../utils/requestWhatsAppAction.js';
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
@@ -1026,6 +1027,7 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
                     submittedVia: 'WhatsApp'
                 });
                 createdRequests.push(segReq);
+                notifyAdminNewRequestViaWhatsApp(segReq).catch(() => {});
             }
 
             // Notify admin (in-app)
@@ -1300,7 +1302,8 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
             if (data.manualIn) requestPayload.manualIn = new Date(data.manualIn);
             if (data.manualOut) requestPayload.manualOut = new Date(data.manualOut);
 
-            await Request.create(requestPayload);
+            const newReq = await Request.create(requestPayload);
+            notifyAdminNewRequestViaWhatsApp(newReq).catch(() => {});
 
             // In-app notification to admin
             try {
@@ -1460,21 +1463,38 @@ export const handleWebhook = async (req, res) => {
         if (!messages || messages.length === 0) return;
 
         for (const message of messages) {
-            // Only handle text messages
-            if (message.type !== 'text') {
+            const waPhone = message.from; // e.g. "919099705065"
+            let buttonId = null;
+            let text = '';
+
+            if (message.type === 'interactive') {
+                buttonId = message.interactive?.button_reply?.id || null;
+                text = message.interactive?.button_reply?.title || '';
+            } else if (message.type === 'text') {
+                text = message.text?.body?.trim() || '';
+            } else {
                 await sendWhatsAppMessage(
-                    message.from,
-                    `I can only process text messages right now.\n\nSend *help* to see available commands.`
+                    waPhone,
+                    `I can only process text and interactive action messages right now.\n\nSend *help* to see available commands.`
                 );
                 continue;
             }
 
-            const waPhone = message.from; // e.g. "919876543210"
-            const text = message.text?.body?.trim() || '';
+            console.log(`[WhatsApp] Message from ${waPhone}: type=${message.type}, text="${text}", buttonId="${buttonId || ''}"`);
 
-            console.log(`[WhatsApp] Message from ${waPhone}: "${text}"`);
+            // ── 1. Check if this is an Admin Action (Approve / Reject) from Company WhatsApp ──
+            const adminActionResult = await handleAdminWhatsAppAction({
+                fromPhone: waPhone,
+                buttonId,
+                text
+            });
 
-            // ── Find which employee this phone number belongs to ──
+            if (adminActionResult) {
+                await sendWhatsAppMessage(waPhone, adminActionResult);
+                continue;
+            }
+
+            // ── 2. Find which employee this phone number belongs to ──
             const employee = await findEmployeeByPhone(waPhone);
 
             if (!employee) {
@@ -1486,7 +1506,7 @@ export const handleWebhook = async (req, res) => {
                 continue;
             }
 
-            // ── Check for active multi-step session ──
+            // ── 3. Check for active multi-step session ──
             const session = await WhatsAppSession.findOne({ phone: waPhone });
 
             let reply;

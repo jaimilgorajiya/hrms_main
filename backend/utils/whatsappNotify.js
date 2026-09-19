@@ -103,3 +103,76 @@ export const sendWhatsAppDocument = async (to, buffer, filename, caption) => {
         throw err;
     }
 };
+
+/**
+ * Send an interactive button message (up to 3 reply buttons) to a WhatsApp number.
+ * Automatically falls back to plain text if the interactive message cannot be delivered.
+ *
+ * @param {string} to - Destination WhatsApp number (e.g. "919099705065")
+ * @param {Object} options
+ * @param {string} [options.headerText] - Optional header title (bold)
+ * @param {string} options.bodyText - Main message body
+ * @param {string} [options.footerText] - Optional small footer
+ * @param {Array<{id: string, title: string}>} options.buttons - Array of up to 3 buttons
+ * @returns {Promise<Object|null>}
+ */
+export const sendWhatsAppInteractiveButtons = async (to, { headerText, bodyText, footerText = 'HRMS Approval Action', buttons = [] }) => {
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0';
+
+    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
+        console.warn('[WhatsApp] Credentials not configured. Skipping interactive buttons send.');
+        return null;
+    }
+
+    try {
+        const payload = {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to,
+            type: 'interactive',
+            interactive: {
+                type: 'button',
+                ...(headerText ? { header: { type: 'text', text: headerText.slice(0, 60) } } : {}),
+                body: { text: bodyText },
+                ...(footerText ? { footer: { text: footerText.slice(0, 60) } } : {}),
+                action: {
+                    buttons: buttons.slice(0, 3).map(b => ({
+                        type: 'reply',
+                        reply: {
+                            id: b.id.slice(0, 256),
+                            title: b.title.slice(0, 20)
+                        }
+                    }))
+                }
+            }
+        };
+
+        const resp = await axios.post(
+            `${apiUrl}/${phoneNumberId}/messages`,
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log(`[WhatsApp] Interactive buttons sent to ${to} (ID: ${resp.data?.messages?.[0]?.id})`);
+        return resp.data;
+    } catch (err) {
+        console.warn('[WhatsApp] Interactive button send failed, falling back to text format:', err.response?.data?.error?.message || err.message);
+        
+        // Fallback: send clean structured text with reply guidelines
+        const fallbackBody =
+            `${headerText ? headerText + '\n\n' : ''}` +
+            `${bodyText}\n\n` +
+            `To take action, reply:\n` +
+            `• *APPROVE* or *REJECT*`;
+
+        return await sendWhatsAppMessage(to, fallbackBody);
+    }
+};
+
