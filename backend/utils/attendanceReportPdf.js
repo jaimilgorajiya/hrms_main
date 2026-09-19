@@ -1,7 +1,7 @@
 import pdfmake from 'pdfmake';
 
 /**
- * Configure PDF fonts
+ * Configure standard PDF fonts
  */
 const fonts = {
     Roboto: {
@@ -15,26 +15,24 @@ const fonts = {
 pdfmake.setFonts(fonts);
 
 /**
- * Format date string (YYYY-MM-DD) to nice readable format (e.g. "Saturday, 19 September 2026")
+ * Format date string (YYYY-MM-DD) to clean readable format
+ * e.g. "19 September 2026 (Saturday)"
  */
 const formatDateHeader = (dateStr) => {
     try {
         const [y, m, d] = dateStr.split('-').map(Number);
         const date = new Date(Date.UTC(y, m - 1, d));
-        return date.toLocaleDateString('en-IN', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'UTC'
-        });
+        const dayName = date.toLocaleDateString('en-IN', { weekday: 'long', timeZone: 'UTC' });
+        const day = d.toString().padStart(2, '0');
+        const monthName = date.toLocaleDateString('en-IN', { month: 'short', timeZone: 'UTC' });
+        return `${day} ${monthName} ${y}, ${dayName}`;
     } catch (_) {
         return dateStr;
     }
 };
 
 /**
- * Build the Daily Attendance Report PDF document buffer.
+ * Build a simple, clean, and properly formatted Daily Attendance Report PDF document buffer.
  *
  * @param {Object} params
  * @param {Object} params.company - Company model document
@@ -46,43 +44,43 @@ const formatDateHeader = (dateStr) => {
 export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, stats, records }) => {
     const formattedDate = formatDateHeader(dateStr);
     const attendanceRate = stats.total > 0
-        ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100)
+        ? Math.round(((stats.present + (stats.halfDay || 0) * 0.5) / stats.total) * 100)
         : 0;
 
-    // Prepare table rows
+    // Prepare table body
     const tableBody = [
         [
-            { text: '#', style: 'tableHeader' },
-            { text: 'Employee Name', style: 'tableHeader' },
-            { text: 'Emp ID', style: 'tableHeader' },
-            { text: 'Department', style: 'tableHeader' },
-            { text: 'Punch In', style: 'tableHeader' },
-            { text: 'Punch Out', style: 'tableHeader' },
-            { text: 'Hours', style: 'tableHeader' },
-            { text: 'Status', style: 'tableHeader' }
+            { text: '#', style: 'th', alignment: 'center' },
+            { text: 'Employee Name', style: 'th', alignment: 'left' },
+            { text: 'Emp ID', style: 'th', alignment: 'center' },
+            { text: 'Department', style: 'th', alignment: 'left' },
+            { text: 'In Time', style: 'th', alignment: 'center' },
+            { text: 'Out Time', style: 'th', alignment: 'center' },
+            { text: 'Working Hrs', style: 'th', alignment: 'center' },
+            { text: 'Status', style: 'th', alignment: 'center' }
         ]
     ];
 
     records.forEach((rec, idx) => {
-        let statusColor = '#15803d'; // Present (green)
+        let statusColor = '#166534'; // Green
         let statusBg = '#dcfce7';
 
         if (rec.status === 'Absent') {
-            statusColor = '#b91c1c'; // Red
+            statusColor = '#991b1b'; // Red
             statusBg = '#fee2e2';
         } else if (rec.status === 'Half Day') {
-            statusColor = '#b45309'; // Amber
-            statusBg = '#fef3c7';
+            statusColor = '#9a3412'; // Amber / Orange
+            statusBg = '#ffedd5';
         } else if (rec.status === 'On Leave' || rec.status?.includes('Leave')) {
-            statusColor = '#1d4ed8'; // Blue
+            statusColor = '#1e40af'; // Blue
             statusBg = '#dbeafe';
         }
 
         tableBody.push([
-            { text: (idx + 1).toString(), alignment: 'center', fontSize: 8 },
-            { text: rec.name || '—', fontSize: 8, bold: true, color: '#0f172a' },
+            { text: (idx + 1).toString(), alignment: 'center', fontSize: 8, color: '#64748b' },
+            { text: rec.name || '—', fontSize: 8.5, bold: true, color: '#1e293b', alignment: 'left' },
             { text: rec.empId || '—', fontSize: 8, alignment: 'center', color: '#475569' },
-            { text: rec.dept || '—', fontSize: 8, color: '#334155' },
+            { text: rec.dept || '—', fontSize: 8, color: '#334155', alignment: 'left' },
             { text: rec.punchIn || '--:--', fontSize: 8, alignment: 'center', color: rec.punchIn !== '--:--' ? '#0f172a' : '#94a3b8' },
             { text: rec.punchOut || '--:--', fontSize: 8, alignment: 'center', color: rec.punchOut !== '--:--' ? '#0f172a' : '#94a3b8' },
             { text: rec.workHours || '0h 0m', fontSize: 8, alignment: 'center', color: '#334155' },
@@ -100,106 +98,151 @@ export const buildDailyAttendanceReportPdfBuffer = async ({ company, dateStr, st
 
     const companyName = company?.companyName || 'IFLORA INFO PVT. LTD.';
     const companyAddress = company?.address ? `${company.address}${company?.pincode ? ', ' + company.pincode : ''}` : '';
-    const companyContact = company?.companyContact ? `Contact: ${company.companyContact}` : '';
-    const companyEmail = company?.companyEmail ? `Email: ${company.companyEmail}` : '';
-    const contactInfo = [companyContact, companyEmail].filter(Boolean).join(' | ');
+    const contactParts = [];
+    if (company?.companyContact) contactParts.push(`Phone: ${company.companyContact}`);
+    if (company?.companyEmail) contactParts.push(`Email: ${company.companyEmail}`);
+    const companyContactInfo = contactParts.join('  |  ');
 
     const docDefinition = {
         pageSize: 'A4',
         pageOrientation: 'portrait',
-        pageMargins: [30, 30, 30, 40],
-        header: (currentPage, pageCount) => {
-            return null; // Keep top clean
-        },
+        pageMargins: [35, 30, 35, 35],
         footer: (currentPage, pageCount) => {
             return {
+                margin: [35, 10, 35, 0],
                 columns: [
                     {
-                        text: `Generated on ${new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })} at 07:00 PM IST | Confidential`,
+                        text: `Generated at 07:00 PM IST  •  Confidential`,
                         fontSize: 7.5,
-                        color: '#94a3b8',
-                        margin: [30, 10, 0, 0]
+                        color: '#94a3b8'
                     },
                     {
                         text: `Page ${currentPage} of ${pageCount}`,
                         alignment: 'right',
                         fontSize: 7.5,
-                        color: '#94a3b8',
-                        margin: [0, 10, 30, 0]
+                        color: '#94a3b8'
                     }
                 ]
             };
         },
         content: [
-            // ── Company Branding Header ──
-            { text: companyName.toUpperCase(), style: 'companyHeader' },
-            companyAddress ? { text: companyAddress, style: 'companySubHeader' } : null,
-            contactInfo ? { text: contactInfo, style: 'companySubHeader' } : null,
-            { canvas: [{ type: 'line', x1: 0, y1: 8, x2: 535, y2: 8, lineWidth: 1.5, lineColor: '#0f172a' }] },
+            // ── Top Header Section ──
+            {
+                columns: [
+                    {
+                        width: '*',
+                        stack: [
+                            { text: companyName.toUpperCase(), fontSize: 13, bold: true, color: '#0f172a', margin: [0, 0, 0, 2] },
+                            companyAddress ? { text: companyAddress, fontSize: 8, color: '#64748b', margin: [0, 0, 0, 1] } : null,
+                            companyContactInfo ? { text: companyContactInfo, fontSize: 8, color: '#64748b' } : null
+                        ].filter(Boolean)
+                    },
+                    {
+                        width: 'auto',
+                        alignment: 'right',
+                        stack: [
+                            { text: 'DAILY ATTENDANCE REPORT', fontSize: 11, bold: true, color: '#1e293b', margin: [0, 0, 0, 2] },
+                            { text: formattedDate, fontSize: 8.5, color: '#475569', bold: true, margin: [0, 0, 0, 1] },
+                            { text: `Attendance Rate: ${attendanceRate}%`, fontSize: 8, color: attendanceRate >= 75 ? '#166534' : '#991b1b', bold: true }
+                        ]
+                    }
+                ]
+            },
 
-            // ── Report Title & Metadata ──
-            { text: 'DAILY ATTENDANCE REPORT', style: 'reportTitle' },
-            { text: `${formattedDate}  •  Overall Attendance Rate: ${attendanceRate}%`, style: 'dateSubtitle' },
+            // ── Thin Divider ──
+            {
+                margin: [0, 8, 0, 10],
+                canvas: [{ type: 'line', x1: 0, y1: 0, x2: 525, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }]
+            },
 
-            // ── KPI Summary Cards ──
+            // ── Simple KPI Metrics Bar ──
             {
                 table: {
                     widths: ['20%', '20%', '20%', '20%', '20%'],
                     body: [
                         [
-                            { text: `TOTAL STAFF\n${stats.total}`, style: 'kpiTotal' },
-                            { text: `PRESENT\n${stats.present}`, style: 'kpiPresent' },
-                            { text: `HALF DAY\n${stats.halfDay}`, style: 'kpiHalfDay' },
-                            { text: `ON LEAVE\n${stats.onLeave}`, style: 'kpiLeave' },
-                            { text: `ABSENT\n${stats.absent}`, style: 'kpiAbsent' }
+                            {
+                                stack: [
+                                    { text: 'TOTAL STAFF', fontSize: 7.5, bold: true, color: '#475569', alignment: 'center' },
+                                    { text: `${stats.total}`, fontSize: 13, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 2, 0, 0] }
+                                ],
+                                fillColor: '#f8fafc'
+                            },
+                            {
+                                stack: [
+                                    { text: 'PRESENT', fontSize: 7.5, bold: true, color: '#166534', alignment: 'center' },
+                                    { text: `${stats.present}`, fontSize: 13, bold: true, color: '#166534', alignment: 'center', margin: [0, 2, 0, 0] }
+                                ],
+                                fillColor: '#f0fdf4'
+                            },
+                            {
+                                stack: [
+                                    { text: 'HALF DAY', fontSize: 7.5, bold: true, color: '#9a3412', alignment: 'center' },
+                                    { text: `${stats.halfDay || 0}`, fontSize: 13, bold: true, color: '#9a3412', alignment: 'center', margin: [0, 2, 0, 0] }
+                                ],
+                                fillColor: '#fff7ed'
+                            },
+                            {
+                                stack: [
+                                    { text: 'ON LEAVE', fontSize: 7.5, bold: true, color: '#1e40af', alignment: 'center' },
+                                    { text: `${stats.onLeave || 0}`, fontSize: 13, bold: true, color: '#1e40af', alignment: 'center', margin: [0, 2, 0, 0] }
+                                ],
+                                fillColor: '#eff6ff'
+                            },
+                            {
+                                stack: [
+                                    { text: 'ABSENT', fontSize: 7.5, bold: true, color: '#991b1b', alignment: 'center' },
+                                    { text: `${stats.absent}`, fontSize: 13, bold: true, color: '#991b1b', alignment: 'center', margin: [0, 2, 0, 0] }
+                                ],
+                                fillColor: '#fef2f2'
+                            }
                         ]
                     ]
                 },
-                layout: 'noBorders',
-                margin: [0, 6, 0, 14]
+                layout: {
+                    hLineWidth: () => 1,
+                    vLineWidth: () => 1,
+                    hLineColor: () => '#e2e8f0',
+                    vLineColor: () => '#e2e8f0',
+                    paddingLeft: () => 6,
+                    paddingRight: () => 6,
+                    paddingTop: () => 5,
+                    paddingBottom: () => 5
+                },
+                margin: [0, 0, 0, 12]
             },
 
-            // ── Attendance Detail Table ──
+            // ── Clean Attendance Table ──
             {
                 table: {
                     headerRows: 1,
-                    widths: [18, 112, 60, 85, 55, 55, 55, 60],
+                    widths: [20, 115, 60, 85, 55, 55, 65, 70],
                     body: tableBody
                 },
                 layout: {
-                    fillColor: (rowIndex) => (rowIndex === 0 ? '#0f172a' : rowIndex % 2 === 0 ? '#f8fafc' : '#ffffff'),
-                    hLineColor: () => '#e2e8f0',
+                    fillColor: (rowIndex) => (rowIndex === 0 ? '#1e293b' : rowIndex % 2 === 0 ? '#f8fafc' : '#ffffff'),
+                    hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 1 : 0.5),
+                    vLineWidth: () => 0.5,
+                    hLineColor: () => '#cbd5e1',
                     vLineColor: () => '#e2e8f0',
                     paddingLeft: () => 4,
                     paddingRight: () => 4,
-                    paddingTop: () => 4,
-                    paddingBottom: () => 4
+                    paddingTop: () => 5,
+                    paddingBottom: () => 5
                 }
-            },
-
-            // ── Notice Footer ──
-            {
-                text: 'This is an automated system report generated by the HRMS daily sync engine.',
-                fontSize: 7.5,
-                italics: true,
-                color: '#64748b',
-                alignment: 'center',
-                margin: [0, 15, 0, 0]
             }
-        ].filter(Boolean),
+        ],
         styles: {
-            companyHeader: { fontSize: 16, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 0, 0, 2], letterSpacing: 0.5 },
-            companySubHeader: { fontSize: 8, color: '#475569', alignment: 'center', margin: [0, 0, 0, 1.5] },
-            reportTitle: { fontSize: 12, bold: true, color: '#0f172a', alignment: 'center', margin: [0, 10, 0, 2], letterSpacing: 1 },
-            dateSubtitle: { fontSize: 8.5, color: '#475569', alignment: 'center', margin: [0, 0, 0, 8], bold: true },
-            kpiTotal: { fillColor: '#f1f5f9', color: '#0f172a', bold: true, fontSize: 9.5, alignment: 'center', margin: [2, 5, 2, 5] },
-            kpiPresent: { fillColor: '#dcfce7', color: '#15803d', bold: true, fontSize: 9.5, alignment: 'center', margin: [2, 5, 2, 5] },
-            kpiHalfDay: { fillColor: '#fef3c7', color: '#b45309', bold: true, fontSize: 9.5, alignment: 'center', margin: [2, 5, 2, 5] },
-            kpiLeave: { fillColor: '#dbeafe', color: '#1d4ed8', bold: true, fontSize: 9.5, alignment: 'center', margin: [2, 5, 2, 5] },
-            kpiAbsent: { fillColor: '#fee2e2', color: '#b91c1c', bold: true, fontSize: 9.5, alignment: 'center', margin: [2, 5, 2, 5] },
-            tableHeader: { bold: true, fontSize: 8, color: '#ffffff', alignment: 'center', margin: [0, 3, 0, 3] }
+            th: {
+                bold: true,
+                fontSize: 8,
+                color: '#ffffff',
+                margin: [0, 2, 0, 2]
+            }
         },
-        defaultStyle: { font: 'Roboto' }
+        defaultStyle: {
+            font: 'Roboto'
+        }
     };
 
     const pdf = pdfmake.createPdf(docDefinition);
