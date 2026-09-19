@@ -121,7 +121,20 @@ export const generateAndSendDailyReport = async (adminId, dateStr = null) => {
 
         const sortedRecords = records.sort((a, b) => a.name.localeCompare(b.name));
 
-        // 5. Build and send Email report
+        // 5. Generate PDF report buffer
+        let pdfBuffer = null;
+        try {
+            pdfBuffer = await buildDailyAttendanceReportPdfBuffer({
+                company,
+                dateStr: todayStr,
+                stats,
+                records: sortedRecords
+            });
+        } catch (pdfErr) {
+            console.error('[Daily Report] PDF generation error:', pdfErr.message);
+        }
+
+        // 6. Build and send Email report (with PDF attachment)
         const reportData = {
             date: todayStr,
             stats,
@@ -130,25 +143,19 @@ export const generateAndSendDailyReport = async (adminId, dateStr = null) => {
 
         let emailResult = { success: false };
         try {
-            emailResult = await sendDailyAttendanceReport(recipientEmail, reportData);
+            emailResult = await sendDailyAttendanceReport(recipientEmail, reportData, pdfBuffer);
+            console.log(`[Daily Report] Email report sent to: ${recipientEmail}`);
         } catch (emailErr) {
             console.error('[Daily Report] Email send error (non-blocking):', emailErr.message);
         }
 
-        // 6. Build PDF document and send via WhatsApp to Company Contact Number
+        // 7. Send PDF document via WhatsApp to Company Contact Number
         let waResult = null;
         try {
             const rawCompanyContact = company?.companyContact || admin.whatsAppNumber || admin.phone;
             const waPhone = toWaPhone(rawCompanyContact);
 
-            if (waPhone) {
-                const pdfBuffer = await buildDailyAttendanceReportPdfBuffer({
-                    company,
-                    dateStr: todayStr,
-                    stats,
-                    records: sortedRecords
-                });
-
+            if (waPhone && pdfBuffer) {
                 const filename = `Daily_Attendance_Report_${todayStr}.pdf`;
                 const attendanceRate = stats.total > 0
                     ? Math.round(((stats.present + stats.halfDay * 0.5) / stats.total) * 100)
@@ -169,7 +176,7 @@ export const generateAndSendDailyReport = async (adminId, dateStr = null) => {
 
                 waResult = await sendWhatsAppDocument(waPhone, pdfBuffer, filename, caption);
                 console.log(`[Daily Report] WhatsApp PDF sent to company phone: ${waPhone} (${company?.companyName})`);
-            } else {
+            } else if (!waPhone) {
                 console.warn('[Daily Report] No valid company contact number found for WhatsApp report dispatch.');
             }
         } catch (waErr) {

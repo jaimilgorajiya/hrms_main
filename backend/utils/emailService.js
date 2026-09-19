@@ -302,7 +302,7 @@ export const sendRetirementNotificationEmail = async (hrEmail, employeeName, ret
     }
 };
 // Send Daily Attendance Report to Admin
-export const sendDailyAttendanceReport = async (adminEmail, reportData) => {
+export const sendDailyAttendanceReport = async (adminEmail, reportData, pdfBuffer = null) => {
     try {
         const { date, stats, records } = reportData;
         
@@ -390,12 +390,23 @@ export const sendDailyAttendanceReport = async (adminEmail, reportData) => {
 
                         <div class="footer">
                             <p>This is an automated report from HRMS.</p>
+                            ${pdfBuffer ? '<p style="color: #64748b;">PDF format report is also attached to this email.</p>' : ''}
                         </div>
                     </div>
                 </body>
                 </html>
             `
         };
+
+        if (pdfBuffer) {
+            mailOptions.attachments = [
+                {
+                    filename: `Daily_Attendance_Report_${date}.pdf`,
+                    content: pdfBuffer,
+                    contentType: 'application/pdf'
+                }
+            ];
+        }
 
         const info = await getTransporter().sendMail(mailOptions);
         return { success: true, messageId: info.messageId };
