@@ -59,15 +59,33 @@ const getTodayStr = () => {
 // FEATURE 1: Leave Status Notification
 // ─────────────────────────────────────────────────────────────────
 
-console.log('Feature 1 — Leave Status Notification:');
+console.log('Feature 1 — Request Status Notifications (Leave & Attendance Correction):');
 
-const buildLeaveStatusMsg = (request, status) => {
+const buildRequestStatusMsg = (request, status) => {
     const fmtDate = (dateStr) => {
         if (!dateStr) return 'N/A';
         const [y, m, d] = dateStr.split('-');
         return `${d}-${m}-${y}`;
     };
     const statusWord = status === 'Approved' ? 'Approved' : 'Rejected';
+
+    if (request.requestType === 'Attendance Correction') {
+        const dateDisplay = fmtDate(request.fromDate || request.date);
+        let msg = `Attendance Correction ${statusWord}\n\n` +
+            `Date: ${dateDisplay}\n`;
+        if (request.manualInStr) msg += `Punch-in: ${request.manualInStr}\n`;
+        if (request.manualOutStr) msg += `Punch-out: ${request.manualOutStr}\n`;
+        if (request.reason) msg += `Reason: ${request.reason}\n`;
+        if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+
+        if (status === 'Approved') {
+            msg += `\nYour attendance correction has been approved and your attendance record has been updated.`;
+        } else {
+            msg += `\nYour attendance correction request was not approved. Please contact HR if you have any questions.`;
+        }
+        return msg;
+    }
+
     let msg = `Leave Request ${statusWord}\n\n` +
         `Leave Type: ${request.leaveTypeName || 'Leave'}\n` +
         `Duration: ${request.leaveDuration || 'Full Day'}\n` +
@@ -83,8 +101,8 @@ const buildLeaveStatusMsg = (request, status) => {
 };
 
 test('Approved leave message includes "Approved" status and "Enjoy your time off"', () => {
-    const req = { leaveTypeName: 'Casual Leave', leaveDuration: 'Full Day', fromDate: '2026-09-20', toDate: '2026-09-20', adminRemark: null };
-    const msg = buildLeaveStatusMsg(req, 'Approved');
+    const req = { requestType: 'Leave', leaveTypeName: 'Casual Leave', leaveDuration: 'Full Day', fromDate: '2026-09-20', toDate: '2026-09-20', adminRemark: null };
+    const msg = buildRequestStatusMsg(req, 'Approved');
     assert.ok(msg.includes('Leave Request Approved'), 'Should include Approved status');
     assert.ok(msg.includes('Enjoy your time off'), 'Should include approval message');
     assert.ok(msg.includes('20-09-2026'), 'Should format date correctly as DD-MM-YYYY');
@@ -92,16 +110,34 @@ test('Approved leave message includes "Approved" status and "Enjoy your time off
 });
 
 test('Rejected leave message includes "Rejected" status and "not approved" text', () => {
-    const req = { leaveTypeName: 'Sick Leave', leaveDuration: 'First Half', fromDate: '2026-09-21', toDate: '2026-09-21', adminRemark: 'Insufficient balance' };
-    const msg = buildLeaveStatusMsg(req, 'Rejected');
+    const req = { requestType: 'Leave', leaveTypeName: 'Sick Leave', leaveDuration: 'First Half', fromDate: '2026-09-21', toDate: '2026-09-21', adminRemark: 'Insufficient balance' };
+    const msg = buildRequestStatusMsg(req, 'Rejected');
     assert.ok(msg.includes('Leave Request Rejected'), 'Should include Rejected status');
     assert.ok(msg.includes('Remark: Insufficient balance'), 'Should include admin remark');
     assert.ok(msg.includes('not approved'), 'Should include rejection guidance');
 });
 
+test('Approved Attendance Correction notification includes Approved status and punch details', () => {
+    const req = { requestType: 'Attendance Correction', date: '2026-09-19', manualInStr: '09:30 am', manualOutStr: '06:30 pm', reason: 'Forgot card', adminRemark: 'Verified with team lead' };
+    const msg = buildRequestStatusMsg(req, 'Approved');
+    assert.ok(msg.includes('Attendance Correction Approved'), 'Should include Attendance Correction Approved');
+    assert.ok(msg.includes('19-09-2026'), 'Should include formatted date');
+    assert.ok(msg.includes('Punch-in: 09:30 am'), 'Should include punch-in');
+    assert.ok(msg.includes('Punch-out: 06:30 pm'), 'Should include punch-out');
+    assert.ok(msg.includes('attendance record has been updated'), 'Should include record update confirmation');
+});
+
+test('Rejected Attendance Correction notification includes Rejected status and reason/remark', () => {
+    const req = { requestType: 'Attendance Correction', date: '2026-09-19', reason: 'Forgot card', adminRemark: 'No evidence of presence' };
+    const msg = buildRequestStatusMsg(req, 'Rejected');
+    assert.ok(msg.includes('Attendance Correction Rejected'), 'Should include Attendance Correction Rejected');
+    assert.ok(msg.includes('Remark: No evidence of presence'), 'Should include admin remark');
+    assert.ok(msg.includes('not approved'), 'Should include rejection notice');
+});
+
 test('Duration "First Half" is shown correctly in notification', () => {
-    const req = { leaveTypeName: 'Casual Leave', leaveDuration: 'First Half', fromDate: '2026-09-25', toDate: '2026-09-25' };
-    const msg = buildLeaveStatusMsg(req, 'Approved');
+    const req = { requestType: 'Leave', leaveTypeName: 'Casual Leave', leaveDuration: 'First Half', fromDate: '2026-09-25', toDate: '2026-09-25' };
+    const msg = buildRequestStatusMsg(req, 'Approved');
     assert.ok(msg.includes('Duration: First Half'), 'Should show First Half duration');
 });
 
@@ -130,7 +166,7 @@ test('Phone with symbols is cleaned before normalizing', () => {
     assert.strictEqual(normalizeToWa('+91-98765-43210'), '919876543210');
 });
 
-test('Manager alert message includes employee name, leave type and request ID', () => {
+test('Manager alert message includes employee name, leave type and portal link', () => {
     const empName = 'Rahul Sharma';
     const empId = 'EMP001';
     const leaveType = 'Casual Leave';
@@ -138,7 +174,6 @@ test('Manager alert message includes employee name, leave type and request ID', 
     const fromDate = '2026-09-20';
     const toDate = '2026-09-20';
     const reason = 'Personal work';
-    const requestId = 'REQ123';
 
     const [fy, fm, fd] = fromDate.split('-');
     const [ty, tm, td] = toDate.split('-');
@@ -149,13 +184,12 @@ test('Manager alert message includes employee name, leave type and request ID', 
         `Duration: ${duration}\n` +
         `From: ${fd}-${fm}-${fy}\n` +
         `To: ${td}-${tm}-${ty}\n` +
-        `Reason: ${reason}\n` +
-        `Request ID: ${requestId}\n\n` +
+        `Reason: ${reason}\n\n` +
         `Please log in to the HRMS portal to approve or reject this request.`;
 
     assert.ok(msg.includes(empName), 'Should include employee name');
     assert.ok(msg.includes(leaveType), 'Should include leave type');
-    assert.ok(msg.includes(requestId), 'Should include request ID');
+    assert.ok(!msg.includes('Request ID:'), 'Should NOT include Request ID');
     assert.ok(msg.includes('HRMS portal'), 'Should direct to HRMS portal');
 });
 

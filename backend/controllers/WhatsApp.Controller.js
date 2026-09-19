@@ -1070,8 +1070,7 @@ const handleLeaveFlow = async (employee, text, session, waPhone) => {
                         }
 
                         managerMsg +=
-                            `Reason: ${data.reason}\n` +
-                            `Request ID: ${createdRequests.map(r => r._id).join(', ')}\n\n` +
+                            `Reason: ${data.reason}\n\n` +
                             `Please log in to the HRMS portal to approve or reject this request.`;
 
                         // Normalize to international format
@@ -1283,7 +1282,7 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
     if (step === 'confirming') {
         if (t.toLowerCase() !== 'yes') {
             await WhatsAppSession.deleteOne({ phone: waPhone });
-            return `Regularization request cancelled.`;
+            return `Regularization request cancelled. Send *help* to see all commands.`;
         }
 
         try {
@@ -1301,7 +1300,7 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
             if (data.manualIn) requestPayload.manualIn = new Date(data.manualIn);
             if (data.manualOut) requestPayload.manualOut = new Date(data.manualOut);
 
-            const corrReq = await Request.create(requestPayload);
+            await Request.create(requestPayload);
 
             // In-app notification to admin
             try {
@@ -1315,15 +1314,20 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
 
             await WhatsAppSession.deleteOne({ phone: waPhone });
 
-            return `Your attendance correction request has been submitted!\n\n` +
-                `Date: ${data.correctionDate}\n` +
-                `Request ID: ${corrReq._id}\n` +
+            const [cdy, cdm, cdd] = data.correctionDate.split('-');
+            const inDisplay = data.manualIn ? formatTimeIST(new Date(data.manualIn)) : 'Not provided';
+            const outDisplay = data.manualOut ? formatTimeIST(new Date(data.manualOut)) : 'Not provided';
+
+            return `Your attendance correction request has been submitted successfully!\n\n` +
+                `Date: ${cdd}-${cdm}-${cdy}\n` +
+                `Punch-in: ${inDisplay}\n` +
+                `Punch-out: ${outDisplay}\n` +
                 `Status: Pending (Awaiting HR Approval)\n\n` +
                 `You will be notified once it is reviewed.`;
         } catch (err) {
             console.error('[WhatsApp] Regularization submission error:', err.message);
             await WhatsAppSession.deleteOne({ phone: waPhone });
-            return `Failed to submit the correction request. Please try again or contact HR.`;
+            return `Failed to submit the correction request. Please try again or contact HR directly.`;
         }
     }
 
@@ -1331,17 +1335,17 @@ const handleRegularizationFlow = async (employee, text, session, waPhone) => {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// FEATURE 1: LEAVE STATUS NOTIFICATION (called from Request.Controller.js)
+// FEATURE 1: REQUEST STATUS NOTIFICATION (Leave & Attendance Correction)
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Send a WhatsApp notification to an employee when their leave is approved or rejected.
+ * Send a WhatsApp notification to an employee when their request is approved or rejected by HR.
  * Called from Request.Controller.js after admin action.
  *
  * @param {Object} request - Mongoose Request document
  * @param {string} status - 'Approved' or 'Rejected'
  */
-export const sendWhatsAppLeaveStatusNotification = async (request, status) => {
+export const sendWhatsAppRequestStatusNotification = async (request, status) => {
     try {
         // Fetch employee with phone
         const employee = await User.findById(request.employee).select('name phone whatsAppNumber employeeId');
@@ -1362,28 +1366,55 @@ export const sendWhatsAppLeaveStatusNotification = async (request, status) => {
         };
 
         const statusWord = status === 'Approved' ? 'Approved' : 'Rejected';
-        const leaveTypeName = request.leaveTypeName || 'Leave';
 
-        let msg = `Leave Request ${statusWord}\n\n` +
-            `Leave Type: ${leaveTypeName}\n` +
-            `Duration: ${request.leaveDuration || 'Full Day'}\n` +
-            `From: ${fmtDate(request.fromDate)}\n` +
-            `To: ${fmtDate(request.toDate)}\n`;
+        let msg = '';
 
-        if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+        if (request.requestType === 'Attendance Correction') {
+            const dateDisplay = fmtDate(request.fromDate || request.date);
+            const inDisplay = request.manualIn ? formatTimeIST(request.manualIn) : null;
+            const outDisplay = request.manualOut ? formatTimeIST(request.manualOut) : null;
 
-        if (status === 'Approved') {
-            msg += `\nYour leave has been recorded. Enjoy your time off.`;
+            msg = `Attendance Correction ${statusWord}\n\n` +
+                `Date: ${dateDisplay}\n`;
+
+            if (inDisplay) msg += `Punch-in: ${inDisplay}\n`;
+            if (outDisplay) msg += `Punch-out: ${outDisplay}\n`;
+            if (request.reason) msg += `Reason: ${request.reason}\n`;
+            if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+
+            if (status === 'Approved') {
+                msg += `\nYour attendance correction has been approved and your attendance record has been updated.`;
+            } else {
+                msg += `\nYour attendance correction request was not approved. Please contact HR if you have any questions.`;
+            }
         } else {
-            msg += `\nYour leave request was not approved. Please contact HR if you have any questions.`;
+            // Default: Leave Request
+            const leaveTypeName = request.leaveTypeName || 'Leave';
+
+            msg = `Leave Request ${statusWord}\n\n` +
+                `Leave Type: ${leaveTypeName}\n` +
+                `Duration: ${request.leaveDuration || 'Full Day'}\n` +
+                `From: ${fmtDate(request.fromDate)}\n` +
+                `To: ${fmtDate(request.toDate)}\n`;
+
+            if (request.adminRemark) msg += `Remark: ${request.adminRemark}\n`;
+
+            if (status === 'Approved') {
+                msg += `\nYour leave has been recorded. Enjoy your time off.`;
+            } else {
+                msg += `\nYour leave request was not approved. Please contact HR if you have any questions.`;
+            }
         }
 
         await sendWhatsAppMessage(waPhone, msg);
-        console.log(`[WhatsApp] Leave ${statusWord} notification sent to ${waPhone} for employee ${employee.name}`);
+        console.log(`[WhatsApp] ${request.requestType} ${statusWord} notification sent to ${waPhone} for employee ${employee.name}`);
     } catch (err) {
-        console.error('[WhatsApp] sendWhatsAppLeaveStatusNotification error:', err.message);
+        console.error('[WhatsApp] sendWhatsAppRequestStatusNotification error:', err.message);
     }
 };
+
+// Backwards-compatible alias for existing imports
+export const sendWhatsAppLeaveStatusNotification = sendWhatsAppRequestStatusNotification;
 
 // ─────────────────────────────────────────────────────────────────
 
