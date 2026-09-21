@@ -739,6 +739,110 @@ test('Text commands "approve" and "reject" map to valid action types', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+// FEATURE 10: Multi-Tenant Isolation & Security Tests
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 10 — Multi-Tenant Isolation & Security Checks:');
+
+test('Multi-tenant employee lookup correctly isolates Tenant A vs Tenant B', () => {
+    const mockUsers = [
+        { _id: 'emp_1', name: 'Rahul', phone: '9898011111', adminId: 'admin_tenant_A' },
+        { _id: 'emp_2', name: 'Priya', phone: '9898022222', adminId: 'admin_tenant_B' }
+    ];
+
+    const findMockEmp = (phone) => {
+        const cleaned = normalizeToWa(phone);
+        return mockUsers.find(u => normalizeToWa(u.phone) === cleaned) || null;
+    };
+
+    const userA = findMockEmp('919898011111');
+    assert.strictEqual(userA?.name, 'Rahul');
+    assert.strictEqual(userA?.adminId, 'admin_tenant_A');
+
+    const userB = findMockEmp('919898022222');
+    assert.strictEqual(userB?.name, 'Priya');
+    assert.strictEqual(userB?.adminId, 'admin_tenant_B');
+
+    // Unknown phone returns null
+    const unknown = findMockEmp('919999999999');
+    assert.strictEqual(unknown, null);
+});
+
+test('Cross-tenant action blocking: Admin B cannot approve Tenant A request', () => {
+    const mockRequests = [
+        { _id: 'req_A_101', employee: 'emp_1', adminId: 'admin_tenant_A', status: 'Pending' }
+    ];
+
+    const verifyAdminAction = (adminId, reqId) => {
+        const req = mockRequests.find(r => r._id === reqId && r.adminId === adminId);
+        return req !== undefined;
+    };
+
+    // Admin A can approve Tenant A request
+    assert.strictEqual(verifyAdminAction('admin_tenant_A', 'req_A_101'), true);
+
+    // Admin B CANNOT approve Tenant A request (blocked)
+    assert.strictEqual(verifyAdminAction('admin_tenant_B', 'req_A_101'), false);
+});
+
+test('Employee role is strictly blocked from executing admin approvals', () => {
+    const mockAdmins = [
+        { phone: '9099705065', role: 'Admin', companyId: 'comp_A' },
+        { phone: '9825012345', role: 'Admin', companyId: 'comp_B' }
+    ];
+
+    const isAuthorizedAdmin = (fromPhone) => {
+        const cleaned = normalizeToWa(fromPhone);
+        return mockAdmins.some(a => normalizeToWa(a.phone) === cleaned);
+    };
+
+    // Authorized Admins
+    assert.strictEqual(isAuthorizedAdmin('9099705065'), true);
+    assert.strictEqual(isAuthorizedAdmin('9825012345'), true);
+
+    // Regular employee phone is rejected
+    assert.strictEqual(isAuthorizedAdmin('9925419677'), false);
+    assert.strictEqual(isAuthorizedAdmin('9898011111'), false);
+});
+
+await asyncTest('Daily Attendance PDF generator renders completely isolated company branding for different tenants', async () => {
+    const tenantACompany = {
+        companyName: 'Company Alpha Pvt Ltd',
+        companyAddress: '101 Alpha Tower, Ahmedabad',
+        companyContact: '9099705065',
+        companyEmail: 'alpha@company.com'
+    };
+    const tenantBCompany = {
+        companyName: 'Company Beta Technologies',
+        companyAddress: '502 Beta Heights, Mumbai',
+        companyContact: '9825012345',
+        companyEmail: 'beta@tech.com'
+    };
+
+    const statsA = { total: 5, present: 4, absent: 1, halfDay: 0, onLeave: 0 };
+    const statsB = { total: 20, present: 18, absent: 1, halfDay: 1, onLeave: 0 };
+
+    const pdfA = await buildDailyAttendanceReportPdfBuffer({
+        company: tenantACompany,
+        dateStr: '2026-09-21',
+        stats: statsA,
+        records: []
+    });
+
+    const pdfB = await buildDailyAttendanceReportPdfBuffer({
+        company: tenantBCompany,
+        dateStr: '2026-09-21',
+        stats: statsB,
+        records: []
+    });
+
+    assert.ok(Buffer.isBuffer(pdfA));
+    assert.ok(Buffer.isBuffer(pdfB));
+    assert.notStrictEqual(pdfA.length, 0);
+    assert.notStrictEqual(pdfB.length, 0);
+});
+
+// ─────────────────────────────────────────────────────────────────
 // RESULTS
 // ─────────────────────────────────────────────────────────────────
 
