@@ -1,4 +1,4 @@
-import SalarySlip from '../models/SalarySlip.Model.js';
+    import SalarySlip from '../models/SalarySlip.Model.js';
 import User from '../models/User.Model.js';
 import EmployeeCTC from '../models/EmployeeCTC.Model.js';
 import Payout from '../models/Payout.Model.js';
@@ -46,7 +46,8 @@ const createSalarySlip = async (req, res) => {
         const od = Number(req.body.otherDeduction) || 0;
 
         const totalLeaves = pl + ul;
-        const totalDivisor = 30; // Fixed 30-Day Basis (Standard Monthly Salary)
+        const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
+        const totalDivisor = daysInMonth; // Actual calendar days in month (e.g. 31 in August)
         const perDaySalary = Math.round((grossMonthly / totalDivisor) * 100) / 100;
         const perDaySalaryExt = perDaySalary;
         const paidDays = Math.max(0, totalDivisor - ul) + edp;

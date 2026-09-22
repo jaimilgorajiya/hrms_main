@@ -326,8 +326,9 @@ const CreateSalarySlip = () => {
         const oe   = Number(form.otherEarnings) || 0;
         const od   = Number(form.otherDeduction) || 0;
 
+        const [yr, mn]         = monthYear ? monthYear.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
+        const totalDivisor     = getDaysInMonth(yr, mn); // Actual calendar days in month (e.g. 31 in August)
         const totalLeaves      = pl + ul;
-        const totalDivisor     = 30; // Fixed 30-Day Basis (Standard Monthly Salary)
         const perDaySalary     = round2(grossMonthly / totalDivisor);
         const perDaySalaryExt  = perDaySalary;
         const paidDays         = Math.max(0, totalDivisor - ul) + edp;
