@@ -2018,11 +2018,16 @@ export const getEmployeeMonthlySummary = async (req, res) => {
                     if (isWeekOff) {
                         extraDaysWorked += 0.5;
                     } else {
-                        // Only count as a worked half-day if it's not leave-based.
-                        // Leave half-days are already counted in usedPaidLeaves/usedUnpaidLeaves.
+                        // Count as a worked half-day if it was not leave-based, OR if the employee
+                        // actually attended/punched for the other half of the shift on a half-day leave.
                         const isLeaveHalfDay = !!record.leaveCategory;
                         if (!isLeaveHalfDay) {
                             halfDaysCount++;
+                        } else {
+                            const workedMins = computeWorkingMinutes(record.punches, record.breaks || []);
+                            if (workedMins > 0 || (record.punches && record.punches.length > 0)) {
+                                halfDaysCount++;
+                            }
                         }
                     }
                 } else if (record.status === 'Holiday') {
