@@ -327,10 +327,10 @@ const CreateSalarySlip = () => {
         const od   = Number(form.otherDeduction) || 0;
 
         const totalLeaves      = pl + ul;
-        const totalDivisor     = Math.max(mwd + pwo + ph, 1);
+        const totalDivisor     = 30; // Fixed 30-Day Basis (Standard Monthly Salary)
         const perDaySalary     = round2(grossMonthly / totalDivisor);
         const perDaySalaryExt  = perDaySalary;
-        const paidDays         = ewd + pl + ph + pwo + edp;
+        const paidDays         = Math.max(0, totalDivisor - ul) + edp;
         const thisMonthGross   = round2(perDaySalary * paidDays);
         const extraEarning     = 0;
 
