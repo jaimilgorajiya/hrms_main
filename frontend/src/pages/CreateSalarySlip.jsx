@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, FileText, RefreshCw, Calendar, DollarSign, Briefcase, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import authenticatedFetch from '../utils/apiHandler';
@@ -344,6 +344,9 @@ const CreateSalarySlip = () => {
         // 1. Add all active earning types from settings
         activeTypes.filter(t => t.type === 'Earnings').forEach(ae => {
             const name = ae.name.trim();
+            if (seenEarnings.has(name.toLowerCase())) return;
+            seenEarnings.add(name.toLowerCase());
+
             const matched = (ctcData.earnings || []).find(
                 e => e.componentName.toLowerCase().trim() === name.toLowerCase()
             );
@@ -355,7 +358,6 @@ const CreateSalarySlip = () => {
                     ? round2((monthlyAmount / grossMonthly) * thisMonthGross)
                     : 0
             });
-            seenEarnings.add(name.toLowerCase());
         });
 
         // 2. Add any employee-specific CTC earnings that are not in the active settings list
@@ -381,6 +383,9 @@ const CreateSalarySlip = () => {
         // 1. Add all active deduction types from settings
         activeTypes.filter(t => t.type === 'Deductions').forEach(ad => {
             const name = ad.name.trim();
+            if (seenDeductions.has(name.toLowerCase())) return;
+            seenDeductions.add(name.toLowerCase());
+
             const matched = (ctcData.deductions || []).find(
                 d => d.componentName.toLowerCase().trim() === name.toLowerCase()
             );
@@ -388,7 +393,6 @@ const CreateSalarySlip = () => {
                 componentName: ad.name,
                 amount: matched ? (Number(matched.amount) || 0) : 0
             });
-            seenDeductions.add(name.toLowerCase());
         });
 
         // 2. Add any employee-specific CTC deductions that are not in the active settings list
