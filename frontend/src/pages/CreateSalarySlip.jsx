@@ -332,7 +332,9 @@ const CreateSalarySlip = () => {
         const perDaySalary     = round2(grossMonthly / totalDivisor);
         const perDaySalaryExt  = perDaySalary;
         const paidDays         = Math.max(0, totalDivisor - ul) + edp;
-        const thisMonthGross   = round2(perDaySalary * paidDays);
+        const thisMonthGross   = (ul === 0 && edp === 0)
+            ? grossMonthly
+            : round2(grossMonthly - (ul * perDaySalary) + (edp * perDaySalaryExt));
         const extraEarning     = 0;
 
         const activeTypes = earningDeductionTypes.filter(t => t.status === 'Active');
@@ -355,7 +357,9 @@ const CreateSalarySlip = () => {
                 componentName: ae.name,
                 monthlyAmount,
                 calculatedAmount: grossMonthly > 0
-                    ? round2((monthlyAmount / grossMonthly) * thisMonthGross)
+                    ? ((ul === 0 && edp === 0)
+                        ? monthlyAmount
+                        : round2((monthlyAmount / grossMonthly) * thisMonthGross))
                     : 0
             });
         });
@@ -369,7 +373,9 @@ const CreateSalarySlip = () => {
                     componentName: e.componentName,
                     monthlyAmount,
                     calculatedAmount: grossMonthly > 0
-                        ? round2((monthlyAmount / grossMonthly) * thisMonthGross)
+                        ? ((ul === 0 && edp === 0)
+                            ? monthlyAmount
+                            : round2((monthlyAmount / grossMonthly) * thisMonthGross))
                         : 0
                 });
                 seenEarnings.add(name.toLowerCase());

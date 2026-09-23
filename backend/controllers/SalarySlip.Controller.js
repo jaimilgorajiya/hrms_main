@@ -51,14 +51,18 @@ const createSalarySlip = async (req, res) => {
         const perDaySalary = Math.round((grossMonthly / totalDivisor) * 100) / 100;
         const perDaySalaryExt = perDaySalary;
         const paidDays = Math.max(0, totalDivisor - ul) + edp;
-        const thisMonthGross = Math.round((perDaySalary * paidDays) * 100) / 100;
+        const thisMonthGross = (ul === 0 && edp === 0)
+            ? grossMonthly
+            : Math.round((grossMonthly - (ul * perDaySalary) + (edp * perDaySalaryExt)) * 100) / 100;
         const extraEarning = 0;
 
         const earnings = (ctc.earnings || []).map(e => ({
             componentName: e.componentName,
             monthlyAmount: Number(e.amount) || 0,
             calculatedAmount: grossMonthly > 0
-                ? Math.round(((e.amount || 0) / grossMonthly) * thisMonthGross * 100) / 100
+                ? ((ul === 0 && edp === 0)
+                    ? (Number(e.amount) || 0)
+                    : Math.round(((e.amount || 0) / grossMonthly) * thisMonthGross * 100) / 100)
                 : 0
         }));
 

@@ -195,7 +195,7 @@ app.use('/api/admin', clientRoutes); // Alias to match requested pattern
 app.use('/api/whatsapp', whatsappRoutes); // WhatsApp Chatbot (Meta Cloud API)
 
 app.get('/', (req, res) => {
-    res.send('Updated API is running...');
+    res.send('Hurrayyy!!! Your Backend is Running Successfully ...');
 });
 
 httpServer.listen(PORT, '0.0.0.0', () => {
