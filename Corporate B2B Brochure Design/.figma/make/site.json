@@ -1,0 +1,10 @@
+{
+  "description": "Streamline HR operations for Indian businesses with an integrated platform offering attendance, payroll, leave management, and employee workflows.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

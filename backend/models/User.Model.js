@@ -43,6 +43,14 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true
         },
+        isWhatsAppEnabled: {
+            type: Boolean,
+            default: true
+        },
+        sendDailyAttendanceReport: {
+            type: Boolean,
+            default: true
+        },
         exitDate: {
             type: Date
         },

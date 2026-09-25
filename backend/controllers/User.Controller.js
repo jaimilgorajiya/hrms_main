@@ -171,6 +171,13 @@ const createUser = async (req, res) => {
             if (shiftObj) shiftId = shiftObj._id;
         }
 
+        if (typeof bodyContent.requireSelfie !== 'undefined') {
+            bodyContent.requireSelfie = bodyContent.requireSelfie === true || bodyContent.requireSelfie === 'true';
+        }
+        if (typeof bodyContent.isWhatsAppEnabled !== 'undefined') {
+            bodyContent.isWhatsAppEnabled = bodyContent.isWhatsAppEnabled === true || bodyContent.isWhatsAppEnabled === 'true';
+        }
+
         // Create new user with all fields, mapping as necessary
         const newUser = new User({
             ...bodyContent,
@@ -408,6 +415,12 @@ const updateUser = async (req, res) => {
 
         if (typeof updateData.requireSelfie !== 'undefined') {
             updateData.requireSelfie = updateData.requireSelfie === true || updateData.requireSelfie === 'true';
+        }
+        if (typeof updateData.isWhatsAppEnabled !== 'undefined') {
+            updateData.isWhatsAppEnabled = updateData.isWhatsAppEnabled === true || updateData.isWhatsAppEnabled === 'true';
+        }
+        if (typeof updateData.sendDailyAttendanceReport !== 'undefined') {
+            updateData.sendDailyAttendanceReport = updateData.sendDailyAttendanceReport === true || updateData.sendDailyAttendanceReport === 'true';
         }
 
         // Try to parse JSON strings and handle special values

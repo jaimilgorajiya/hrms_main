@@ -1,7 +1,7 @@
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Mail, Phone, Lock, Eye, EyeOff, CheckCircle2, CreditCard, History, TrendingUp, Calendar, ArrowUpRight, Clock, Users, Plus, Minus } from 'lucide-react';
+import { Camera, Mail, Phone, Lock, Eye, EyeOff, CheckCircle2, CreditCard, History, TrendingUp, Calendar, ArrowUpRight, Clock, Users, Plus, Minus, FileText, Bell } from 'lucide-react';
 import Swal from 'sweetalert2';
 // CSS moved to index.css
 
@@ -14,7 +14,8 @@ const MyProfile = () => {
     ownerName: '',
     phoneNumber: '',
     email: '',
-    logo: ''
+    logo: '',
+    sendDailyAttendanceReport: true
   });
   const [subscription, setSubscription] = useState(null);
   const [passwords, setPasswords] = useState({
@@ -28,6 +29,7 @@ const MyProfile = () => {
     confirm: false
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [updatingReportSetting, setUpdatingReportSetting] = useState(false);
 
   // Employee Add-on Purchase State
   const [addonPackages, setAddonPackages] = useState([]);
@@ -198,6 +200,47 @@ const MyProfile = () => {
 
   const handlePasswordChange = (e) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  };
+
+  const handleToggleDailyReport = async (e) => {
+    const newValue = e.target.checked;
+    setCompanyData(prev => ({ ...prev, sendDailyAttendanceReport: newValue }));
+    setUpdatingReportSetting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await authenticatedFetch('/api/company', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ ...companyData, sendDailyAttendanceReport: newValue })
+      });
+
+      if (response.ok) {
+        Swal.fire({
+          title: newValue ? 'Report Enabled' : 'Report Disabled',
+          text: newValue 
+            ? 'Daily attendance report will be sent to your Email & WhatsApp at 07:00 PM IST.' 
+            : 'Daily attendance reports will not be sent.',
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        throw new Error('Failed to update preference');
+      }
+    } catch (err) {
+      console.error('Error updating daily report setting:', err);
+      // Revert on error
+      setCompanyData(prev => ({ ...prev, sendDailyAttendanceReport: !newValue }));
+      Swal.fire('Error', 'Failed to update report preference. Please try again.', 'error');
+    } finally {
+      setUpdatingReportSetting(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -645,6 +688,57 @@ const MyProfile = () => {
               </div>
             </div>
           )}
+
+          {/* Daily Attendance Report Preferences Card */}
+          <div className="glass-card-premium">
+            <div className="card-header-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div className="card-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <FileText size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>Daily Attendance Report</h3>
+                  <p className="card-subtitle-prem" style={{ margin: '3px 0 0', fontSize: '13px', color: '#64748b' }}>
+                    Automated end-of-day attendance summary dispatches
+                  </p>
+                </div>
+              </div>
+              <span 
+                style={{ 
+                  padding: '5px 12px', 
+                  borderRadius: '20px', 
+                  fontSize: '12px', 
+                  fontWeight: '600',
+                  background: companyData.sendDailyAttendanceReport !== false ? '#ecfdf5' : '#f1f5f9',
+                  color: companyData.sendDailyAttendanceReport !== false ? '#059669' : '#64748b',
+                  border: `1px solid ${companyData.sendDailyAttendanceReport !== false ? '#a7f3d0' : '#e2e8f0'}`
+                }}
+              >
+                {companyData.sendDailyAttendanceReport !== false ? '● Active (07:00 PM IST)' : '○ Disabled'}
+              </span>
+            </div>
+
+            <div style={{ padding: '16px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginTop: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', cursor: updatingReportSetting ? 'wait' : 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  name="sendDailyAttendanceReport"
+                  checked={companyData.sendDailyAttendanceReport !== false}
+                  onChange={handleToggleDailyReport}
+                  disabled={updatingReportSetting}
+                  style={{ width: '20px', height: '20px', accentColor: '#2563eb', marginTop: '2px', cursor: 'pointer' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', display: 'block' }}>
+                    Do you want to get a daily attendance report?
+                  </span>
+                  <span style={{ fontSize: '13px', color: '#64748b', display: 'block', marginTop: '6px', lineHeight: '1.5' }}>
+                    If checked, the system will automatically compile the whole day's attendance report and send it to your registered <strong>Email</strong> and <strong>WhatsApp</strong> daily at 07:00 PM IST. If unchecked, no report will be sent.
+                  </span>
+                </div>
+              </label>
+            </div>
+          </div>
 
           <div className="glass-card-premium">
             <div className="card-header-premium">

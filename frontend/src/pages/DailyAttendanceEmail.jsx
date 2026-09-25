@@ -6,12 +6,68 @@ import Swal from 'sweetalert2';
 
 const DailyAttendanceEmail = () => {
     const [loading, setLoading] = useState(false);
+    const [isReportEnabled, setIsReportEnabled] = useState(true);
+    const [toggling, setToggling] = useState(false);
+
+    React.useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const res = await authenticatedFetch(`${API_URL}/api/company`);
+            if (res.ok) {
+                const data = await res.json();
+                setIsReportEnabled(data.sendDailyAttendanceReport !== false);
+            }
+        } catch (err) {
+            console.error("Error fetching company settings:", err);
+        }
+    };
+
+    const handleToggleReport = async (e) => {
+        const newValue = e.target.checked;
+        setIsReportEnabled(newValue);
+        setToggling(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await authenticatedFetch(`${API_URL}/api/company`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ sendDailyAttendanceReport: newValue })
+            });
+            if (res.ok) {
+                Swal.fire({
+                    title: newValue ? 'Automated Reports Enabled' : 'Automated Reports Disabled',
+                    text: newValue 
+                        ? 'Daily attendance report will be dispatched on Email & WhatsApp at 07:00 PM IST.' 
+                        : 'Automated daily attendance reports are now disabled.',
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error('Failed to update preference');
+            }
+        } catch (err) {
+            console.error("Error updating setting:", err);
+            setIsReportEnabled(!newValue);
+            Swal.fire('Error', 'Failed to update setting. Please try again.', 'error');
+        } finally {
+            setToggling(false);
+        }
+    };
 
     const handleManualTrigger = async () => {
         try {
             const result = await Swal.fire({
                 title: 'Send Daily Report?',
-                text: "An attendance summary email will be sent to all Admins immediately.",
+                text: "An attendance summary report will be sent to your registered Email and WhatsApp immediately.",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3B648B',
@@ -30,9 +86,9 @@ const DailyAttendanceEmail = () => {
 
             const data = await res.json();
             if (data.success) {
-                Swal.fire({ title: 'Email Sent!', text: 'The daily attendance report has been dispatched successfully.', icon: 'success', timer: 3000, showConfirmButton: false });
+                Swal.fire({ title: 'Report Dispatched!', text: 'The daily attendance report has been sent to Email and WhatsApp successfully.', icon: 'success', timer: 3000, showConfirmButton: false });
             } else {
-                Swal.fire('Error', data.message || 'Failed to send email', 'error');
+                Swal.fire('Error', data.message || 'Failed to send report', 'error');
             }
         } catch (error) {
             console.error(error);
@@ -46,8 +102,8 @@ const DailyAttendanceEmail = () => {
         <div className="hrm-container">
             <div className="hrm-header">
                 <div>
-                    <h1 className="hrm-title">Daily Attendance Email</h1>
-                    </div>
+                    <h1 className="hrm-title">Daily Attendance Email & WhatsApp Report</h1>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
@@ -67,14 +123,27 @@ const DailyAttendanceEmail = () => {
                             <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '14px' }}>Daily at 07:00 PM IST</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Recipients:</span>
-                            <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '14px' }}>HR / Company Email</span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Delivery Channels:</span>
+                            <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '14px' }}>Email & WhatsApp (PDF)</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(46,204,113,0.08)', borderRadius: '10px', border: '1px solid rgba(46,204,113,0.2)' }}>
-                            <span style={{ color: 'var(--accent-green)', fontSize: '14px', fontWeight: '600' }}>Service Status:</span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: 'var(--accent-green)', fontSize: '14px' }}>
-                                <CheckCircle size={15} /> Active
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: isReportEnabled ? 'rgba(46,204,113,0.08)' : 'rgba(100,116,139,0.08)', borderRadius: '10px', border: `1px solid ${isReportEnabled ? 'rgba(46,204,113,0.2)' : 'rgba(100,116,139,0.2)'}` }}>
+                            <span style={{ color: isReportEnabled ? 'var(--accent-green)' : '#64748b', fontSize: '14px', fontWeight: '600' }}>Service Status:</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700', color: isReportEnabled ? 'var(--accent-green)' : '#64748b', fontSize: '14px' }}>
+                                <CheckCircle size={15} /> {isReportEnabled ? 'Active' : 'Disabled (Paused)'}
                             </span>
+                        </div>
+                        
+                        <div style={{ padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)', marginTop: '4px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: toggling ? 'wait' : 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                <input 
+                                    type="checkbox"
+                                    checked={isReportEnabled}
+                                    onChange={handleToggleReport}
+                                    disabled={toggling}
+                                    style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
+                                />
+                                Enable Automated Daily Attendance Report
+                            </label>
                         </div>
                     </div>
                 </div>

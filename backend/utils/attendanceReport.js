@@ -34,13 +34,24 @@ const formatDateNice = (dateStr) => {
  * @param {string} [dateStr=null] - 'YYYY-MM-DD'
  * @returns {Promise<Object>}
  */
-export const generateAndSendDailyReport = async (adminId, dateStr = null) => {
+export const generateAndSendDailyReport = async (adminId, dateStr = null, force = false) => {
     try {
         const admin = await User.findById(adminId);
         if (!admin) throw new Error('Admin not found');
 
         // Resolve company document
         const company = await Company.findOne({ adminId: admin._id });
+
+        // Check if daily attendance report is enabled for this company / admin
+        const isReportEnabled = (company?.sendDailyAttendanceReport !== false) && (admin?.sendDailyAttendanceReport !== false);
+        if (!isReportEnabled && !force) {
+            console.log(`[Daily Report] Daily attendance report is disabled for Admin: ${admin.name} (${company?.companyName || admin.email}). Skipping.`);
+            return {
+                success: true,
+                skipped: true,
+                message: 'Daily attendance report is disabled in preferences.'
+            };
+        }
 
         // Resolve email recipient: prefer hrEmail, fallback to companyEmail, then admin.email
         const recipientEmail = company?.hrEmail || company?.companyEmail || admin.email;

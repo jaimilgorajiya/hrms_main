@@ -1289,6 +1289,22 @@ const EmployeeProfile = () => {
                                             When enabled, this employee must complete face detection photo during attendance punch-in and punch-out. Uncheck to exempt this employee.
                                         </span>
                                     </div>
+
+                                    <div className="ss-form-group" style={{ gridColumn: 'span 2', marginTop: '10px', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                name="isWhatsAppEnabled" 
+                                                checked={formData.isWhatsAppEnabled !== false} 
+                                                onChange={(e) => setFormData(prev => ({ ...prev, isWhatsAppEnabled: e.target.checked }))}
+                                                style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
+                                            />
+                                            WhatsApp Chatbot Access
+                                        </label>
+                                        <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '28px', display: 'block', marginTop: '4px' }}>
+                                            When enabled, this employee can use the WhatsApp HRMS chatbot for attendance punch-in/out, leave requests, attendance reports, and salary slips. Uncheck to disable WhatsApp bot access.
+                                        </span>
+                                    </div>
                                 </>
                             )}
 

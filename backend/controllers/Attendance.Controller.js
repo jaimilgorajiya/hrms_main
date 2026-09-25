@@ -46,7 +46,7 @@ const getTodayStr = () => {
 };
 
 // Helper: parse "HH:MM" or "HH:MM AM/PM" to total minutes since midnight
-const parseTimeToMinutes = (t) => {
+export const parseTimeToMinutes = (t) => {
     if (!t) return null;
     const clean = t.trim();
     const ampm = clean.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -416,9 +416,10 @@ export const togglePunch = async (req, res) => {
                             }
                         }
 
-                        // Only apply monetary late penalty if Half-Day threshold was not triggered
-                        if (lateByMins > 0 && punchStatus !== 'Half Day') {
-                            latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id);
+                        // Only apply monetary late penalty if beyond relaxation/grace period and Half-Day threshold was not triggered
+                        const graceMins = shift.maxLateInMinutes || 0;
+                        if (lateByMins > graceMins && punchStatus !== 'Half Day') {
+                            latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, req.user._id, penaltyRule);
                         }
                     }
                 }

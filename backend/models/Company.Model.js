@@ -74,6 +74,10 @@ const companySchema = new mongoose.Schema({
   packageExpiryDate: { type: Date },
   paymentStatus: { type: String, enum: ['pending', 'completed'], default: 'pending' },
   isActive: { type: Boolean, default: false },
+  sendDailyAttendanceReport: {
+    type: Boolean,
+    default: true
+  },
   employeeIdFormat: {
     prefix: { type: String, default: 'EMP' },
     includeYear: { type: Boolean, default: true },

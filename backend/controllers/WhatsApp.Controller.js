@@ -26,7 +26,9 @@ import Notification from '../models/Notification.Model.js';
 import Holiday from '../models/Holiday.Model.js';
 import Shift from '../models/Shift.Model.js';
 import WhatsAppSession from '../models/WhatsAppSession.Model.js';
-import { getEmployeeShiftToday, getShiftDurationMinutes } from './Attendance.Controller.js';
+import PenaltyRule from '../models/PenaltyRule.Model.js';
+import { calculatePenaltyAmount } from './PenaltyRule.Controller.js';
+import { getEmployeeShiftToday, getShiftDurationMinutes, parseTimeToMinutes } from './Attendance.Controller.js';
 import { computeWorkingMinutes } from '../utils/attendance.js';
 import { buildPayslipPdfBuffer } from './Payroll.Controller.js';
 import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
@@ -136,7 +138,7 @@ const findEmployeeByPhone = async (waPhone) => {
     // Try plain 10-digit, full with country code, with + prefix, or ending with the 10-digit number
     const variants = [normalized, waPhone, `+${waPhone}`, `91${normalized}`, `+91${normalized}`];
     
-    const selectFields = '_id name employeeId phone whatsAppNumber adminId branch department designation leaveGroup noOfPaidLeaves maxPLMonth canApplyUnpaidLeave reportingTo gender requireSelfie whatsAppPunchEnabled';
+    const selectFields = '_id name employeeId phone whatsAppNumber adminId branch department designation leaveGroup noOfPaidLeaves maxPLMonth canApplyUnpaidLeave reportingTo gender requireSelfie whatsAppPunchEnabled isWhatsAppEnabled';
 
     // First try exact variants
     let user = await User.findOne({
@@ -231,8 +233,8 @@ const detectIntent = (text) => {
 // ACTION HANDLERS
 // ─────────────────────────────────────────────────────────────────
 
-/** Handle PUNCH IN */
-const handlePunchIn = async (employee, waPhone) => {
+/** Execute and save PUNCH IN */
+const executePunchIn = async (employee, waPhone, lateReason = '') => {
     const date = getTodayStr();
     const now = new Date();
 
@@ -255,30 +257,75 @@ const handlePunchIn = async (employee, waPhone) => {
         return `You are marked as "On Leave" for today. Attendance cannot be logged.`;
     }
 
-    // Determine status
-    const { daySchedule, shift } = await getEmployeeShiftToday(employee._id, date);
+    // Determine status, late arrival and penalty
+    const { daySchedule, shift, isWeekOff } = await getEmployeeShiftToday(employee._id, date);
     let punchStatus = 'Present';
+    let latePenaltyAmount = 0;
+    let lateByMins = 0;
+    let isLate = false;
+    let penaltyRule = null;
+    const graceMins = shift?.maxLateInMinutes || 0;
 
-    if (daySchedule?.shiftStart && shift) {
-        const [sh, sm] = daySchedule.shiftStart.split(':').map(Number);
-        const shiftStartMins = sh * 60 + sm;
-        const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-        const nowMins = ist.getUTCHours() * 60 + ist.getUTCMinutes();
-        const lateBy = nowMins - shiftStartMins;
+    if (shift && daySchedule?.shiftStart) {
+        const shiftStartMins = parseTimeToMinutes(daySchedule.shiftStart);
+        if (shiftStartMins !== null) {
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+            lateByMins = Math.max(0, nowMins - shiftStartMins);
+            isLate = lateByMins > graceMins;
 
-        if (daySchedule.shiftEnd) {
-            const [eh, em] = daySchedule.shiftEnd.split(':').map(Number);
-            const shiftEndMins = eh * 60 + em;
-            const duration = shiftEndMins > shiftStartMins ? shiftEndMins - shiftStartMins : shiftEndMins + 1440 - shiftStartMins;
-            const midpointMins = (shiftStartMins + duration / 2) % 1440;
-            if (nowMins > midpointMins) punchStatus = 'Half Day';
+            const skipOnExtraPenalty = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
+
+            if (!skipOnExtraPenalty) {
+                // AUTOMATIC HALF-DAY RULE: If punch in > shift midpoint
+                const startMins = parseTimeToMinutes(daySchedule.shiftStart);
+                const endMins = parseTimeToMinutes(daySchedule.shiftEnd);
+                if (startMins !== null && endMins !== null) {
+                    const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
+                    const midpointMins = (startMins + (duration / 2)) % 1440;
+
+                    let isPastMidpoint = false;
+                    if (endMins > startMins) {
+                        isPastMidpoint = nowMins > midpointMins;
+                    } else {
+                        if (midpointMins > startMins) isPastMidpoint = nowMins > midpointMins || nowMins < endMins;
+                        else isPastMidpoint = nowMins > midpointMins && nowMins < endMins;
+                    }
+
+                    if (isPastMidpoint) {
+                        punchStatus = 'Half Day';
+                    }
+                }
+
+                // PenaltyRule Slab still takes precedence if specifically configured by admin
+                penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                const halfDaySlab = penaltyRule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                if (halfDaySlab) {
+                    const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                    if (thresholdMins !== null && nowMins > thresholdMins) {
+                        punchStatus = 'Half Day';
+                    }
+                }
+
+                // Apply monetary late penalty if late beyond relaxation/grace period and not Half Day
+                if (lateByMins > graceMins && punchStatus !== 'Half Day') {
+                    latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, employee._id, penaltyRule);
+                }
+            }
         }
     }
+
+    const lateInPenalty = {
+        amount: latePenaltyAmount,
+        isApplied: latePenaltyAmount > 0,
+        isLate: isLate
+    };
 
     const punchEntry = {
         time: now,
         type: 'IN',
-        locationAddress: 'Via WhatsApp'
+        locationAddress: 'Via WhatsApp',
+        ...(lateReason ? { lateReason } : {})
     };
 
     let updatedRecord;
@@ -288,39 +335,234 @@ const handlePunchIn = async (employee, waPhone) => {
             adminId: employee.adminId || employee._id,
             date,
             punches: [punchEntry],
-            status: punchStatus
+            status: punchStatus,
+            lateInPenalty
         });
     } else {
         record.punches.push(punchEntry);
         if (record.status !== 'On Leave') record.status = punchStatus;
+        record.lateInPenalty = lateInPenalty;
         await record.save();
         updatedRecord = record;
+    }
+
+    // Auto-activate employee on first successful punch in
+    if (employee && employee.status === 'Onboarding') {
+        try {
+            await User.updateOne({ _id: employee._id }, { status: 'Active' });
+            const Onboarding = (await import('../models/Onboarding.Model.js')).default;
+            await Onboarding.findOneAndUpdate(
+                { userId: employee._id },
+                { status: 'Completed' },
+                { upsert: true }
+            );
+        } catch (onboardingErr) {
+            console.error("Failed to update onboarding status on WhatsApp punch in:", onboardingErr);
+        }
+    }
+
+    // Format response message
+    let lateNote = '';
+    if (latePenaltyAmount > 0) {
+        lateNote = `\n\n⚠️ *Late Arrival Notice:*\nYou punched in *${lateByMins} mins late* (relaxation: ${graceMins} mins).` +
+                   (lateReason ? `\nReason: _${lateReason}_` : '') +
+                   `\nLate penalty of *₹${latePenaltyAmount}* has been charged.`;
+    } else if (isLate) {
+        lateNote = `\n\n⚠️ *Late Arrival:* You punched in *${lateByMins} mins late*.` +
+                   (lateReason ? `\nReason: _${lateReason}_` : '');
+    } else if (punchStatus === 'Half Day') {
+        lateNote = `\n\n⚠️ *Notice:* Marked as *Half Day* due to late arrival.` +
+                   (lateReason ? `\nReason: _${lateReason}_` : '');
     }
 
     // Notify admin
     try {
         const timeStr = formatTimeIST(now);
+        let adminNote = '';
+        if (latePenaltyAmount > 0) {
+            adminNote = ` [Late by ${lateByMins}m, Penalty: ₹${latePenaltyAmount}${lateReason ? `, Reason: "${lateReason}"` : ''}]`;
+        } else if (isLate) {
+            adminNote = ` [Late by ${lateByMins}m${lateReason ? `, Reason: "${lateReason}"` : ''}]`;
+        }
         await Notification.create({
             user: employee.adminId,
             title: 'Employee Punched In (WhatsApp)',
-            message: `${employee.name} (${employee.employeeId || ''}) punched in via WhatsApp at ${timeStr} on ${formatDateNice(date)}.`,
+            message: `${employee.name} (${employee.employeeId || ''}) punched in via WhatsApp at ${timeStr} on ${formatDateNice(date)}.${adminNote}`,
             type: 'Attendance'
         });
     } catch (_) { /* Non-critical */ }
 
-    return `Punched in successfully!\n\nName: ${employee.name}\nTime: ${formatTimeIST(now)}\nDate: ${formatDateNice(date)}\nStatus: ${punchStatus}\n\nSend *punch out* when you leave.`;
+    return `Punched in successfully!\n\nName: ${employee.name}\nTime: ${formatTimeIST(now)}\nDate: ${formatDateNice(date)}\nStatus: ${punchStatus}${lateNote}\n\nSend *punch out* when you leave.`;
 };
 
-/** Execute and save PUNCH OUT with work report */
-const completePunchOut = async (employee, record, workReport, waPhone) => {
+/** Handle PUNCH IN request — checks for late arrival and prompts for reason if late */
+const handlePunchIn = async (employee, waPhone, text = '') => {
+    const date = getTodayStr();
+    const now = new Date();
+
+    // Check if already punched in
+    const record = await Attendance.findOne({ employee: employee._id, date });
+    const lastPunch = record?.punches?.length > 0 ? record.punches[record.punches.length - 1] : null;
+
+    if (lastPunch?.type === 'IN') {
+        return `You are already punched in today at ${formatTimeIST(lastPunch.time)}.\nSend *punch out* when you leave.`;
+    }
+
+    // Block punch-in if already punched out today
+    const hasPunchedOut = record?.punches?.some(p => p.type === 'OUT');
+    if (hasPunchedOut) {
+        const outPunch = record.punches.slice().reverse().find(p => p.type === 'OUT');
+        return `You have already punched out for today at ${formatTimeIST(outPunch.time)}.\n\nYou cannot punch in again today. See you tomorrow!`;
+    }
+
+    if (record?.status === 'On Leave') {
+        return `You are marked as "On Leave" for today. Attendance cannot be logged.`;
+    }
+
+    // Check if employee is arriving late
+    const { daySchedule, shift } = await getEmployeeShiftToday(employee._id, date);
+    let isLate = false;
+    let lateByMins = 0;
+    const graceMins = shift?.maxLateInMinutes || 0;
+
+    if (shift && daySchedule?.shiftStart) {
+        const shiftStartMins = parseTimeToMinutes(daySchedule.shiftStart);
+        if (shiftStartMins !== null) {
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+            lateByMins = Math.max(0, nowMins - shiftStartMins);
+            isLate = lateByMins > graceMins;
+        }
+    }
+
+    if (isLate) {
+        // Check if employee provided late reason in the same message e.g. "punch in: traffic jam"
+        const directReason = text.replace(/^(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in|in)[:\s-]*/i, '').trim();
+        if (directReason.length >= 3) {
+            return await executePunchIn(employee, waPhone, directReason);
+        }
+
+        // Calculate potential penalty for display in prompt
+        let latePenaltyAmount = 0;
+        try {
+            const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+            latePenaltyAmount = await calculatePenaltyAmount(shift._id, lateByMins, employee._id, penaltyRule);
+        } catch (_) {}
+
+        // Start multi-step session asking for late reason
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                phone: waPhone,
+                flow: 'punch_in',
+                step: 'awaiting_late_reason',
+                data: { date },
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+            },
+            { upsert: true, new: true }
+        );
+
+        return `⚠️ *Late Arrival Notice*\n\n` +
+               `You are punching in *${lateByMins} mins late* (shift start: ${daySchedule?.shiftStart || ''}, relaxation: ${graceMins} mins).` +
+               (latePenaltyAmount > 0 ? `\nLate penalty applicable: *₹${latePenaltyAmount}*` : '') +
+               `\n\nPlease reply with your *reason for late arrival* to complete punch in:\n\n` +
+               `Send *cancel* to cancel punch in.`;
+    }
+
+    // On time / within relaxation
+    return await executePunchIn(employee, waPhone);
+};
+
+/** Handle LATE REASON submission for Punch In */
+const handlePunchInReason = async (employee, text, session, waPhone) => {
+    const t = text.trim();
+
+    if (t.toLowerCase() === 'cancel') {
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return `Punch in cancelled. Send *punch in* when you are ready.`;
+    }
+
+    if (t.length < 3) {
+        return `Please provide a valid reason for late arrival.\n\nSend *cancel* to cancel punch in.`;
+    }
+
+    await WhatsAppSession.deleteOne({ phone: waPhone });
+    return await executePunchIn(employee, waPhone, t);
+};
+
+/** Execute and save PUNCH OUT with work report and optional early reason */
+const completePunchOut = async (employee, record, workReport, waPhone, earlyReason = '') => {
     const now = new Date();
     const date = record.date || getTodayStr();
+
+    // Early out check & penalty
+    const { shift, daySchedule, isWeekOff } = await getEmployeeShiftToday(employee._id, date);
+    let earlyOutPenaltyAmount = 0;
+    let earlyByMins = 0;
+    let isEarly = false;
+
+    if (shift && daySchedule?.shiftEnd) {
+        const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+        if (shiftEndMins !== null) {
+            const istNow = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+            earlyByMins = Math.max(0, shiftEndMins - nowMins);
+
+            if (earlyByMins > 0) {
+                const maxAllowed = shift.maxEarlyOutMinutes || 0;
+                isEarly = earlyByMins > maxAllowed;
+
+                const skipOnExtraPenaltyOut = isWeekOff && !shift.lateEarlyApplyOnExtraDay;
+                if (!skipOnExtraPenaltyOut) {
+                    const startMins = parseTimeToMinutes(daySchedule.shiftStart);
+                    const endMins = parseTimeToMinutes(daySchedule.shiftEnd);
+                    if (startMins !== null && endMins !== null) {
+                        const duration = endMins > startMins ? endMins - startMins : (endMins + 1440 - startMins);
+                        const midpointMins = (startMins + (duration / 2)) % 1440;
+
+                        let isBeforeMidpoint = false;
+                        if (endMins > startMins) {
+                            isBeforeMidpoint = nowMins < midpointMins;
+                        } else {
+                            if (midpointMins > startMins) isBeforeMidpoint = nowMins < midpointMins && nowMins > startMins;
+                            else isBeforeMidpoint = nowMins < midpointMins || nowMins > startMins;
+                        }
+
+                        if (isBeforeMidpoint) {
+                            record.status = 'Half Day';
+                        }
+                    }
+
+                    const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                    const halfDaySlab = penaltyRule?.slabs?.find(s => s.penaltyType === 'Half-Day' && s.threshold_time);
+                    if (halfDaySlab) {
+                        const thresholdMins = parseTimeToMinutes(halfDaySlab.threshold_time);
+                        if (thresholdMins !== null && nowMins < thresholdMins) {
+                            record.status = 'Half Day';
+                        }
+                    }
+
+                    if (isEarly) {
+                        earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, employee._id, penaltyRule, null, 'Early Out Minutes');
+                        if (earlyOutPenaltyAmount > 0) {
+                            record.earlyOutPenalty = {
+                                amount: earlyOutPenaltyAmount,
+                                isApplied: true,
+                                isEarly: true
+                            };
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     const punchEntry = {
         time: now,
         type: 'OUT',
         workSummary: workReport,
-        locationAddress: 'Via WhatsApp'
+        locationAddress: 'Via WhatsApp',
+        ...(earlyReason ? { earlyReason } : {})
     };
 
     record.punches.push(punchEntry);
@@ -332,13 +574,29 @@ const completePunchOut = async (employee, record, workReport, waPhone) => {
     const mins = workingMinutes % 60;
     const workingStr = `${hours}h ${mins}m`;
 
+    let earlyNote = '';
+    if (earlyOutPenaltyAmount > 0) {
+        earlyNote = `\n\n⚠️ *Early Departure Notice:*\nYou punched out *${earlyByMins} mins early*.` +
+                   (earlyReason ? `\nReason: _${earlyReason}_` : '') +
+                   `\nEarly penalty of *₹${earlyOutPenaltyAmount}* has been charged.`;
+    } else if (isEarly) {
+        earlyNote = `\n\n⚠️ *Early Departure Notice:*\nYou punched out *${earlyByMins} mins early*.` +
+                   (earlyReason ? `\nReason: _${earlyReason}_` : '');
+    }
+
     // Notify admin
     try {
         const timeStr = formatTimeIST(now);
+        let adminEarly = '';
+        if (earlyOutPenaltyAmount > 0) {
+            adminEarly = ` [Early by ${earlyByMins}m, Penalty: ₹${earlyOutPenaltyAmount}${earlyReason ? `, Reason: "${earlyReason}"` : ''}]`;
+        } else if (isEarly) {
+            adminEarly = ` [Early by ${earlyByMins}m${earlyReason ? `, Reason: "${earlyReason}"` : ''}]`;
+        }
         await Notification.create({
             user: employee.adminId,
             title: 'Employee Punched Out (WhatsApp)',
-            message: `${employee.name} (${employee.employeeId || ''}) punched out via WhatsApp at ${timeStr} on ${formatDateNice(date)}. Total: ${workingStr}.\nWork Report: ${workReport}`,
+            message: `${employee.name} (${employee.employeeId || ''}) punched out via WhatsApp at ${timeStr} on ${formatDateNice(date)}. Total: ${workingStr}.${adminEarly}\nWork Report: ${workReport}`,
             type: 'Attendance'
         });
     } catch (_) { /* Non-critical */ }
@@ -347,12 +605,12 @@ const completePunchOut = async (employee, record, workReport, waPhone) => {
            `Name: ${employee.name}\n` +
            `Time: ${formatTimeIST(now)}\n` +
            `Date: ${formatDateNice(date)}\n` +
-           `Total Working Time: ${workingStr}\n\n` +
+           `Total Working Time: ${workingStr}${earlyNote}\n\n` +
            `Work Report:\n${workReport}\n\n` +
            `Have a great evening!`;
 };
 
-/** Handle PUNCH OUT request - asks for work report before punching out */
+/** Handle PUNCH OUT request - asks for work report and checks early departure */
 const handlePunchOut = async (employee, waPhone, text = '') => {
     const date = getTodayStr();
 
@@ -366,9 +624,54 @@ const handlePunchOut = async (employee, waPhone, text = '') => {
         return `You already punched out today at ${formatTimeIST(lastPunch.time)}.`;
     }
 
+    // Check if early departure
+    const { shift, daySchedule } = await getEmployeeShiftToday(employee._id, date);
+    let isEarly = false;
+    let earlyByMins = 0;
+    let earlyOutPenaltyAmount = 0;
+
+    if (shift && daySchedule?.shiftEnd) {
+        const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+        if (shiftEndMins !== null) {
+            const istNow = new Date(Date.now() + (5.5 * 60 * 60 * 1000));
+            const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+            earlyByMins = Math.max(0, shiftEndMins - nowMins);
+            isEarly = earlyByMins > (shift.maxEarlyOutMinutes || 0);
+
+            if (isEarly) {
+                try {
+                    const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                    earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, employee._id, penaltyRule, null, 'Early Out Minutes');
+                } catch (_) {}
+            }
+        }
+    }
+
     // Check if the employee already provided work summary in the same message e.g. "punch out: fixed login bug"
     const directSummary = text.replace(/^(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out)[:\s-]*/i, '').trim();
+
     if (directSummary.length >= 5) {
+        if (isEarly) {
+            // Summary provided, now prompt for early departure reason
+            await WhatsAppSession.findOneAndUpdate(
+                { phone: waPhone },
+                {
+                    phone: waPhone,
+                    flow: 'punch_out',
+                    step: 'awaiting_early_reason',
+                    data: { date, workReport: directSummary, earlyByMins },
+                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+                },
+                { upsert: true, new: true }
+            );
+
+            return `⚠️ *Early Departure Notice*\n\n` +
+                   `You are punching out *${earlyByMins} mins early* (shift end: ${daySchedule?.shiftEnd || ''}).` +
+                   (earlyOutPenaltyAmount > 0 ? `\nEarly departure penalty: *₹${earlyOutPenaltyAmount}*` : '') +
+                   `\n\nPlease reply with your *reason for early departure* to complete punch out:\n\n` +
+                   `Send *cancel* to cancel punch out.`;
+        }
+
         return await completePunchOut(employee, record, directSummary, waPhone);
     }
 
@@ -390,20 +693,20 @@ const handlePunchOut = async (employee, waPhone, text = '') => {
            `Send *cancel* to cancel punch out.`;
 };
 
-/** Handle WORK REPORT submission for Punch Out */
+/** Handle WORK REPORT or EARLY REASON submission for Punch Out */
 const handlePunchOutReport = async (employee, text, session, waPhone) => {
     const t = text.trim();
 
     if (t.toLowerCase() === 'cancel') {
         await WhatsAppSession.deleteOne({ phone: waPhone });
-        return `Punch out cancelled. Send *punch out* when you are ready to submit your work report.`;
+        return `Punch out cancelled. Send *punch out* when you are ready to complete your punch out.`;
     }
 
     if (t.length < 3) {
-        return `Please provide a valid work report describing what you completed today.\n\nSend *cancel* to cancel punch out.`;
+        return `Please provide a valid response.\n\nSend *cancel* to cancel punch out.`;
     }
 
-    const date = getTodayStr();
+    const date = session.data?.date || getTodayStr();
     const record = await Attendance.findOne({ employee: employee._id, date });
 
     if (!record || record.punches.length === 0) {
@@ -418,8 +721,62 @@ const handlePunchOutReport = async (employee, text, session, waPhone) => {
         return `You have already punched out for today at ${formatTimeIST(outPunch.time)}.`;
     }
 
+    // Step 1: Employee submitted work report
+    if (session.step === 'awaiting_work_report') {
+        const { shift, daySchedule } = await getEmployeeShiftToday(employee._id, date);
+        let isEarly = false;
+        let earlyByMins = 0;
+        let earlyOutPenaltyAmount = 0;
+
+        if (shift && daySchedule?.shiftEnd) {
+            const shiftEndMins = parseTimeToMinutes(daySchedule.shiftEnd);
+            if (shiftEndMins !== null) {
+                const istNow = new Date(Date.now() + (5.5 * 60 * 60 * 1000));
+                const nowMins = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+                earlyByMins = Math.max(0, shiftEndMins - nowMins);
+                isEarly = earlyByMins > (shift.maxEarlyOutMinutes || 0);
+
+                if (isEarly) {
+                    try {
+                        const penaltyRule = await PenaltyRule.findOne({ shift: shift._id });
+                        earlyOutPenaltyAmount = await calculatePenaltyAmount(shift._id, earlyByMins, employee._id, penaltyRule, null, 'Early Out Minutes');
+                    } catch (_) {}
+                }
+            }
+        }
+
+        if (isEarly) {
+            // Move to awaiting_early_reason
+            await WhatsAppSession.findOneAndUpdate(
+                { phone: waPhone },
+                {
+                    step: 'awaiting_early_reason',
+                    data: { ...session.data, workReport: t, earlyByMins }
+                }
+            );
+
+            return `⚠️ *Early Departure Notice*\n\n` +
+                   `You are punching out *${earlyByMins} mins early* (shift end: ${daySchedule?.shiftEnd || ''}).` +
+                   (earlyOutPenaltyAmount > 0 ? `\nEarly departure penalty: *₹${earlyOutPenaltyAmount}*` : '') +
+                   `\n\nPlease reply with your *reason for early departure* to complete punch out:\n\n` +
+                   `Send *cancel* to cancel punch out.`;
+        }
+
+        // On time / after shift end -> finish immediately
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return await completePunchOut(employee, record, t, waPhone);
+    }
+
+    // Step 2: Employee submitted early departure reason
+    if (session.step === 'awaiting_early_reason') {
+        const workReport = session.data?.workReport || 'Daily tasks completed';
+        const earlyReason = t;
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+        return await completePunchOut(employee, record, workReport, waPhone, earlyReason);
+    }
+
     await WhatsAppSession.deleteOne({ phone: waPhone });
-    return await completePunchOut(employee, record, t, waPhone);
+    return `Punch out flow error. Please send *punch out* again.`;
 };
 
 // Helper to get all overlapping days of a range [fromDateStr, toDateStr] in a given year-month YYYY-MM
@@ -1506,13 +1863,32 @@ export const handleWebhook = async (req, res) => {
                 continue;
             }
 
+            // ── 2.1 Check if WhatsApp Chatbot access is disabled for this employee ──
+            if (employee.isWhatsAppEnabled === false) {
+                console.log(`[WhatsApp] WhatsApp chatbot access is disabled for employee: ${employee.name} (${employee.employeeId || employee._id})`);
+                await WhatsAppSession.deleteOne({ phone: waPhone });
+                await sendWhatsAppMessage(
+                    waPhone,
+                    `⚠️ *Access Restricted*\n\nHello *${employee.name}*,\n\nYour WhatsApp HRMS chatbot access has been disabled by your administrator.\n\nPlease contact your HR department or company administrator if you require access.`
+                );
+                continue;
+            }
+
             // ── 3. Check for active multi-step session ──
             const session = await WhatsAppSession.findOne({ phone: waPhone });
 
             let reply;
 
-            // If in a leave flow, continue it (unless they send a fresh command)
-            if (session?.flow === 'apply_leave') {
+            // If in a punch_in flow, collect late reason
+            if (session?.flow === 'punch_in') {
+                const intent = detectIntent(text);
+                if (intent === 'HELP') {
+                    await WhatsAppSession.deleteOne({ phone: waPhone });
+                    reply = handleHelp(employee);
+                } else {
+                    reply = await handlePunchInReason(employee, text, session, waPhone);
+                }
+            } else if (session?.flow === 'apply_leave') {
                 const intent = detectIntent(text);
                 // Allow cancel and help to break out of flow
                 if (intent === 'HELP') {
@@ -1543,7 +1919,7 @@ export const handleWebhook = async (req, res) => {
 
                 switch (intent) {
                     case 'PUNCH_IN':
-                        reply = await handlePunchIn(employee, waPhone);
+                        reply = await handlePunchIn(employee, waPhone, text);
                         break;
                     case 'PUNCH_OUT':
                         reply = await handlePunchOut(employee, waPhone, text);
