@@ -43,7 +43,8 @@ const AddEmployee = () => {
         employmentType: 'Full Time',
         sendWhatsApp: true,
         requireSelfie: true,
-        isWhatsAppEnabled: true,
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false,
         subDepartment: '',
         grade: '',
         employeeLevel: '',
@@ -522,35 +523,66 @@ const AddEmployee = () => {
                              />
                         </div>
 
-                        <div className="hrm-form-group" style={{ gridColumn: 'span 2', marginTop: '10px', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div className="hrm-form-group" style={{ 
+                            gridColumn: 'span 2', 
+                            marginTop: '10px', 
+                            padding: '12px 16px', 
+                            background: formData.requireSelfie ? '#f0f7ff' : '#f8fafc', 
+                            borderRadius: '8px', 
+                            border: formData.requireSelfie ? '1.5px solid #3b82f6' : '1px solid #e2e8f0',
+                            transition: 'all 0.2s ease'
+                        }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>
                                 <input 
                                     type="checkbox" 
                                     name="requireSelfie" 
-                                    checked={formData.requireSelfie !== false} 
-                                    onChange={(e) => setFormData(prev => ({ ...prev, requireSelfie: e.target.checked }))}
+                                    checked={Boolean(formData.requireSelfie)} 
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setFormData(prev => ({ 
+                                            ...prev, 
+                                            requireSelfie: checked,
+                                            ...(checked ? { isWhatsAppEnabled: false, whatsAppPunchEnabled: false } : {})
+                                        }));
+                                    }}
                                     style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
                                 />
                                 Mandatory Face Detection for Punch In / Punch Out
                             </label>
                             <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '28px', display: 'block', marginTop: '4px' }}>
-                                When enabled, this employee must complete face detection photo during attendance punch-in and punch-out. Uncheck to exempt this employee.
+                                When enabled, this employee must complete face detection photo during attendance punch-in and punch-out. Disables WhatsApp punching.
                             </span>
                         </div>
 
-                        <div className="hrm-form-group" style={{ gridColumn: 'span 2', marginTop: '10px', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div className="hrm-form-group" style={{ 
+                            gridColumn: 'span 2', 
+                            marginTop: '10px', 
+                            padding: '12px 16px', 
+                            background: (!formData.requireSelfie && (formData.isWhatsAppEnabled || formData.whatsAppPunchEnabled)) ? '#f0fdf4' : '#f8fafc', 
+                            borderRadius: '8px', 
+                            border: (!formData.requireSelfie && (formData.isWhatsAppEnabled || formData.whatsAppPunchEnabled)) ? '1.5px solid #22c55e' : '1px solid #e2e8f0',
+                            transition: 'all 0.2s ease'
+                        }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>
                                 <input 
                                     type="checkbox" 
                                     name="isWhatsAppEnabled" 
-                                    checked={formData.isWhatsAppEnabled !== false} 
-                                    onChange={(e) => setFormData(prev => ({ ...prev, isWhatsAppEnabled: e.target.checked, whatsAppPunchEnabled: e.target.checked }))}
+                                    checked={Boolean(!formData.requireSelfie && (formData.isWhatsAppEnabled || formData.whatsAppPunchEnabled))} 
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setFormData(prev => ({ 
+                                            ...prev, 
+                                            isWhatsAppEnabled: checked, 
+                                            whatsAppPunchEnabled: checked,
+                                            ...(checked ? { requireSelfie: false } : {})
+                                        }));
+                                    }}
                                     style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
                                 />
                                 Allow WhatsApp Attendance Punch In / Punch Out
                             </label>
                             <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '28px', display: 'block', marginTop: '4px' }}>
-                                When enabled, this employee can punch in and punch out via WhatsApp. When unchecked, WhatsApp punching is restricted (must use Mobile App / Web Portal), while other WhatsApp features (Leave Requests, Salary Slips, Reports) remain active.
+                                When enabled, this employee can punch in and punch out via WhatsApp. Disables mandatory face detection. Other WhatsApp features (Leave Requests, Salary Slips, Reports) remain active.
                             </span>
                         </div>
 

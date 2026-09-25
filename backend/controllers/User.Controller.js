@@ -183,6 +183,16 @@ const createUser = async (req, res) => {
             bodyContent.isWhatsAppEnabled = bodyContent.whatsAppPunchEnabled;
         }
 
+        // Mutual exclusivity: If Face Detection is enabled, WhatsApp punching is disabled, and vice-versa
+        if (bodyContent.requireSelfie) {
+            bodyContent.isWhatsAppEnabled = false;
+            bodyContent.whatsAppPunchEnabled = false;
+        } else if (bodyContent.isWhatsAppEnabled || bodyContent.whatsAppPunchEnabled) {
+            bodyContent.requireSelfie = false;
+            bodyContent.isWhatsAppEnabled = true;
+            bodyContent.whatsAppPunchEnabled = true;
+        }
+
         // Create new user with all fields, mapping as necessary
         const newUser = new User({
             ...bodyContent,
@@ -428,6 +438,18 @@ const updateUser = async (req, res) => {
         if (typeof updateData.whatsAppPunchEnabled !== 'undefined') {
             updateData.whatsAppPunchEnabled = updateData.whatsAppPunchEnabled === true || updateData.whatsAppPunchEnabled === 'true';
             updateData.isWhatsAppEnabled = updateData.whatsAppPunchEnabled;
+        }
+
+        // Mutual exclusivity: If Face Detection is enabled, WhatsApp punching is disabled, and vice-versa
+        if (typeof updateData.requireSelfie !== 'undefined' || typeof updateData.isWhatsAppEnabled !== 'undefined' || typeof updateData.whatsAppPunchEnabled !== 'undefined') {
+            if (updateData.requireSelfie) {
+                updateData.isWhatsAppEnabled = false;
+                updateData.whatsAppPunchEnabled = false;
+            } else if (updateData.isWhatsAppEnabled || updateData.whatsAppPunchEnabled) {
+                updateData.requireSelfie = false;
+                updateData.isWhatsAppEnabled = true;
+                updateData.whatsAppPunchEnabled = true;
+            }
         }
         if (typeof updateData.sendDailyAttendanceReport !== 'undefined') {
             updateData.sendDailyAttendanceReport = updateData.sendDailyAttendanceReport === true || updateData.sendDailyAttendanceReport === 'true';

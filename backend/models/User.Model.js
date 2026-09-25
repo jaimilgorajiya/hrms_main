@@ -45,11 +45,11 @@ const userSchema = new mongoose.Schema(
         },
         isWhatsAppEnabled: {
             type: Boolean,
-            default: true
+            default: false
         },
         whatsAppPunchEnabled: {
             type: Boolean,
-            default: true
+            default: false
         },
         sendDailyAttendanceReport: {
             type: Boolean,

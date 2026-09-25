@@ -48,10 +48,10 @@ console.log('======================================================\n');
 // ─────────────────────────────────────────────────────────────────
 console.log('--- Section 1: Database Schema & Default Values ---');
 
-test('User schema has isWhatsAppEnabled field with default true', () => {
+test('User schema has isWhatsAppEnabled field with default false (mutual exclusivity with requireSelfie)', () => {
     const userSchemaPaths = User.schema.paths;
     assert(userSchemaPaths['isWhatsAppEnabled'], 'User schema must include isWhatsAppEnabled');
-    assert.strictEqual(userSchemaPaths['isWhatsAppEnabled'].defaultValue, true, 'Default must be true');
+    assert.strictEqual(userSchemaPaths['isWhatsAppEnabled'].defaultValue, false, 'Default must be false');
 });
 
 test('User schema has sendDailyAttendanceReport field with default true', () => {
@@ -273,6 +273,36 @@ test('Coerces string "true" / "false" from FormData to Boolean', () => {
 
     assert.strictEqual(updateData2.isWhatsAppEnabled, true);
     assert.strictEqual(updateData2.sendDailyAttendanceReport, true);
+});
+
+test('Enforces mutual exclusivity: Face Detection enables -> WhatsApp punch disables', () => {
+    const updateData = { requireSelfie: true, isWhatsAppEnabled: true };
+    if (updateData.requireSelfie) {
+        updateData.isWhatsAppEnabled = false;
+        updateData.whatsAppPunchEnabled = false;
+    } else if (updateData.isWhatsAppEnabled) {
+        updateData.requireSelfie = false;
+    }
+
+    assert.strictEqual(updateData.requireSelfie, true);
+    assert.strictEqual(updateData.isWhatsAppEnabled, false);
+    assert.strictEqual(updateData.whatsAppPunchEnabled, false);
+});
+
+test('Enforces mutual exclusivity: WhatsApp punch enables -> Face Detection disables', () => {
+    const updateData = { requireSelfie: false, isWhatsAppEnabled: true };
+    if (updateData.requireSelfie) {
+        updateData.isWhatsAppEnabled = false;
+        updateData.whatsAppPunchEnabled = false;
+    } else if (updateData.isWhatsAppEnabled) {
+        updateData.requireSelfie = false;
+        updateData.isWhatsAppEnabled = true;
+        updateData.whatsAppPunchEnabled = true;
+    }
+
+    assert.strictEqual(updateData.requireSelfie, false);
+    assert.strictEqual(updateData.isWhatsAppEnabled, true);
+    assert.strictEqual(updateData.whatsAppPunchEnabled, true);
 });
 
 
