@@ -1863,30 +1863,27 @@ export const handleWebhook = async (req, res) => {
                 continue;
             }
 
-            // ── 2.1 Check if WhatsApp Chatbot access is disabled for this employee ──
-            if (employee.isWhatsAppEnabled === false) {
-                console.log(`[WhatsApp] WhatsApp chatbot access is disabled for employee: ${employee.name} (${employee.employeeId || employee._id})`);
-                await WhatsAppSession.deleteOne({ phone: waPhone });
-                await sendWhatsAppMessage(
-                    waPhone,
-                    `⚠️ *Access Restricted*\n\nHello *${employee.name}*,\n\nYour WhatsApp HRMS chatbot access has been disabled by your administrator.\n\nPlease contact your HR department or company administrator if you require access.`
-                );
-                continue;
-            }
-
             // ── 3. Check for active multi-step session ──
             const session = await WhatsAppSession.findOne({ phone: waPhone });
 
             let reply;
 
+            // Check if punch access is disabled for this employee
+            const isPunchDisabled = employee.isWhatsAppEnabled === false || employee.whatsAppPunchEnabled === false;
+
             // If in a punch_in flow, collect late reason
             if (session?.flow === 'punch_in') {
-                const intent = detectIntent(text);
-                if (intent === 'HELP') {
+                if (isPunchDisabled) {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = handleHelp(employee);
+                    reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
                 } else {
-                    reply = await handlePunchInReason(employee, text, session, waPhone);
+                    const intent = detectIntent(text);
+                    if (intent === 'HELP') {
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        reply = handleHelp(employee);
+                    } else {
+                        reply = await handlePunchInReason(employee, text, session, waPhone);
+                    }
                 }
             } else if (session?.flow === 'apply_leave') {
                 const intent = detectIntent(text);
@@ -1898,12 +1895,17 @@ export const handleWebhook = async (req, res) => {
                     reply = await handleLeaveFlow(employee, text, session, waPhone);
                 }
             } else if (session?.flow === 'punch_out') {
-                const intent = detectIntent(text);
-                if (intent === 'HELP') {
+                if (isPunchDisabled) {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = handleHelp(employee);
+                    reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
                 } else {
-                    reply = await handlePunchOutReport(employee, text, session, waPhone);
+                    const intent = detectIntent(text);
+                    if (intent === 'HELP') {
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        reply = handleHelp(employee);
+                    } else {
+                        reply = await handlePunchOutReport(employee, text, session, waPhone);
+                    }
                 }
             } else if (session?.flow === 'regularize_attendance') {
                 const intent = detectIntent(text);
@@ -1919,10 +1921,18 @@ export const handleWebhook = async (req, res) => {
 
                 switch (intent) {
                     case 'PUNCH_IN':
-                        reply = await handlePunchIn(employee, waPhone, text);
+                        if (isPunchDisabled) {
+                            reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
+                        } else {
+                            reply = await handlePunchIn(employee, waPhone, text);
+                        }
                         break;
                     case 'PUNCH_OUT':
-                        reply = await handlePunchOut(employee, waPhone, text);
+                        if (isPunchDisabled) {
+                            reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
+                        } else {
+                            reply = await handlePunchOut(employee, waPhone, text);
+                        }
                         break;
                     case 'LEAVE_BALANCE':
                         reply = await handleLeaveBalance(employee);

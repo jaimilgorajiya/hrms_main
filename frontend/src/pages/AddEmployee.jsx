@@ -544,13 +544,13 @@ const AddEmployee = () => {
                                     type="checkbox" 
                                     name="isWhatsAppEnabled" 
                                     checked={formData.isWhatsAppEnabled !== false} 
-                                    onChange={(e) => setFormData(prev => ({ ...prev, isWhatsAppEnabled: e.target.checked }))}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, isWhatsAppEnabled: e.target.checked, whatsAppPunchEnabled: e.target.checked }))}
                                     style={{ width: '18px', height: '18px', accentColor: '#2563eb', cursor: 'pointer' }}
                                 />
-                                WhatsApp Chatbot Access
+                                Allow WhatsApp Attendance Punch In / Punch Out
                             </label>
                             <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '28px', display: 'block', marginTop: '4px' }}>
-                                When enabled, this employee can use the WhatsApp HRMS chatbot for attendance punch-in/out, leave requests, attendance reports, and salary slips. Uncheck to disable WhatsApp bot access.
+                                When enabled, this employee can punch in and punch out via WhatsApp. When unchecked, WhatsApp punching is restricted (must use Mobile App / Web Portal), while other WhatsApp features (Leave Requests, Salary Slips, Reports) remain active.
                             </span>
                         </div>
 

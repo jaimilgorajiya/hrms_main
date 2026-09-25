@@ -176,6 +176,11 @@ const createUser = async (req, res) => {
         }
         if (typeof bodyContent.isWhatsAppEnabled !== 'undefined') {
             bodyContent.isWhatsAppEnabled = bodyContent.isWhatsAppEnabled === true || bodyContent.isWhatsAppEnabled === 'true';
+            bodyContent.whatsAppPunchEnabled = bodyContent.isWhatsAppEnabled;
+        }
+        if (typeof bodyContent.whatsAppPunchEnabled !== 'undefined') {
+            bodyContent.whatsAppPunchEnabled = bodyContent.whatsAppPunchEnabled === true || bodyContent.whatsAppPunchEnabled === 'true';
+            bodyContent.isWhatsAppEnabled = bodyContent.whatsAppPunchEnabled;
         }
 
         // Create new user with all fields, mapping as necessary
@@ -418,6 +423,11 @@ const updateUser = async (req, res) => {
         }
         if (typeof updateData.isWhatsAppEnabled !== 'undefined') {
             updateData.isWhatsAppEnabled = updateData.isWhatsAppEnabled === true || updateData.isWhatsAppEnabled === 'true';
+            updateData.whatsAppPunchEnabled = updateData.isWhatsAppEnabled;
+        }
+        if (typeof updateData.whatsAppPunchEnabled !== 'undefined') {
+            updateData.whatsAppPunchEnabled = updateData.whatsAppPunchEnabled === true || updateData.whatsAppPunchEnabled === 'true';
+            updateData.isWhatsAppEnabled = updateData.whatsAppPunchEnabled;
         }
         if (typeof updateData.sendDailyAttendanceReport !== 'undefined') {
             updateData.sendDailyAttendanceReport = updateData.sendDailyAttendanceReport === true || updateData.sendDailyAttendanceReport === 'true';

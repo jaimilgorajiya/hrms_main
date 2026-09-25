@@ -68,16 +68,27 @@ test('Company schema has sendDailyAttendanceReport field with default true', () 
 
 
 // ─────────────────────────────────────────────────────────────────
-// SECTION 2: Employee WhatsApp Chatbot Access Guard Logic
+// SECTION 2: Employee WhatsApp Chatbot Punch Restriction Guard Logic
 // ─────────────────────────────────────────────────────────────────
-console.log('\n--- Section 2: Employee WhatsApp Chatbot Access Logic ---');
+console.log('\n--- Section 2: Employee WhatsApp Punch Restriction vs Self-Service Options ---');
 
-// Mock WhatsApp message handler logic
-const processIncomingWhatsAppMessage = async ({ employee, text, waPhone, sessionExists = false }) => {
-    let sentMessage = null;
-    let sessionDeleted = false;
+// Mock WhatsApp intent detector
+const detectIntent = (text) => {
+    const t = text.trim().toLowerCase();
+    if (t === '1' || t.includes('punch in') || t.includes('check in')) return 'PUNCH_IN';
+    if (t === '2' || t.includes('punch out') || t.includes('check out')) return 'PUNCH_OUT';
+    if (t === '3' || t.includes('attendance')) return 'ATTENDANCE_STATUS';
+    if (t === '4' || t.includes('monthly attendance')) return 'MONTHLY_ATTENDANCE';
+    if (t === '5' || t.includes('balance') || t.includes('leave balance')) return 'LEAVE_BALANCE';
+    if (t === '6' || t.includes('apply leave')) return 'APPLY_LEAVE';
+    if (t === '7' || t.includes('salary slip') || t.includes('payslip')) return 'SALARY_SLIP';
+    if (t === '8' || t.includes('regularize')) return 'REGULARIZE';
+    if (t === 'help' || t === 'hi' || t === 'hello' || t === 'menu') return 'HELP';
+    return 'UNKNOWN';
+};
 
-    // Simulate WhatsApp controller webhook guard
+// Mock WhatsApp message processor matching WhatsApp.Controller.js logic
+const processIncomingWhatsAppMessage = async ({ employee, text, waPhone, session = null }) => {
     if (!employee) {
         return {
             status: 'UNREGISTERED',
@@ -85,80 +96,147 @@ const processIncomingWhatsAppMessage = async ({ employee, text, waPhone, session
         };
     }
 
-    if (employee.isWhatsAppEnabled === false) {
-        if (sessionExists) {
+    const isPunchDisabled = employee.isWhatsAppEnabled === false || employee.whatsAppPunchEnabled === false;
+    let sessionDeleted = false;
+    let reply = null;
+
+    if (session?.flow === 'punch_in' || session?.flow === 'punch_out') {
+        if (isPunchDisabled) {
             sessionDeleted = true;
+            reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
+            return { status: 'PUNCH_RESTRICTED', reply, sessionDeleted };
         }
-        sentMessage = `⚠️ *Access Restricted*\n\nHello *${employee.name}*,\n\nYour WhatsApp HRMS chatbot access has been disabled by your administrator.\n\nPlease contact your HR department or company administrator if you require access.`;
-        return {
-            status: 'ACCESS_RESTRICTED',
-            reply: sentMessage,
-            sessionDeleted
-        };
     }
 
-    // If enabled, process message
-    return {
-        status: 'PROCESSED',
-        reply: `Welcome ${employee.name}, your request for "${text}" is being processed.`
-    };
+    const intent = detectIntent(text);
+
+    switch (intent) {
+        case 'PUNCH_IN':
+        case 'PUNCH_OUT':
+            if (isPunchDisabled) {
+                reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
+                return { status: 'PUNCH_RESTRICTED', reply };
+            }
+            return { status: 'PUNCH_ALLOWED', reply: `Successfully processed ${intent} for ${employee.name}` };
+
+        case 'LEAVE_BALANCE':
+            return { status: 'LEAVE_BALANCE_PROCESSED', reply: `Leave balance for ${employee.name}: 12 CL, 8 SL` };
+
+        case 'SALARY_SLIP':
+            return { status: 'SALARY_SLIP_PROCESSED', reply: `Generated salary slip for ${employee.name}` };
+
+        case 'APPLY_LEAVE':
+            return { status: 'APPLY_LEAVE_PROCESSED', reply: `Started leave application flow for ${employee.name}` };
+
+        case 'ATTENDANCE_STATUS':
+        case 'MONTHLY_ATTENDANCE':
+            return { status: 'REPORT_PROCESSED', reply: `Attendance report for ${employee.name}` };
+
+        case 'HELP':
+            return { status: 'HELP_PROCESSED', reply: `Help menu with options for ${employee.name}` };
+
+        default:
+            return { status: 'UNKNOWN', reply: 'Send *help* to see all available commands.' };
+    }
 };
 
-test('Enabled employee (isWhatsAppEnabled: true) is allowed to use WhatsApp chatbot', async () => {
+test('Enabled employee can punch in and punch out via WhatsApp', async () => {
     const emp = {
         name: 'John Doe',
         employeeId: 'EMP001',
         phone: '919876543210',
-        isWhatsAppEnabled: true
+        isWhatsAppEnabled: true,
+        whatsAppPunchEnabled: true
     };
 
-    const res = await processIncomingWhatsAppMessage({
-        employee: emp,
-        text: 'punch in',
-        waPhone: '919876543210'
-    });
+    const resIn = await processIncomingWhatsAppMessage({ employee: emp, text: 'punch in', waPhone: '919876543210' });
+    assert.strictEqual(resIn.status, 'PUNCH_ALLOWED');
 
-    assert.strictEqual(res.status, 'PROCESSED');
-    assert(res.reply.includes('Welcome John Doe'));
+    const resOut = await processIncomingWhatsAppMessage({ employee: emp, text: 'punch out', waPhone: '919876543210' });
+    assert.strictEqual(resOut.status, 'PUNCH_ALLOWED');
 });
 
-test('Disabled employee (isWhatsAppEnabled: false) is blocked with Access Restricted message', async () => {
+test('Disabled employee (whatsAppPunchEnabled: false) is BLOCKED from Punch In', async () => {
     const emp = {
         name: 'Rahul Sharma',
         employeeId: 'EMP002',
         phone: '919876543210',
-        isWhatsAppEnabled: false
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
     };
 
-    const res = await processIncomingWhatsAppMessage({
-        employee: emp,
-        text: 'punch in',
-        waPhone: '919876543210',
-        sessionExists: true
-    });
-
-    assert.strictEqual(res.status, 'ACCESS_RESTRICTED');
-    assert(res.reply.includes('Access Restricted'), 'Reply must state Access Restricted');
-    assert(res.reply.includes('Rahul Sharma'), 'Reply must address employee by name');
-    assert(res.reply.includes('disabled by your administrator'), 'Reply must explain disabled by admin');
-    assert.strictEqual(res.sessionDeleted, true, 'Active session must be cleared');
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'punch in', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'PUNCH_RESTRICTED');
+    assert(res.reply.includes('Punching Restricted'));
+    assert(res.reply.includes('HRMS Mobile App or Web Portal'));
 });
 
-test('Employee with isWhatsAppEnabled undefined falls back to enabled (truthy)', async () => {
+test('Disabled employee (whatsAppPunchEnabled: false) is BLOCKED from Punch Out', async () => {
     const emp = {
-        name: 'Pooja Patel',
-        employeeId: 'EMP003',
-        phone: '919876543210'
-        // isWhatsAppEnabled omitted
+        name: 'Rahul Sharma',
+        employeeId: 'EMP002',
+        phone: '919876543210',
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
     };
 
-    const res = await processIncomingWhatsAppMessage({
-        employee: emp,
-        text: 'salary slip',
-        waPhone: '919876543210'
-    });
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'punch out', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'PUNCH_RESTRICTED');
+    assert(res.reply.includes('Punching Restricted'));
+});
 
-    assert.strictEqual(res.status, 'PROCESSED');
+test('Disabled employee CAN still download Salary Slip via WhatsApp', async () => {
+    const emp = {
+        name: 'Rahul Sharma',
+        employeeId: 'EMP002',
+        phone: '919876543210',
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
+    };
+
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'salary slip', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'SALARY_SLIP_PROCESSED');
+    assert(res.reply.includes('Generated salary slip for Rahul Sharma'));
+});
+
+test('Disabled employee CAN still check Leave Balance via WhatsApp', async () => {
+    const emp = {
+        name: 'Rahul Sharma',
+        employeeId: 'EMP002',
+        phone: '919876543210',
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
+    };
+
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'leave balance', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'LEAVE_BALANCE_PROCESSED');
+    assert(res.reply.includes('Leave balance for Rahul Sharma'));
+});
+
+test('Disabled employee CAN still Apply Leave via WhatsApp', async () => {
+    const emp = {
+        name: 'Rahul Sharma',
+        employeeId: 'EMP002',
+        phone: '919876543210',
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
+    };
+
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'apply leave', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'APPLY_LEAVE_PROCESSED');
+});
+
+test('Disabled employee CAN still request Help Menu via WhatsApp', async () => {
+    const emp = {
+        name: 'Rahul Sharma',
+        employeeId: 'EMP002',
+        phone: '919876543210',
+        isWhatsAppEnabled: false,
+        whatsAppPunchEnabled: false
+    };
+
+    const res = await processIncomingWhatsAppMessage({ employee: emp, text: 'help', waPhone: '919876543210' });
+    assert.strictEqual(res.status, 'HELP_PROCESSED');
 });
 
 

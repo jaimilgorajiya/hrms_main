@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema(
             type: Boolean,
             default: true
         },
+        whatsAppPunchEnabled: {
+            type: Boolean,
+            default: true
+        },
         sendDailyAttendanceReport: {
             type: Boolean,
             default: true
