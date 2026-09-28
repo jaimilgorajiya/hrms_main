@@ -873,6 +873,15 @@ test('resolveBranchGeofence creates valid Google Maps link for location coordina
     assert.strictEqual(res.longitude, 72.5714);
     assert.strictEqual(res.mapUrl, 'https://maps.google.com/?q=23.0225,72.5714');
     assert.ok(res.locationAddress.includes('SG Highway'));
+    assert.strictEqual(typeof res.isOutsideGeofence, 'boolean');
+});
+
+test('resolveBranchGeofence handles custom out-of-office reason properly', async () => {
+    const emp = { name: 'Alice', branch: 'HQ' };
+    const res = await resolveBranchGeofence(emp, 23.0225, 72.5714, 'Client Site, Surat', 'Client Meeting with Tata Motors');
+    assert.ok(res.locationAddress.includes('Client Site'));
+    assert.strictEqual(res.latitude, 23.0225);
+    assert.strictEqual(res.longitude, 72.5714);
 });
 
 // ─────────────────────────────────────────────────────────────────

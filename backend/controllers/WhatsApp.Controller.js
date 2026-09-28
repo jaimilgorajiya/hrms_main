@@ -191,14 +191,19 @@ export const calculateDistanceMeters = (lat1, lon1, lat2, lon2) => {
 };
 
 /** Resolve employee branch and calculate geofence status */
-export const resolveBranchGeofence = async (employee, latitude, longitude, address = '') => {
+export const resolveBranchGeofence = async (employee, latitude, longitude, address = '', customReason = '') => {
     if (!latitude || !longitude) {
         return {
             geofenceReason: 'Via WhatsApp',
             locationAddress: address || 'Via WhatsApp',
             mapUrl: null,
             latitude: null,
-            longitude: null
+            longitude: null,
+            isOutsideGeofence: false,
+            distance: null,
+            distanceStr: null,
+            branchName: null,
+            allowedRadius: null
         };
     }
 
@@ -220,14 +225,28 @@ export const resolveBranchGeofence = async (employee, latitude, longitude, addre
         }
 
         let geofenceReason = 'Via WhatsApp GPS';
+        let isOutsideGeofence = false;
+        let distance = null;
+        let distanceStr = null;
+        let branchName = null;
+        let allowedRadius = 200;
+
         if (branch?.latitude && branch?.longitude) {
-            const distance = calculateDistanceMeters(latNum, lonNum, branch.latitude, branch.longitude);
-            const allowedRadius = branch.radius || 200; // default 200m
+            branchName = branch.branchName || 'Office';
+            distance = calculateDistanceMeters(latNum, lonNum, branch.latitude, branch.longitude);
+            allowedRadius = branch.radius || 200; // default 200m
+            distanceStr = distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance}m`;
+
             if (distance <= allowedRadius) {
-                geofenceReason = `Within Office Premises (${distance}m from ${branch.branchName})`;
+                geofenceReason = `Within Office Premises (${distance}m from ${branchName})`;
+                isOutsideGeofence = false;
             } else {
-                const distanceStr = distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance}m`;
-                geofenceReason = `Outside Office (${distanceStr} from ${branch.branchName})`;
+                isOutsideGeofence = true;
+                if (customReason) {
+                    geofenceReason = `Outside Office (${distanceStr} from ${branchName}) — Reason: ${customReason}`;
+                } else {
+                    geofenceReason = `Outside Office (${distanceStr} from ${branchName})`;
+                }
             }
         }
 
@@ -236,7 +255,12 @@ export const resolveBranchGeofence = async (employee, latitude, longitude, addre
             locationAddress: displayAddress,
             mapUrl,
             latitude: latNum,
-            longitude: lonNum
+            longitude: lonNum,
+            isOutsideGeofence,
+            distance,
+            distanceStr,
+            branchName,
+            allowedRadius
         };
     } catch (_) {
         return {
@@ -244,7 +268,12 @@ export const resolveBranchGeofence = async (employee, latitude, longitude, addre
             locationAddress: displayAddress,
             mapUrl,
             latitude: latNum,
-            longitude: lonNum
+            longitude: lonNum,
+            isOutsideGeofence: false,
+            distance: null,
+            distanceStr: null,
+            branchName: null,
+            allowedRadius: null
         };
     }
 };
@@ -311,7 +340,7 @@ const detectIntent = (text) => {
 // ─────────────────────────────────────────────────────────────────
 
 /** Execute and save PUNCH IN with location and geofence verification */
-const executePunchIn = async (employee, waPhone, lateReason = '', locationData = null) => {
+const executePunchIn = async (employee, waPhone, lateReason = '', locationData = null, outOfOfficeReason = '') => {
     const date = getTodayStr();
     const now = new Date();
 
@@ -403,7 +432,8 @@ const executePunchIn = async (employee, waPhone, lateReason = '', locationData =
         employee,
         locationData?.latitude,
         locationData?.longitude,
-        locationData?.address || locationData?.name
+        locationData?.address || locationData?.name,
+        outOfOfficeReason
     );
 
     const punchEntry = {
@@ -524,6 +554,39 @@ const handlePunchIn = async (employee, waPhone, text = '', locationData = null) 
 
     // If locationData is already provided directly (e.g. from location pin message)
     if (locationData) {
+        const geofenceInfo = await resolveBranchGeofence(
+            employee,
+            locationData.latitude,
+            locationData.longitude,
+            locationData.address || locationData.name
+        );
+
+        if (geofenceInfo.isOutsideGeofence) {
+            await WhatsAppSession.findOneAndUpdate(
+                { phone: waPhone },
+                {
+                    phone: waPhone,
+                    flow: 'punch_in',
+                    step: 'awaiting_geofence_reason',
+                    data: {
+                        date,
+                        lateReason: '',
+                        location: locationData,
+                        distanceStr: geofenceInfo.distanceStr,
+                        branchName: geofenceInfo.branchName,
+                        allowedRadius: geofenceInfo.allowedRadius
+                    },
+                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+                },
+                { upsert: true, new: true }
+            );
+
+            return `📍 *Outside Office Range Notice*\n\n` +
+                   `You are currently *${geofenceInfo.distanceStr} away* from your office branch (*${geofenceInfo.branchName}*, radius: ${geofenceInfo.allowedRadius}m).\n\n` +
+                   `Please reply with your *reason for punching in outside the office* (e.g. *Client Meeting*, *Work From Home*, *Site Visit*):\n\n` +
+                   `Send *cancel* to cancel punch in.`;
+        }
+
         return await executePunchIn(employee, waPhone, '', locationData);
     }
 
@@ -2080,8 +2143,40 @@ export const handleWebhook = async (req, res) => {
                     reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
                 } else if (session.step === 'awaiting_location') {
                     if (locationData) {
-                        reply = await executePunchIn(employee, waPhone, session.data?.lateReason, locationData);
-                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        const geofenceInfo = await resolveBranchGeofence(
+                            employee,
+                            locationData.latitude,
+                            locationData.longitude,
+                            locationData.address || locationData.name
+                        );
+
+                        if (geofenceInfo.isOutsideGeofence) {
+                            await WhatsAppSession.findOneAndUpdate(
+                                { phone: waPhone },
+                                {
+                                    phone: waPhone,
+                                    flow: 'punch_in',
+                                    step: 'awaiting_geofence_reason',
+                                    data: {
+                                        date: session.data?.date || getTodayStr(),
+                                        lateReason: session.data?.lateReason || '',
+                                        location: locationData,
+                                        distanceStr: geofenceInfo.distanceStr,
+                                        branchName: geofenceInfo.branchName,
+                                        allowedRadius: geofenceInfo.allowedRadius
+                                    },
+                                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
+                                }
+                            );
+
+                            reply = `📍 *Outside Office Range Notice*\n\n` +
+                                   `You are currently *${geofenceInfo.distanceStr} away* from your office branch (*${geofenceInfo.branchName}*, radius: ${geofenceInfo.allowedRadius}m).\n\n` +
+                                   `Please reply with your *reason for punching in outside the office* (e.g. *Client Meeting*, *Work From Home*, *Site Visit*):\n\n` +
+                                   `Send *cancel* to cancel punch in.`;
+                        } else {
+                            reply = await executePunchIn(employee, waPhone, session.data?.lateReason, locationData);
+                            await WhatsAppSession.deleteOne({ phone: waPhone });
+                        }
                     } else if (text.toLowerCase() === 'cancel') {
                         await WhatsAppSession.deleteOne({ phone: waPhone });
                         reply = `Punch in cancelled. Send *punch in* when you are ready.`;
@@ -2092,6 +2187,19 @@ export const handleWebhook = async (req, res) => {
                             `📍 *Location Required for Punch In*\n\nPlease tap the button below to share your current location and confirm your Punch In (or reply *cancel*):`
                         );
                         reply = null;
+                    }
+                } else if (session.step === 'awaiting_geofence_reason') {
+                    if (text.toLowerCase() === 'cancel') {
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        reply = `Punch in cancelled. Send *punch in* when you are ready.`;
+                    } else if (text.trim().length < 3) {
+                        reply = `Please provide a valid reason for punching outside the office (at least 3 characters).\n\nSend *cancel* to cancel punch in.`;
+                    } else {
+                        const outOfOfficeReason = text.trim();
+                        const lateReason = session.data?.lateReason || '';
+                        const location = session.data?.location;
+                        reply = await executePunchIn(employee, waPhone, lateReason, location, outOfOfficeReason);
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
                     }
                 } else {
                     const intent = detectIntent(text);
