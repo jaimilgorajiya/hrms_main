@@ -843,6 +843,39 @@ await asyncTest('Daily Attendance PDF generator renders completely isolated comp
 });
 
 // ─────────────────────────────────────────────────────────────────
+// FEATURE 11: 1-Tap WhatsApp Location Tracking & Geofence Calculation
+// ─────────────────────────────────────────────────────────────────
+
+console.log('\nFeature 11 — 1-Tap Location Tracking & Geofence Distance:');
+
+import { calculateDistanceMeters, resolveBranchGeofence } from '../controllers/WhatsApp.Controller.js';
+
+test('Haversine distance returns 0 meters for identical coordinates', () => {
+    const d = calculateDistanceMeters(23.0225, 72.5714, 23.0225, 72.5714);
+    assert.strictEqual(d, 0);
+});
+
+test('Haversine distance accurately measures known distance (~111 km for 1 deg latitude)', () => {
+    const d = calculateDistanceMeters(23.0, 72.0, 24.0, 72.0);
+    // 1 degree latitude is approximately 111,195 meters
+    assert.ok(d > 110000 && d < 112000, `Expected ~111km, got ${d}m`);
+});
+
+test('Haversine distance returns null for invalid coordinates', () => {
+    assert.strictEqual(calculateDistanceMeters(null, null, 23.0, 72.0), null);
+    assert.strictEqual(calculateDistanceMeters(undefined, 72.0, 23.0, 72.0), null);
+});
+
+test('resolveBranchGeofence creates valid Google Maps link for location coordinates', async () => {
+    const emp = { name: 'John', branch: 'HQ' };
+    const res = await resolveBranchGeofence(emp, 23.0225, 72.5714, 'SG Highway, Ahmedabad');
+    assert.strictEqual(res.latitude, 23.0225);
+    assert.strictEqual(res.longitude, 72.5714);
+    assert.strictEqual(res.mapUrl, 'https://maps.google.com/?q=23.0225,72.5714');
+    assert.ok(res.locationAddress.includes('SG Highway'));
+});
+
+// ─────────────────────────────────────────────────────────────────
 // RESULTS
 // ─────────────────────────────────────────────────────────────────
 
@@ -851,5 +884,6 @@ console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
 if (failed > 0) {
     process.exit(1);
 }
+
 
 

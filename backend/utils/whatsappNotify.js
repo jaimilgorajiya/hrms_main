@@ -176,3 +176,57 @@ export const sendWhatsAppInteractiveButtons = async (to, { headerText, bodyText,
     }
 };
 
+/**
+ * Send a native Location Request Message with a 1-tap [ Send Location ] button.
+ *
+ * @param {string} to - Destination WhatsApp number (e.g. "919099705065")
+ * @param {string} bodyText - Message asking employee to share location
+ * @returns {Promise<Object|null>}
+ */
+export const sendWhatsAppLocationRequest = async (to, bodyText) => {
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = process.env.WHATSAPP_ACCESS_TOKEN;
+    const apiUrl = process.env.WHATSAPP_API_URL || 'https://graph.facebook.com/v19.0';
+
+    if (!phoneNumberId || !token || phoneNumberId === 'your_phone_number_id_here') {
+        console.warn('[WhatsApp] Credentials not configured. Skipping location request.');
+        return null;
+    }
+
+    try {
+        const payload = {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to,
+            type: 'interactive',
+            interactive: {
+                type: 'location_request_message',
+                body: { text: bodyText },
+                action: {
+                    name: 'send_location'
+                }
+            }
+        };
+
+        const resp = await axios.post(
+            `${apiUrl}/${phoneNumberId}/messages`,
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log(`[WhatsApp] Location request sent to ${to} (ID: ${resp.data?.messages?.[0]?.id})`);
+        return resp.data;
+    } catch (err) {
+        console.warn('[WhatsApp] Location request interactive message failed, falling back to text with guide:', err.response?.data?.error?.message || err.message);
+        
+        // Fallback: send text with clear visual instructions
+        const fallbackText = `${bodyText}\n\n📍 *How to share:* Tap 📎 (or +) → *Location* → *"Send your current location"*.`;
+        return await sendWhatsAppMessage(to, fallbackText);
+    }
+};
+
