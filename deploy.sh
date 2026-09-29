@@ -62,7 +62,7 @@ ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" << 'EOF'
   fi
 
   echo "--> Ensuring file permissions..."
-  sudo chown -R www:www /www/wwwroot/default
+  sudo chown -R www:www /www/wwwroot/default 2>/dev/null || true
 
   echo "✅ Server update completed successfully!"
 EOF
