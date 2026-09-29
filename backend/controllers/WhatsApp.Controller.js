@@ -14,6 +14,7 @@
  *  6. We send a reply back to the employee on WhatsApp
  */
 
+import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import User from '../models/User.Model.js';
 import Attendance from '../models/Attendance.Model.js';
@@ -38,6 +39,21 @@ import { notifyAdminNewRequestViaWhatsApp, handleAdminWhatsAppAction } from '../
 
 // ─────────────────────────────────────────────────────────────────
 // HELPERS
+// ─────────────────────────────────────────────────────────────────
+
+/** Generate secure 1-Tap anti-spoof hardware GPS verification URL */
+export const generatePunchVerifyUrl = (employee, action, waPhone, extraData = {}) => {
+    const payload = {
+        employeeId: employee._id.toString(),
+        action, // 'PUNCH_IN' or 'PUNCH_OUT'
+        phone: waPhone,
+        date: getTodayStr(),
+        ...extraData
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET || 'hrms_whatsapp_geolock_secret', { expiresIn: '5m' });
+    const baseUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://hrms.ifloriana.com';
+    return `${baseUrl.replace(/\/+$/, '')}/punch-verify?token=${token}`;
+};
 // ─────────────────────────────────────────────────────────────────
 
 /** Get today's date as YYYY-MM-DD in IST */
@@ -610,23 +626,25 @@ const handlePunchIn = async (employee, waPhone, text = '', locationData = null) 
         // Check if employee provided late reason in the same message e.g. "punch in: traffic jam"
         const directReason = text.replace(/^(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in|in)[:\s-]*/i, '').trim();
         if (directReason.length >= 3) {
+            const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_IN', waPhone, { lateReason: directReason });
             await WhatsAppSession.findOneAndUpdate(
                 { phone: waPhone },
                 {
                     phone: waPhone,
                     flow: 'punch_in',
-                    step: 'awaiting_location',
+                    step: 'awaiting_web_verify',
                     data: { date, lateReason: directReason },
                     expiresAt: new Date(Date.now() + 15 * 60 * 1000)
                 },
                 { upsert: true, new: true }
             );
 
-            await sendWhatsAppLocationRequest(
-                waPhone,
-                `📍 *Punch In Location Verification*\n\nHello *${employee.name}*! 👋\n\nPlease tap the button below to share your current location and confirm your Punch In.`
-            );
-            return null;
+            return `📍 *Real-Time GPS Verification*\n\n` +
+                   `Hello *${employee.name}*! 👋\n` +
+                   `_Late Reason: "${directReason}"_\n\n` +
+                   `Please tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n` +
+                   `👉 ${verifyUrl}\n\n` +
+                   `⏱️ _Link valid for 5 minutes. Real hardware GPS is captured to prevent location spoofing._`;
         }
 
         // Calculate potential penalty for display in prompt
@@ -656,24 +674,26 @@ const handlePunchIn = async (employee, waPhone, text = '', locationData = null) 
                `Send *cancel* to cancel punch in.`;
     }
 
-    // On time / within relaxation: request location via 1-tap button
+    // On time / within relaxation: generate secure anti-spoof hardware GPS link
+    const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_IN', waPhone, { lateReason: '' });
+
     await WhatsAppSession.findOneAndUpdate(
         { phone: waPhone },
         {
             phone: waPhone,
             flow: 'punch_in',
-            step: 'awaiting_location',
+            step: 'awaiting_web_verify',
             data: { date, lateReason: '' },
             expiresAt: new Date(Date.now() + 15 * 60 * 1000)
         },
         { upsert: true, new: true }
     );
 
-    await sendWhatsAppLocationRequest(
-        waPhone,
-        `📍 *Punch In Location Verification*\n\nHello *${employee.name}*! 👋\n\nPlease tap the button below to share your current location and confirm your Punch In.`
-    );
-    return null;
+    return `📍 *Real-Time GPS Verification*\n\n` +
+           `Hello *${employee.name}*! 👋\n\n` +
+           `Please tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n` +
+           `👉 ${verifyUrl}\n\n` +
+           `⏱️ _Link valid for 5 minutes. Real hardware GPS is captured to prevent location spoofing._`;
 };
 
 /** Handle LATE REASON submission for Punch In, then prompt for 1-tap location */
@@ -690,22 +710,23 @@ const handlePunchInReason = async (employee, text, session, waPhone) => {
     }
 
     const date = session.data?.date || getTodayStr();
+    const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_IN', waPhone, { lateReason: t });
+
     await WhatsAppSession.findOneAndUpdate(
         { phone: waPhone },
         {
             phone: waPhone,
             flow: 'punch_in',
-            step: 'awaiting_location',
+            step: 'awaiting_web_verify',
             data: { date, lateReason: t },
             expiresAt: new Date(Date.now() + 15 * 60 * 1000)
         }
     );
 
-    await sendWhatsAppLocationRequest(
-        waPhone,
-        `📍 *Late Reason Recorded: "${t}"*\n\nPlease tap the button below to share your current location and confirm your Punch In.`
-    );
-    return null;
+    return `📍 *Late Reason Recorded: "${t}"*\n\n` +
+           `Please tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n` +
+           `👉 ${verifyUrl}\n\n` +
+           `⏱️ _Link valid for 5 minutes._`;
 };
 
 /** Execute and save PUNCH OUT with work report, optional early reason and location */
@@ -888,10 +909,8 @@ const handlePunchOut = async (employee, waPhone, text = '', locationData = null)
         }
     }
 
-    const directSummary = text.replace(/^(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out)[:\s-]*/i, '').trim();
-
-    // If locationData is already provided directly
-    if (locationData) {
+    // If direct summary provided in text e.g. "punch out: completed tasks"
+    if (directSummary.length >= 3) {
         if (isEarly) {
             await WhatsAppSession.findOneAndUpdate(
                 { phone: waPhone },
@@ -899,7 +918,7 @@ const handlePunchOut = async (employee, waPhone, text = '', locationData = null)
                     phone: waPhone,
                     flow: 'punch_out',
                     step: 'awaiting_early_reason',
-                    data: { date, location: locationData, workReport: directSummary || '', earlyByMins, earlyOutPenaltyAmount },
+                    data: { date, workReport: directSummary, isEarly, earlyByMins, earlyOutPenaltyAmount },
                     expiresAt: new Date(Date.now() + 15 * 60 * 1000)
                 },
                 { upsert: true, new: true }
@@ -912,44 +931,47 @@ const handlePunchOut = async (employee, waPhone, text = '', locationData = null)
                    `Send *cancel* to cancel punch out.`;
         }
 
-        if (directSummary.length >= 3) {
-            return await completePunchOut(employee, record, directSummary, waPhone, '', locationData);
-        }
+        const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_OUT', waPhone, {
+            workReport: directSummary,
+            isEarly: false
+        });
 
         await WhatsAppSession.findOneAndUpdate(
             { phone: waPhone },
             {
                 phone: waPhone,
                 flow: 'punch_out',
-                step: 'awaiting_work_report',
-                data: { date, location: locationData },
+                step: 'awaiting_web_verify',
+                data: { date, workReport: directSummary },
                 expiresAt: new Date(Date.now() + 15 * 60 * 1000)
             },
             { upsert: true, new: true }
         );
 
-        return `📍 *Location Captured!*\n\n` +
-               `Please reply with a brief summary of what you worked on today (or reply *skip* to finish):`;
+        return `📍 *Real-Time Departure Verification*\n\n` +
+               `Hello *${employee.name}*! 👋\n` +
+               `_Work Summary: "${directSummary}"_\n\n` +
+               `Please tap the secure link below to verify your departure GPS location and complete your Punch Out:\n\n` +
+               `👉 ${verifyUrl}\n\n` +
+               `⏱️ _Link valid for 5 minutes._`;
     }
 
-    // Step 1: Send 1-Tap Location Request Button
+    // Otherwise prompt for work report first
     await WhatsAppSession.findOneAndUpdate(
         { phone: waPhone },
         {
             phone: waPhone,
             flow: 'punch_out',
-            step: 'awaiting_location',
-            data: { date, directSummary, isEarly, earlyByMins, earlyOutPenaltyAmount },
+            step: 'awaiting_work_report',
+            data: { date, isEarly, earlyByMins, earlyOutPenaltyAmount },
             expiresAt: new Date(Date.now() + 15 * 60 * 1000)
         },
         { upsert: true, new: true }
     );
 
-    await sendWhatsAppLocationRequest(
-        waPhone,
-        `📍 *Punch Out Location Verification*\n\nHello *${employee.name}*! 👋\n\nPlease tap the button below to share your current location and record your departure.`
-    );
-    return null;
+    return `📝 *Punch Out — Daily Summary*\n\n` +
+           `Please reply with a brief summary of the tasks you worked on today (or reply *skip*):\n\n` +
+           `Send *cancel* to cancel punch out.`;
 };
 
 /** Handle WORK REPORT or EARLY REASON submission for Punch Out */
@@ -976,10 +998,9 @@ const handlePunchOutReport = async (employee, text, session, waPhone) => {
         return `You have already punched out for today at ${formatTimeIST(outPunch.time)}.`;
     }
 
-    const locationData = session.data?.location || null;
-
     // Step 1: Employee submitted work report
     if (session.step === 'awaiting_work_report') {
+        const finalReport = (!t || t.toLowerCase() === 'skip') ? 'Daily tasks completed' : t;
         const { shift, daySchedule } = await getEmployeeShiftToday(employee._id, date);
         let isEarly = false;
         let earlyByMins = 0;
@@ -1007,7 +1028,7 @@ const handlePunchOutReport = async (employee, text, session, waPhone) => {
                 { phone: waPhone },
                 {
                     step: 'awaiting_early_reason',
-                    data: { ...session.data, workReport: t, earlyByMins }
+                    data: { ...session.data, workReport: finalReport, earlyByMins, earlyOutPenaltyAmount }
                 }
             );
 
@@ -1018,17 +1039,53 @@ const handlePunchOutReport = async (employee, text, session, waPhone) => {
                    `Send *cancel* to cancel punch out.`;
         }
 
-        // On time / after shift end -> finish immediately
-        await WhatsAppSession.deleteOne({ phone: waPhone });
-        return await completePunchOut(employee, record, t, waPhone, '', locationData);
+        // On time -> generate secure verification URL
+        const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_OUT', waPhone, {
+            workReport: finalReport,
+            isEarly: false
+        });
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                step: 'awaiting_web_verify',
+                data: { ...session.data, workReport: finalReport }
+            }
+        );
+
+        return `📍 *Real-Time Departure Verification*\n\n` +
+               `Hello *${employee.name}*! 👋\n` +
+               `_Work Summary: "${finalReport}"_\n\n` +
+               `Please tap the secure link below to verify your departure GPS location and complete your Punch Out:\n\n` +
+               `👉 ${verifyUrl}\n\n` +
+               `⏱️ _Link valid for 5 minutes._`;
     }
 
     // Step 2: Employee submitted early departure reason
     if (session.step === 'awaiting_early_reason') {
         const workReport = session.data?.workReport || 'Daily tasks completed';
         const earlyReason = t;
-        await WhatsAppSession.deleteOne({ phone: waPhone });
-        return await completePunchOut(employee, record, workReport, waPhone, earlyReason, locationData);
+        const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_OUT', waPhone, {
+            workReport,
+            earlyReason,
+            isEarly: true,
+            earlyByMins: session.data?.earlyByMins
+        });
+
+        await WhatsAppSession.findOneAndUpdate(
+            { phone: waPhone },
+            {
+                step: 'awaiting_web_verify',
+                data: { ...session.data, earlyReason }
+            }
+        );
+
+        return `📍 *Real-Time Departure Verification*\n\n` +
+               `Hello *${employee.name}*! 👋\n` +
+               `_Early Reason: "${earlyReason}"_\n\n` +
+               `Please tap the secure link below to verify your departure GPS location and complete your Punch Out:\n\n` +
+               `👉 ${verifyUrl}\n\n` +
+               `⏱️ _Link valid for 5 minutes._`;
     }
 
     await WhatsAppSession.deleteOne({ phone: waPhone });
@@ -2141,65 +2198,13 @@ export const handleWebhook = async (req, res) => {
                 if (isPunchDisabled) {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
                     reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
-                } else if (session.step === 'awaiting_location') {
-                    if (locationData) {
-                        const geofenceInfo = await resolveBranchGeofence(
-                            employee,
-                            locationData.latitude,
-                            locationData.longitude,
-                            locationData.address || locationData.name
-                        );
-
-                        if (geofenceInfo.isOutsideGeofence) {
-                            await WhatsAppSession.findOneAndUpdate(
-                                { phone: waPhone },
-                                {
-                                    phone: waPhone,
-                                    flow: 'punch_in',
-                                    step: 'awaiting_geofence_reason',
-                                    data: {
-                                        date: session.data?.date || getTodayStr(),
-                                        lateReason: session.data?.lateReason || '',
-                                        location: locationData,
-                                        distanceStr: geofenceInfo.distanceStr,
-                                        branchName: geofenceInfo.branchName,
-                                        allowedRadius: geofenceInfo.allowedRadius
-                                    },
-                                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
-                                }
-                            );
-
-                            reply = `📍 *Outside Office Range Notice*\n\n` +
-                                   `You are currently *${geofenceInfo.distanceStr} away* from your office branch (*${geofenceInfo.branchName}*, radius: ${geofenceInfo.allowedRadius}m).\n\n` +
-                                   `Please reply with your *reason for punching in outside the office* (e.g. *Client Meeting*, *Work From Home*, *Site Visit*):\n\n` +
-                                   `Send *cancel* to cancel punch in.`;
-                        } else {
-                            reply = await executePunchIn(employee, waPhone, session.data?.lateReason, locationData);
-                            await WhatsAppSession.deleteOne({ phone: waPhone });
-                        }
-                    } else if (text.toLowerCase() === 'cancel') {
-                        await WhatsAppSession.deleteOne({ phone: waPhone });
-                        reply = `Punch in cancelled. Send *punch in* when you are ready.`;
-                    } else {
-                        // User typed text instead of tapping location button: prompt with 1-tap button again
-                        await sendWhatsAppLocationRequest(
-                            waPhone,
-                            `📍 *Location Required for Punch In*\n\nPlease tap the button below to share your current location and confirm your Punch In (or reply *cancel*):`
-                        );
-                        reply = null;
-                    }
-                } else if (session.step === 'awaiting_geofence_reason') {
+                } else if (session.step === 'awaiting_web_verify') {
                     if (text.toLowerCase() === 'cancel') {
                         await WhatsAppSession.deleteOne({ phone: waPhone });
                         reply = `Punch in cancelled. Send *punch in* when you are ready.`;
-                    } else if (text.trim().length < 3) {
-                        reply = `Please provide a valid reason for punching outside the office (at least 3 characters).\n\nSend *cancel* to cancel punch in.`;
                     } else {
-                        const outOfOfficeReason = text.trim();
-                        const lateReason = session.data?.lateReason || '';
-                        const location = session.data?.location;
-                        reply = await executePunchIn(employee, waPhone, lateReason, location, outOfOfficeReason);
-                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_IN', waPhone, session.data);
+                        reply = `📍 *Real-Time GPS Verification Required*\n\nPlease tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n(Send *cancel* to cancel).`;
                     }
                 } else {
                     const intent = detectIntent(text);
@@ -2223,56 +2228,13 @@ export const handleWebhook = async (req, res) => {
                 if (isPunchDisabled) {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
                     reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
-                } else if (session.step === 'awaiting_location') {
-                    if (locationData) {
-                        const date = session.data?.date || getTodayStr();
-                        const isEarly = session.data?.isEarly;
-                        const earlyByMins = session.data?.earlyByMins;
-                        const earlyOutPenaltyAmount = session.data?.earlyOutPenaltyAmount;
-                        const directSummary = session.data?.directSummary;
-
-                        if (isEarly) {
-                            await WhatsAppSession.findOneAndUpdate(
-                                { phone: waPhone },
-                                {
-                                    phone: waPhone,
-                                    flow: 'punch_out',
-                                    step: 'awaiting_early_reason',
-                                    data: { date, location: locationData, workReport: directSummary || '', earlyByMins, earlyOutPenaltyAmount },
-                                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
-                                }
-                            );
-                            reply = `⚠️ *Early Departure Notice*\n\n` +
-                                   `You are punching out *${earlyByMins} mins early*.\n\n` +
-                                   `Please reply with your *reason for early departure* to complete punch out:\n\n` +
-                                   `Send *cancel* to cancel punch out.`;
-                        } else if (directSummary && directSummary.length >= 3) {
-                            const record = await Attendance.findOne({ employee: employee._id, date });
-                            reply = await completePunchOut(employee, record, directSummary, waPhone, '', locationData);
-                            await WhatsAppSession.deleteOne({ phone: waPhone });
-                        } else {
-                            await WhatsAppSession.findOneAndUpdate(
-                                { phone: waPhone },
-                                {
-                                    phone: waPhone,
-                                    flow: 'punch_out',
-                                    step: 'awaiting_work_report',
-                                    data: { date, location: locationData },
-                                    expiresAt: new Date(Date.now() + 15 * 60 * 1000)
-                                }
-                            );
-                            reply = `📍 *Location Captured!*\n\n` +
-                                   `Please reply with a brief summary of what work you completed today (or reply *skip* to finish):`;
-                        }
-                    } else if (text.toLowerCase() === 'cancel') {
+                } else if (session.step === 'awaiting_web_verify') {
+                    if (text.toLowerCase() === 'cancel') {
                         await WhatsAppSession.deleteOne({ phone: waPhone });
                         reply = `Punch out cancelled. Send *punch out* when you are ready.`;
                     } else {
-                        await sendWhatsAppLocationRequest(
-                            waPhone,
-                            `📍 *Location Required for Punch Out*\n\nPlease tap the button below to share your current location and complete your Punch Out (or reply *cancel*):`
-                        );
-                        reply = null;
+                        const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_OUT', waPhone, session.data);
+                        reply = `📍 *Real-Time Departure Verification Required*\n\nPlease tap the secure link below to verify your real departure GPS location:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n(Send *cancel* to cancel).`;
                     }
                 } else {
                     const intent = detectIntent(text);
@@ -2292,21 +2254,20 @@ export const handleWebhook = async (req, res) => {
                     reply = await handleRegularizationFlow(employee, text, session, waPhone);
                 }
             } else if (locationData) {
-                // Direct Location Pin received with NO active session (Smart 1-Tap Punch)
+                // Reject manual/dropped location pin to prevent location spoofing
                 if (isPunchDisabled) {
                     reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.`;
                 } else {
                     const date = getTodayStr();
                     const record = await Attendance.findOne({ employee: employee._id, date });
                     const lastPunch = record?.punches?.length > 0 ? record.punches[record.punches.length - 1] : null;
+                    const action = (!record || lastPunch?.type !== 'IN') ? 'PUNCH_IN' : 'PUNCH_OUT';
+                    const verifyUrl = generatePunchVerifyUrl(employee, action, waPhone);
 
-                    if (!record || lastPunch?.type !== 'IN') {
-                        // Not punched in yet -> execute Punch In directly with location
-                        reply = await handlePunchIn(employee, waPhone, '', locationData);
-                    } else {
-                        // Already punched in -> initiate Punch Out with location
-                        reply = await handlePunchOut(employee, waPhone, '', locationData);
-                    }
+                    reply = `⚠️ *Manual Location Pins Not Accepted*\n\n` +
+                           `To ensure attendance accuracy and prevent location spoofing, please tap the secure GPS verification link below:\n\n` +
+                           `👉 ${verifyUrl}\n\n` +
+                           `⏱️ _Link valid for 5 minutes._`;
                 }
             } else {
                 // Detect intent from fresh message
@@ -2359,6 +2320,123 @@ export const handleWebhook = async (req, res) => {
         }
     } catch (err) {
         console.error('[WhatsApp] handleWebhook error:', err);
+    }
+};
+
+/**
+ * GET /api/whatsapp/verify-token?token=...
+ * Validate verification link and return metadata for web UI
+ */
+export const verifyPunchToken = async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Verification token is required' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hrms_whatsapp_geolock_secret');
+        const employee = await User.findById(decoded.employeeId).select('name employeeId branch workSetup email phone');
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        return res.status(200).json({
+            success: true,
+            employeeName: employee.name,
+            employeeId: employee.employeeId,
+            action: decoded.action,
+            date: decoded.date,
+            isLate: Boolean(decoded.lateReason),
+            lateReason: decoded.lateReason || '',
+            workReport: decoded.workReport || '',
+            isEarly: Boolean(decoded.isEarly)
+        });
+    } catch (err) {
+        return res.status(400).json({ success: false, message: 'Verification link expired or invalid. Please send "punch in" on WhatsApp again.' });
+    }
+};
+
+/**
+ * POST /api/whatsapp/verify-punch
+ * Process hardware GPS punch verification from web view
+ */
+export const submitPunchVerification = async (req, res) => {
+    try {
+        const { token, latitude, longitude, accuracy, reason, workReport } = req.body;
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Verification token is required' });
+        }
+        if (!latitude || !longitude) {
+            return res.status(400).json({ success: false, message: 'Valid GPS coordinates are required' });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET || 'hrms_whatsapp_geolock_secret');
+        } catch (jwtErr) {
+            return res.status(400).json({ success: false, message: 'Verification link has expired. Please send "punch in" on WhatsApp to get a fresh link.' });
+        }
+
+        const employee = await User.findById(decoded.employeeId);
+        if (!employee) {
+            return res.status(404).json({ success: false, message: 'Employee not found' });
+        }
+
+        const waPhone = decoded.phone;
+        const latNum = Number(latitude);
+        const lonNum = Number(longitude);
+
+        // Resolve geofence
+        const geofenceInfo = await resolveBranchGeofence(employee, latNum, lonNum, '', reason);
+
+        // If outside geofence and no reason provided yet
+        if (geofenceInfo.isOutsideGeofence && !reason) {
+            return res.status(200).json({
+                success: false,
+                requiresReason: true,
+                distance: geofenceInfo.distance,
+                distanceStr: geofenceInfo.distanceStr,
+                branchName: geofenceInfo.branchName,
+                allowedRadius: geofenceInfo.allowedRadius,
+                message: `You are currently ${geofenceInfo.distanceStr} away from your office branch (${geofenceInfo.branchName}). Please provide a reason to confirm.`
+            });
+        }
+
+        let resultMessage = '';
+        const locationData = {
+            latitude: latNum,
+            longitude: lonNum,
+            address: `GPS: ${latNum.toFixed(5)}, ${lonNum.toFixed(5)}` + (accuracy ? ` (±${Math.round(accuracy)}m)` : '')
+        };
+
+        if (decoded.action === 'PUNCH_IN') {
+            resultMessage = await executePunchIn(employee, waPhone, decoded.lateReason, locationData, reason);
+        } else {
+            const date = decoded.date || getTodayStr();
+            const record = await Attendance.findOne({ employee: employee._id, date });
+            const finalReport = workReport || decoded.workReport || 'Daily tasks completed';
+            resultMessage = await completePunchOut(employee, record, finalReport, waPhone, decoded.earlyReason || '', locationData);
+        }
+
+        // Clean up any active session
+        await WhatsAppSession.deleteOne({ phone: waPhone });
+
+        // Send WhatsApp confirmation message to employee so WhatsApp is updated in sync
+        try {
+            await sendWhatsAppMessage(waPhone, resultMessage);
+        } catch (_) {}
+
+        return res.status(200).json({
+            success: true,
+            message: resultMessage,
+            action: decoded.action,
+            employeeName: employee.name,
+            geofenceInfo,
+            time: formatTimeIST(new Date())
+        });
+    } catch (err) {
+        console.error('[WhatsApp] submitPunchVerification error:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error while processing punch verification', error: err.message });
     }
 };
 

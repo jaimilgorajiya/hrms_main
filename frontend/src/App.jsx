@@ -99,6 +99,7 @@ import MobilePunchMissing from './pages/mobile/MobilePunchMissing';
 import MobilePenalties from './pages/mobile/MobilePenalties';
 import MobileResignation from './pages/mobile/MobileResignation';
 import MobileDocuments from './pages/mobile/MobileDocuments';
+import PunchVerify from './pages/PunchVerify';
 
 function App() {
   return (
@@ -107,6 +108,9 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          {/* 1-Tap Secure Anti-Spoof Hardware GPS Verification for WhatsApp */}
+          <Route path="/punch-verify" element={<PunchVerify />} />
+
           <Route path="/login" element={<Login isRegister={false} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Signup />} />

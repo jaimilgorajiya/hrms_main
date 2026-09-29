@@ -848,7 +848,8 @@ await asyncTest('Daily Attendance PDF generator renders completely isolated comp
 
 console.log('\nFeature 11 — 1-Tap Location Tracking & Geofence Distance:');
 
-import { calculateDistanceMeters, resolveBranchGeofence } from '../controllers/WhatsApp.Controller.js';
+import { calculateDistanceMeters, resolveBranchGeofence, generatePunchVerifyUrl } from '../controllers/WhatsApp.Controller.js';
+import jwt from 'jsonwebtoken';
 
 test('Haversine distance returns 0 meters for identical coordinates', () => {
     const d = calculateDistanceMeters(23.0225, 72.5714, 23.0225, 72.5714);
@@ -882,6 +883,21 @@ test('resolveBranchGeofence handles custom out-of-office reason properly', async
     assert.ok(res.locationAddress.includes('Client Site'));
     assert.strictEqual(res.latitude, 23.0225);
     assert.strictEqual(res.longitude, 72.5714);
+});
+
+test('generatePunchVerifyUrl creates valid 1-tap anti-spoof hardware GPS URL', () => {
+    const emp = { _id: '507f1f77bcf86cd799439011', name: 'Maulik' };
+    const url = generatePunchVerifyUrl(emp, 'PUNCH_IN', '919099705065', { lateReason: 'Traffic' });
+
+    assert.ok(url.includes('/punch-verify?token='));
+    const token = url.split('token=')[1];
+    assert.ok(token);
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hrms_whatsapp_geolock_secret');
+    assert.strictEqual(decoded.employeeId, '507f1f77bcf86cd799439011');
+    assert.strictEqual(decoded.action, 'PUNCH_IN');
+    assert.strictEqual(decoded.phone, '919099705065');
+    assert.strictEqual(decoded.lateReason, 'Traffic');
 });
 
 // ─────────────────────────────────────────────────────────────────
