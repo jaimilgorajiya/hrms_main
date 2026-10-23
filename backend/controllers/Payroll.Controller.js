@@ -12,6 +12,7 @@ import Shift from '../models/Shift.Model.js';
 import SalaryGroup from '../models/SalaryGroup.Model.js';
 import pdfmake from 'pdfmake';
 import { sendWhatsAppMessage, sendWhatsAppDocument } from '../utils/whatsappNotify.js';
+import { getCTCForMonth } from '../utils/salaryRevisionHelper.js';
 
 export const getMonthlyPayoutSummary = async (req, res) => {
     try {
@@ -61,7 +62,10 @@ export const getMonthlyPayoutSummary = async (req, res) => {
         for (const emp of employees) {
             const isInitiated = !!initiatedMap[emp._id.toString()];
 
-            const ctc = await EmployeeCTC.findOne({ employeeId: emp._id, status: 'Active' });
+            // Use getCTCForMonth so backdated revisions are honoured:
+            // if a salary was revised effective August but the admin is viewing August payroll,
+            // this returns the August-effective CTC, not the current one.
+            const ctc = await getCTCForMonth(emp._id, monthNum, year);
             const ctcMissing = !ctc;
 
             const monthAttendance = await Attendance.find({
@@ -281,8 +285,10 @@ export const initiatePayout = async (req, res) => {
         } = req.body;
         const adminId = req.user._id;
 
-        // Fetch CTC to snapshot it timezone-safely
-        const ctc = await EmployeeCTC.findOne({ employeeId, status: 'Active' });
+        // Use getCTCForMonth so that initiating a payout for a past month picks up
+        // the salary that was effective during that month (respects backdated revisions).
+        const [payoutYear, payoutMonthNum] = month.split('-').map(Number);
+        const ctc = await getCTCForMonth(employeeId, payoutMonthNum, payoutYear);
         let earningsSnapshot = [];
         let deductionsSnapshot = [];
         let joiningNetSalary = 0;

@@ -1,7 +1,8 @@
-    import SalarySlip from '../models/SalarySlip.Model.js';
+import SalarySlip from '../models/SalarySlip.Model.js';
 import User from '../models/User.Model.js';
 import EmployeeCTC from '../models/EmployeeCTC.Model.js';
 import Payout from '../models/Payout.Model.js';
+import { getCTCForMonth } from '../utils/salaryRevisionHelper.js';
 
 // ──────────────────────────────────────────────────────────────
 // CREATE / UPDATE  (upsert: one slip per employee per month/year)
@@ -18,13 +19,15 @@ const createSalarySlip = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ _id: employeeId, adminId });
+        const user = await User.findOne({ _id: employeeId, adminId }).populate('workSetup.salaryGroup');
         if (!user) {
             return res.status(404).json({ success: false, message: 'Employee not found' });
         }
 
-        // Backend security validation: verify ctc calculations
-        const ctc = await EmployeeCTC.findOne({ employeeId, status: 'Active' });
+        // Use getCTCForMonth so that if the salary was revised with a backdated
+        // effective date (e.g., revised in October for August), the slip for August
+        // correctly uses the August-effective salary, not the current CTC.
+        const ctc = await getCTCForMonth(employeeId, Number(month), Number(year));
         if (!ctc) {
             return res.status(400).json({
                 success: false,
@@ -47,7 +50,9 @@ const createSalarySlip = async (req, res) => {
 
         const totalLeaves = pl + ul;
         const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
-        const totalDivisor = daysInMonth; // Actual calendar days in month (e.g. 31 in August)
+        const salaryGroup = user.workSetup?.salaryGroup;
+        const isFixed = salaryGroup?.workingDaysType === 'Fixed Working Days';
+        const totalDivisor = isFixed ? (salaryGroup?.fixedDays || 26) : daysInMonth;
         const perDaySalary = Math.round((grossMonthly / totalDivisor) * 100) / 100;
         const perDaySalaryExt = perDaySalary;
         const paidDays = Math.max(0, totalDivisor - ul) + edp;

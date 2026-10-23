@@ -49,6 +49,7 @@ import EmployeeIdFormat from './pages/EmployeeIdFormat';
 import RetirementSettings from './pages/RetirementSettings';
 import UpcomingRetirement from './pages/UpcomingRetirement';
 import EmployeePromotion from './pages/EmployeePromotion';
+import SalaryRevision from './pages/SalaryRevision';
 import DailyAttendanceEmail from './pages/DailyAttendanceEmail';
 import AdminAttendance from './pages/AdminAttendance';
 import AddAttendance from './pages/AddAttendance';
@@ -172,6 +173,7 @@ function App() {
               <Route path="payroll/publish-slip" element={<PublishSalarySlip />} />
               <Route path="payroll/history" element={<PayoutHistory />} />
               <Route path="payroll/penalties" element={<PenaltiesList />} />
+              <Route path="payroll/salary-revision" element={<SalaryRevision />} />
               <Route path="payroll/*" element={<ModulePlaceholder title="Payroll Management" />} />
               <Route path="document/emp-types" element={<DocumentType />} />
               <Route path="document/approval" element={<DocumentApproval />} />

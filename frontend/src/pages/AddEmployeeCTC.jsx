@@ -31,8 +31,7 @@ const AddEmployeeCTC = () => {
         branch: '',
         department: '',
         employeeId: '',
-        effectiveDate: new Date().toISOString().split('T')[0],
-        grossSalary: ''
+        effectiveDate: new Date().toISOString().split('T')[0]
     });
 
     // Revision States
@@ -51,7 +50,7 @@ const AddEmployeeCTC = () => {
         if (revisionValueType === 'percentage') {
             factor = 1 + (revisionType === 'increment' ? val : -val) / 100;
         } else {
-            const oldGross = earnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            const oldGross = calculatedGross;
             if (oldGross <= 0) {
                 Swal.fire('Error', 'Cannot apply fixed amount revision because current gross salary is zero.', 'error');
                 return;
@@ -89,6 +88,14 @@ const AddEmployeeCTC = () => {
 
     useEffect(() => {
         fetchInitialData();
+
+        const handleWheel = () => {
+            if (document.activeElement && document.activeElement.type === 'number') {
+                document.activeElement.blur();
+            }
+        };
+        window.addEventListener('wheel', handleWheel, { passive: true });
+        return () => window.removeEventListener('wheel', handleWheel);
     }, []);
 
     const fetchInitialData = async () => {
@@ -118,7 +125,9 @@ const AddEmployeeCTC = () => {
             if (deptData.success) setDepartments(fetchedDepartments);
             if (empData.success) setAllEmployees(fetchedEmployees);
             if (compData.success) {
-                setComponentTypes({ earnings: compData.earnings || [], deductions: compData.deductions || [] });
+                const activeEarnings = (compData.earnings || []).filter(c => !c.status || c.status === 'Active');
+                const activeDeductions = (compData.deductions || []).filter(c => !c.status || c.status === 'Active');
+                setComponentTypes({ earnings: activeEarnings, deductions: activeDeductions });
             }
 
             if (employeeIdParam && empData.success) {
@@ -129,15 +138,13 @@ const AddEmployeeCTC = () => {
                         salaryGroupId = emp.workSetup.salaryGroup._id || emp.workSetup.salaryGroup;
                     }
                     const effectiveDate = new Date().toISOString().split('T')[0];
-                    const grossSalary = emp.ctcDetails?.monthlyGross !== undefined ? emp.ctcDetails.monthlyGross : '';
 
                     setFormData({
                         salaryGroup: salaryGroupId,
                         branch: emp.branch || '',
                         department: emp.department || '',
                         employeeId: emp._id,
-                        effectiveDate,
-                        grossSalary: grossSalary.toString()
+                        effectiveDate
                     });
 
                     setEarnings(emp.ctcDetails?.earnings || []);
@@ -180,11 +187,20 @@ const AddEmployeeCTC = () => {
 
     // When branch or department changes, reset employee selection if they don't match
     const handleBranchChange = (val) => {
-        setFormData(prev => ({ ...prev, branch: val, department: '', employeeId: '' }));
+        setFormData(prev => ({ 
+            ...prev, 
+            branch: val, 
+            department: employeeIdParam ? prev.department : '', 
+            employeeId: employeeIdParam || '' 
+        }));
     };
 
     const handleDepartmentChange = (val) => {
-        setFormData(prev => ({ ...prev, department: val, employeeId: '' }));
+        setFormData(prev => ({ 
+            ...prev, 
+            department: val, 
+            employeeId: employeeIdParam || '' 
+        }));
     };
 
     // Helper function to manage component amount changes
@@ -219,7 +235,6 @@ const AddEmployeeCTC = () => {
     };
 
     const calculatedGross = useMemo(() => {
-        if (earnings.length === 0) return null;
         return earnings.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     }, [earnings]);
 
@@ -227,21 +242,24 @@ const AddEmployeeCTC = () => {
         return deductions.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     }, [deductions]);
 
+    const calculatedNet = useMemo(() => {
+        return Math.max(0, calculatedGross - calculatedDeductions);
+    }, [calculatedGross, calculatedDeductions]);
+
+    const calculatedAnnualCTC = useMemo(() => {
+        return calculatedGross * 12;
+    }, [calculatedGross]);
+
     const handleAddCTC = async (e) => {
         e.preventDefault();
-        
-        const grossSalaryValue = calculatedGross !== null ? calculatedGross : Number(formData.grossSalary);
 
-        if (!formData.salaryGroup || !formData.branch || !formData.department || !formData.employeeId || !formData.effectiveDate || !grossSalaryValue) {
+        if (!formData.salaryGroup || !formData.branch || !formData.department || !formData.employeeId || !formData.effectiveDate) {
             Swal.fire('Warning', 'Please fill in all required fields marked with *', 'warning');
             return;
         }
 
-        // Validate complete components inputs
-        const invalidEarning = earnings.some(item => !item.componentId || !item.amount);
-        const invalidDeduction = deductions.some(item => !item.componentId || !item.amount);
-        if (invalidEarning || invalidDeduction) {
-            Swal.fire('Warning', 'Please select a category and fill in the amount for all components.', 'warning');
+        if (calculatedGross <= 0) {
+            Swal.fire('Warning', 'Please enter earnings component amounts. Monthly gross salary cannot be zero.', 'warning');
             return;
         }
 
@@ -251,19 +269,23 @@ const AddEmployeeCTC = () => {
             const payload = {
                 employeeId: formData.employeeId,
                 salaryGroup: formData.salaryGroup,
-                monthlyGross: Number(grossSalaryValue),
-                netSalary: Number(grossSalaryValue - calculatedDeductions),
-                annualCTC: Number(grossSalaryValue * 12),
-                earnings: earnings.map(e => ({
-                    componentId: e.componentId,
-                    componentName: e.componentName,
-                    amount: Number(e.amount)
-                })),
-                deductions: deductions.map(d => ({
-                    componentId: d.componentId,
-                    componentName: d.componentName,
-                    amount: Number(d.amount)
-                })),
+                monthlyGross: Number(calculatedGross),
+                netSalary: Number(calculatedNet),
+                annualCTC: Number(calculatedAnnualCTC),
+                earnings: earnings
+                    .filter(e => e.componentId && Number(e.amount) > 0)
+                    .map(e => ({
+                        componentId: e.componentId,
+                        componentName: e.componentName,
+                        amount: Number(e.amount)
+                    })),
+                deductions: deductions
+                    .filter(d => d.componentId && Number(d.amount) > 0)
+                    .map(d => ({
+                        componentId: d.componentId,
+                        componentName: d.componentName,
+                        amount: Number(d.amount)
+                    })),
                 effectiveDate: formData.effectiveDate,
                 status: 'Active'
             };
@@ -344,7 +366,7 @@ const AddEmployeeCTC = () => {
                                 value={formData.branch}
                                 onChange={handleBranchChange}
                                 placeholder="-- Select --"
-                                disabled={!!employeeIdParam}
+                                disabled={!!employeeIdParam && !!formData.branch}
                             />
                         </div>
 
@@ -356,7 +378,7 @@ const AddEmployeeCTC = () => {
                                 value={formData.department}
                                 onChange={handleDepartmentChange}
                                 placeholder="-- Select --"
-                                disabled={!formData.branch || !!employeeIdParam}
+                                disabled={!formData.branch || (!!employeeIdParam && !!formData.department)}
                             />
                         </div>
 
@@ -389,31 +411,10 @@ const AddEmployeeCTC = () => {
                                 />
                             </div>
                         </div>
-
-                        {/* Gross Salary */}
-                        <div className="hrm-form-group">
-                            <label className="hrm-label" style={{ fontWeight: '700' }}>Gross Salary <span style={{ color: 'var(--danger)' }}>*</span></label>
-                            <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', fontWeight: '700', color: 'var(--text-muted)' }}>₹</span>
-                                <input 
-                                    type="number" 
-                                    className="hrm-input" 
-                                    style={{ paddingLeft: '28px' }}
-                                    placeholder="Enter gross salary per month"
-                                    value={calculatedGross !== null ? calculatedGross : formData.grossSalary}
-                                    onChange={e => setFormData(prev => ({ ...prev, grossSalary: e.target.value }))}
-                                    disabled={calculatedGross !== null}
-                                />
-                            </div>
-                            {calculatedGross !== null && (
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                                    Gross salary is calculated from earnings components below
-                                </span>
-                            )}
-                        </div>
                     </div>
-                {/* Earnings & Deductions Breakdown Section (Visible in Edit mode) */}
-                    {employeeIdParam && (
+
+                    {/* Earnings & Deductions Breakdown Section (Visible when Employee is selected) */}
+                    {(employeeIdParam || formData.employeeId) && (
                         <div style={{ marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '32px', marginBottom: '32px' }}>
                             {/* Salary Revision Panel */}
                             <div style={{ background: 'var(--bg-main)', borderRadius: '16px', padding: '24px', border: '1.5px solid var(--border)', marginBottom: '32px' }}>
@@ -435,7 +436,15 @@ const AddEmployeeCTC = () => {
                                     </div>
                                     <div className="hrm-form-group" style={{ marginBottom: 0 }}>
                                         <label className="hrm-label" style={{ fontWeight: '700' }}>Value</label>
-                                        <input type="number" className="hrm-input" style={{ height: '42px' }} placeholder="Enter value" value={revisionValue} onChange={e => setRevisionValue(e.target.value)} />
+                                        <input 
+                                            type="number" 
+                                            className="hrm-input" 
+                                            style={{ height: '42px' }} 
+                                            placeholder="Enter value" 
+                                            value={revisionValue} 
+                                            onChange={e => setRevisionValue(e.target.value)} 
+                                            onWheel={e => e.target.blur()}
+                                        />
                                     </div>
                                     <button 
                                         type="button" 
@@ -476,10 +485,11 @@ const AddEmployeeCTC = () => {
                                                                 <input 
                                                                     type="number" 
                                                                     className="hrm-input" 
-                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'default' }}
+                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '8px' }}
                                                                     placeholder="0"
                                                                     value={value}
-                                                                    readOnly
+                                                                    onChange={(e) => handleComponentAmountChange('earning', comp._id, comp.name, e.target.value)}
+                                                                    onWheel={(e) => e.target.blur()}
                                                                 />
                                                             </div>
                                                         </td>
@@ -502,10 +512,10 @@ const AddEmployeeCTC = () => {
                                     <h4 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Deductions</h4>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
-                                            <tr>
-                                                <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '12px', borderBottom: '2px solid var(--border)' }}>Category</th>
-                                                <th style={{ textAlign: 'right', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '12px', borderBottom: '2px solid var(--border)', width: '140px' }}>Amount</th>
-                                            </tr>
+                                             <tr>
+                                                 <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '12px', borderBottom: '2px solid var(--border)' }}>Category</th>
+                                                 <th style={{ textAlign: 'right', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', paddingBottom: '12px', borderBottom: '2px solid var(--border)', width: '140px' }}>Amount</th>
+                                             </tr>
                                         </thead>
                                         <tbody>
                                             {componentTypes.deductions.map((comp) => {
@@ -522,10 +532,11 @@ const AddEmployeeCTC = () => {
                                                                 <input 
                                                                     type="number" 
                                                                     className="hrm-input" 
-                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'default' }}
+                                                                    style={{ paddingLeft: '24px', height: '36px', width: '100%', textAlign: 'right', paddingRight: '12px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '8px' }}
                                                                     placeholder="0"
                                                                     value={value}
-                                                                    readOnly
+                                                                    onChange={(e) => handleComponentAmountChange('deduction', comp._id, comp.name, e.target.value)}
+                                                                    onWheel={(e) => e.target.blur()}
                                                                 />
                                                             </div>
                                                         </td>
@@ -545,10 +556,10 @@ const AddEmployeeCTC = () => {
                             </div>
 
                             {/* Summary Calculations */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: 'var(--bg-main)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', marginTop: '24px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', background: 'var(--bg-main)', padding: '24px', borderRadius: '16px', border: '1.5px solid var(--border)', marginTop: '24px' }}>
                                 <div>
                                     <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Monthly Gross Salary</span>
-                                    <span style={{ fontSize: '20px', fontWeight: '950', color: 'var(--text-dark)' }}>₹{(calculatedGross !== null ? calculatedGross : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style={{ fontSize: '20px', fontWeight: '950', color: 'var(--text-dark)' }}>₹{calculatedGross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div>
                                     <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Total Monthly Deductions</span>
@@ -556,7 +567,11 @@ const AddEmployeeCTC = () => {
                                 </div>
                                 <div>
                                     <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Net Take-Home Salary</span>
-                                    <span style={{ fontSize: '20px', fontWeight: '950', color: 'var(--primary-blue)' }}>₹{(calculatedGross !== null ? (calculatedGross - calculatedDeductions) : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style={{ fontSize: '22px', fontWeight: '950', color: 'var(--success, #10B981)' }}>₹{calculatedNet.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Annual CTC</span>
+                                    <span style={{ fontSize: '20px', fontWeight: '950', color: 'var(--primary-blue, #3B82F6)' }}>₹{calculatedAnnualCTC.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                         </div>

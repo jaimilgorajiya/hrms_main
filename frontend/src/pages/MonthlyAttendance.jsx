@@ -349,11 +349,19 @@ const MonthlyAttendance = () => {
                                                         </div>
                                                     </div>
                                                     {rec?.approvalStatus && status !== 'Absent' && (
-                                                        <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(217, 119, 6, 0.1)', border: '1.5px solid rgba(217, 119, 6, 0.2)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <Coffee size={18} color="#D97706" />
+                                                        <div style={{ 
+                                                            padding: '16px', 
+                                                            borderRadius: '16px', 
+                                                            background: rec.approvalStatus === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : rec.approvalStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(217, 119, 6, 0.1)', 
+                                                            border: `1.5px solid ${rec.approvalStatus === 'Approved' ? 'rgba(16, 185, 129, 0.2)' : rec.approvalStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(217, 119, 6, 0.2)'}`, 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '12px' 
+                                                        }}>
+                                                            <Coffee size={18} color={rec.approvalStatus === 'Approved' ? '#10B981' : rec.approvalStatus === 'Rejected' ? '#EF4444' : '#D97706'} />
                                                             <div>
-                                                                <div style={{ fontSize: '11px', fontWeight: 600, color: '#D97706' }}>Approval Status</div>
-                                                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#D97706' }}>{rec.approvalStatus}</div>
+                                                                <div style={{ fontSize: '11px', fontWeight: 600, color: rec.approvalStatus === 'Approved' ? '#10B981' : rec.approvalStatus === 'Rejected' ? '#EF4444' : '#D97706' }}>Approval Status</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: 800, color: rec.approvalStatus === 'Approved' ? '#10B981' : rec.approvalStatus === 'Rejected' ? '#EF4444' : '#D97706' }}>{rec.approvalStatus}</div>
                                                             </div>
                                                         </div>
                                                     )}

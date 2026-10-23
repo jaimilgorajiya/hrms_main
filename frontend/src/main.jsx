@@ -12,6 +12,13 @@ if (localStorage.getItem('admin-theme') === 'dark') {
   document.body.classList.remove('dark-mode');
 }
 
+// Globally prevent mouse wheel / trackpad scrolling from incrementing or decrementing number inputs
+document.addEventListener('wheel', () => {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+}, { passive: true });
+
 createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <App />

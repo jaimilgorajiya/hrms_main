@@ -143,7 +143,7 @@ const getEmployeeCTC = async (req, res) => {
             .populate({
                 path: 'employeeId',
                 select: 'name employeeId workSetup email phone department designation branch dateJoined',
-                populate: { path: 'workSetup.salaryGroup', select: 'groupName' }
+                populate: { path: 'workSetup.salaryGroup', select: 'groupName workingDaysType fixedDays' }
             });
 
         if (!ctc) {
@@ -168,7 +168,7 @@ const getAllEmployeeCTCs = async (req, res) => {
             role: { $ne: 'Admin' },
             status: { $nin: ['Ex-Employee', 'Terminated'] }
         })
-        .populate('workSetup.salaryGroup', 'groupName')
+        .populate('workSetup.salaryGroup', 'groupName workingDaysType fixedDays')
         .select('name employeeId email workSetup profilePhoto status designation branch department');
 
         // Fetch all CTC records

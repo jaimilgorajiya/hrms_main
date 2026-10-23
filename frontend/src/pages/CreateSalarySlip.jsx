@@ -327,7 +327,9 @@ const CreateSalarySlip = () => {
         const od   = Number(form.otherDeduction) || 0;
 
         const [yr, mn]         = monthYear ? monthYear.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1];
-        const totalDivisor     = getDaysInMonth(yr, mn); // Actual calendar days in month (e.g. 31 in August)
+        const salaryGroup      = selectedEmployee?.workSetup?.salaryGroup || ctcData?.employeeId?.workSetup?.salaryGroup;
+        const isFixed          = salaryGroup?.workingDaysType === 'Fixed Working Days';
+        const totalDivisor     = isFixed ? (Number(salaryGroup?.fixedDays) || 26) : getDaysInMonth(yr, mn);
         const totalLeaves      = pl + ul;
         const perDaySalary     = round2(grossMonthly / totalDivisor);
         const perDaySalaryExt  = perDaySalary;

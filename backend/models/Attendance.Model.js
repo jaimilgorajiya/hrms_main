@@ -68,7 +68,7 @@ const attendanceSchema = new mongoose.Schema({
     approvalStatus: {
         type: String,
         enum: ["Pending", "Approved", "Rejected"],
-        default: "Pending"
+        default: "Approved"
     },
     workSummary: {
         type: String,

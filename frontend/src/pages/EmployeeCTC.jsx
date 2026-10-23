@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
-    Search, Filter, Plus, Edit2, ChevronRight, Briefcase, 
+    Search, Filter, Edit2, ChevronRight, Briefcase, 
     CreditCard, PieChart, Users, ArrowUpRight, CheckCircle2,
     X, Wallet, DollarSign, Calculator, Calendar, History, Trash2,
     ChevronDown, Check, Eye
@@ -123,13 +123,6 @@ const EmployeeCTC = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button 
-                        className="btn-hrm btn-hrm-primary" 
-                        style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                        onClick={() => navigate('/admin/payroll/employee-ctc/add')}
-                    >
-                        <Plus size={16} /> ADD NEW
-                    </button>
                 </div>
             </div>
 
@@ -310,8 +303,7 @@ const EmployeeCTC = () => {
                                             )}
                                             <button 
                                                 onClick={() => navigate(`/admin/payroll/employee-ctc/add?employeeId=${emp._id}`)}
-                                                disabled={!emp.workSetup?.salaryGroup}
-                                                title="Edit CTC Details"
+                                                title={emp.ctcDetails ? "Edit CTC Details" : "Assign Salary / CTC"}
                                                 style={{
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
@@ -320,25 +312,20 @@ const EmployeeCTC = () => {
                                                     height: '32px',
                                                     borderRadius: '8px',
                                                     border: '1px solid var(--border)',
-                                                    background: emp.workSetup?.salaryGroup ? 'var(--card-bg)' : 'rgba(0,0,0,0.05)',
-                                                    color: emp.workSetup?.salaryGroup ? 'var(--text-secondary)' : 'var(--text-muted)',
-                                                    cursor: emp.workSetup?.salaryGroup ? 'pointer' : 'not-allowed',
-                                                    transition: 'all 0.2s',
-                                                    opacity: emp.workSetup?.salaryGroup ? 1 : 0.5
+                                                    background: 'var(--card-bg)',
+                                                    color: !emp.ctcDetails ? 'var(--primary-blue)' : 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
                                                 }}
                                                 onMouseOver={(e) => {
-                                                    if (emp.workSetup?.salaryGroup) {
-                                                        e.currentTarget.style.color = '#10B981';
-                                                        e.currentTarget.style.borderColor = '#10B981';
-                                                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
-                                                    }
+                                                    e.currentTarget.style.color = '#10B981';
+                                                    e.currentTarget.style.borderColor = '#10B981';
+                                                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
                                                 }}
                                                 onMouseOut={(e) => {
-                                                    if (emp.workSetup?.salaryGroup) {
-                                                        e.currentTarget.style.color = 'var(--text-secondary)';
-                                                        e.currentTarget.style.borderColor = 'var(--border)';
-                                                        e.currentTarget.style.background = 'var(--card-bg)';
-                                                    }
+                                                    e.currentTarget.style.color = !emp.ctcDetails ? 'var(--primary-blue)' : 'var(--text-secondary)';
+                                                    e.currentTarget.style.borderColor = 'var(--border)';
+                                                    e.currentTarget.style.background = 'var(--card-bg)';
                                                 }}
                                             >
                                                 <Edit2 size={16} />

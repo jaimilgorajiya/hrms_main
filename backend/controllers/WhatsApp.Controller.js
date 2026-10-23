@@ -299,25 +299,36 @@ export const resolveBranchGeofence = async (employee, latitude, longitude, addre
 // ─────────────────────────────────────────────────────────────────
 
 const detectIntent = (text) => {
+    if (!text || typeof text !== 'string') return 'UNKNOWN';
     const t = text.toLowerCase().trim();
 
+    // 0. Numbered shortcuts first (1 to 8) - ensures numbers 1-8 always execute reliably
+    if (/^1([.\s-]|$)/.test(t) || t === '1') return 'PUNCH_IN';
+    if (/^2([.\s-]|$)/.test(t) || t === '2') return 'PUNCH_OUT';
+    if (/^3([.\s-]|$)/.test(t) || t === '3') return 'ATTENDANCE_STATUS';
+    if (/^4([.\s-]|$)/.test(t) || t === '4') return 'MONTHLY_ATTENDANCE';
+    if (/^5([.\s-]|$)/.test(t) || t === '5') return 'LEAVE_BALANCE';
+    if (/^6([.\s-]|$)/.test(t) || t === '6') return 'APPLY_LEAVE';
+    if (/^7([.\s-]|$)/.test(t) || t === '7') return 'SALARY_SLIP';
+    if (/^8([.\s-]|$)/.test(t) || t === '8') return 'REGULARIZE';
+
     // Punch in
-    if (/\b(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in|in)\b/.test(t)) return 'PUNCH_IN';
+    if (/\b(punch\s*in|checkin|check\s*in|sign\s*in|login|log\s*in)\b/.test(t) || t === 'in') return 'PUNCH_IN';
 
     // Punch out
-    if (/\b(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out)\b/.test(t)) return 'PUNCH_OUT';
+    if (/\b(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out)\b/.test(t) || t === 'out') return 'PUNCH_OUT';
 
     // Apply leave
-    if (/\b(apply\s*leave|leave\s*apply|take\s*leave|request\s*leave|need\s*leave)\b/.test(t)) return 'APPLY_LEAVE';
+    if (/\b(apply\s*leave|leave\s*apply|take\s*leave|request\s*leave|need\s*leave|want\s*leave)\b/.test(t)) return 'APPLY_LEAVE';
 
     // Salary slip — can include month/year like "salary slip january 2025"
-    if (/\b(salary\s*slip|payslip|pay\s*slip|salary)\b/.test(t)) return 'SALARY_SLIP';
+    if (/\b(salary\s*slip|payslip|pay\s*slip|salary|payslips)\b/.test(t) || t === 'slip') return 'SALARY_SLIP';
 
     // Leave balance
-    if (/\b(balance|leave\s*balance|remaining\s*leave|leaves\s*left)\b/.test(t)) return 'LEAVE_BALANCE';
+    if (/\b(balance|leave\s*balance|remaining\s*leave|leaves\s*left|leaves\s*balance|leave\s*portfolio)\b/.test(t) || t === 'leave' || t === 'leaves') return 'LEAVE_BALANCE';
 
     // Monthly attendance report — e.g. "monthly attendance", "attendance report", "monthly report", "monthly summary"
-    const monthWords = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec';
+    const monthWords = 'january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec';
     const hasMonthName = new RegExp(`\\b(${monthWords})\\b`, 'i').test(t);
     const hasMonthDigits = /\b20\d{2}[-/](0[1-9]|1[0-2])\b/.test(t);
 
@@ -333,17 +344,7 @@ const detectIntent = (text) => {
     if (/\b(attendance|my\s*attendance|status|today)\b/.test(t)) return 'ATTENDANCE_STATUS';
 
     // Attendance regularization / missed punch
-    if (/\b(regularize|regularisation|regularization|missed\s*punch|correction|attendance\s*correction|correct\s*attendance|forgot\s*punch)\b/.test(t)) return 'REGULARIZE';
-
-    // Numbered shortcuts
-    if (/^(1|1\.)\b/.test(t) || t === '1') return 'PUNCH_IN';
-    if (/^(2|2\.)\b/.test(t) || t === '2') return 'PUNCH_OUT';
-    if (/^(3|3\.)\b/.test(t) || t === '3') return 'ATTENDANCE_STATUS';
-    if (/^(4|4\.)\b/.test(t) || t === '4') return 'MONTHLY_ATTENDANCE';
-    if (/^(5|5\.)\b/.test(t) || t === '5') return 'LEAVE_BALANCE';
-    if (/^(6|6\.)\b/.test(t) || t === '6') return 'APPLY_LEAVE';
-    if (/^(7|7\.)\b/.test(t) || t === '7') return 'SALARY_SLIP';
-    if (/^(8|8\.)\b/.test(t) || t === '8') return 'REGULARIZE';
+    if (/\b(regularize|regularise|regularisation|regularization|missed\s*punch|correction|attendance\s*correction|correct\s*attendance|forgot\s*punch)\b/.test(t)) return 'REGULARIZE';
 
     // Help / Menu
     if (/\b(help|commands|hi|hello|start|menu|options|services|list)\b/.test(t)) return 'HELP';
@@ -470,12 +471,14 @@ const executePunchIn = async (employee, waPhone, lateReason = '', locationData =
             date,
             punches: [punchEntry],
             status: punchStatus,
+            approvalStatus: 'Approved',
             lateInPenalty
         });
     } else {
         record.punches.push(punchEntry);
         if (record.status !== 'On Leave') record.status = punchStatus;
         record.lateInPenalty = lateInPenalty;
+        record.approvalStatus = 'Approved';
         await record.save();
         updatedRecord = record;
     }
@@ -820,6 +823,7 @@ const completePunchOut = async (employee, record, workReport, waPhone, earlyReas
 
     record.punches.push(punchEntry);
     record.workSummary = finalReport;
+    record.approvalStatus = 'Approved';
     await record.save();
 
     const workingMinutes = computeWorkingMinutes(record.punches, record.breaks || []);
@@ -910,6 +914,8 @@ const handlePunchOut = async (employee, waPhone, text = '', locationData = null)
     }
 
     // If direct summary provided in text e.g. "punch out: completed tasks"
+    const directSummary = text.replace(/^(punch\s*out|checkout|check\s*out|sign\s*out|logout|log\s*out|out|2|2\.)[:\s-]*/i, '').trim();
+
     if (directSummary.length >= 3) {
         if (isEarly) {
             await WhatsAppSession.findOneAndUpdate(
@@ -1202,28 +1208,33 @@ const handleAttendanceStatus = async (employee) => {
         const record = await Attendance.findOne({ employee: employee._id, date });
         const shiftDuration = await getShiftDurationMinutes(employee._id, date);
 
-        if (!record) {
-            return `Your attendance for today (${formatDateNice(date)}) has not been recorded yet.\nSend *punch in* to start.`;
+        const punches = record?.punches || [];
+        if (!record || punches.length === 0) {
+            return `📅 *Today's Attendance (${formatDateNice(date)})*\n` +
+                   `─────────────────────\n` +
+                   `Status: *${record?.status || 'Not Marked'}*\n` +
+                   `You have not punched in today.\n\n` +
+                   `Send *1* or *punch in* to start your attendance.`;
         }
 
-        const lastPunch = record.punches[record.punches.length - 1];
+        const lastPunch = punches[punches.length - 1];
         const isPunchedIn = lastPunch?.type === 'IN';
-        const workingMinutes = computeWorkingMinutes(record.punches, record.breaks || []);
+        const workingMinutes = computeWorkingMinutes(punches, record.breaks || []);
         const hours = Math.floor(workingMinutes / 60);
         const mins = workingMinutes % 60;
 
-        const firstIn = record.punches.find(p => p.type === 'IN');
-        const lastOut = [...record.punches].reverse().find(p => p.type === 'OUT');
+        const firstIn = punches.find(p => p.type === 'IN');
+        const lastOut = [...punches].reverse().find(p => p.type === 'OUT');
 
-        let msg = `Today's Attendance (${formatDateNice(date)})\n`;
+        let msg = `📅 *Today's Attendance (${formatDateNice(date)})*\n`;
         msg += `─────────────────────\n`;
-        msg += `Status: ${record.status}\n`;
-        if (firstIn) msg += `Punch In: ${formatTimeIST(firstIn.time)}\n`;
-        if (lastOut) msg += `Punch Out: ${formatTimeIST(lastOut.time)}\n`;
-        msg += `Working Time: ${hours}h ${mins}m\n`;
-        msg += `Currently: ${isPunchedIn ? 'Punched In' : 'Punched Out'}\n`;
+        msg += `Status: *${record.status}*\n`;
+        if (firstIn) msg += `Punch In: *${formatTimeIST(firstIn.time)}*\n`;
+        if (lastOut) msg += `Punch Out: *${formatTimeIST(lastOut.time)}*\n`;
+        msg += `Working Time: *${hours}h ${mins}m*\n`;
+        msg += `Currently: *${isPunchedIn ? 'Punched In 🟢' : 'Punched Out 🔴'}*\n`;
         msg += `─────────────────────\n`;
-        msg += `Send *monthly attendance* for this month's summary.`;
+        msg += `Send *4* or *monthly attendance* for this month's summary.`;
 
         return msg;
     } catch (err) {
@@ -1358,12 +1369,24 @@ const handleSalarySlip = async (employee, text, waPhone) => {
     try {
         let targetMonthStr = parseMonthYearFromText(text);
 
-        // If month not specified, default to strict calendar previous month in IST
+        // If month not specified, try previous month, or fallback to latest published salary slip
         if (!targetMonthStr) {
             const now = new Date();
             const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
             const prev = new Date(ist.getFullYear(), ist.getMonth() - 1, 1);
-            targetMonthStr = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+            const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+
+            const prevPayout = await Payout.findOne({ employeeId: employee._id, month: prevMonth, status: 'Published' });
+            if (prevPayout) {
+                targetMonthStr = prevMonth;
+            } else {
+                const latest = await Payout.findOne({ employeeId: employee._id, status: 'Published' }).sort({ month: -1 });
+                if (latest) {
+                    targetMonthStr = latest.month;
+                } else {
+                    targetMonthStr = prevMonth;
+                }
+            }
         }
 
         const payout = await Payout.findOne({
@@ -2187,130 +2210,130 @@ export const handleWebhook = async (req, res) => {
 
             // ── 3. Check for active multi-step session ──
             const session = await WhatsAppSession.findOne({ phone: waPhone });
+            const intent = detectIntent(text);
 
             let reply;
+            let executeFreshIntent = !session;
 
             // Check if punch access is disabled for this employee
             const isPunchDisabled = employee.isWhatsAppEnabled === false || employee.whatsAppPunchEnabled === false;
 
-            // If in a punch_in flow
-            if (session?.flow === 'punch_in') {
-                if (isPunchDisabled) {
+            if (session) {
+                const lowerText = (text || '').toLowerCase().trim();
+
+                // If user sends 'cancel' or 'help', exit any session immediately
+                if (lowerText === 'cancel') {
                     await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
-                } else if (session.step === 'awaiting_web_verify') {
-                    if (text.toLowerCase() === 'cancel') {
+                    const actionName = session.flow.replace(/_/g, ' ');
+                    reply = `Action cancelled (${actionName}). Send *help* to see all commands.`;
+                } else if (intent === 'HELP') {
+                    await WhatsAppSession.deleteOne({ phone: waPhone });
+                    reply = handleHelp(employee);
+                } else if (session.flow === 'punch_in') {
+                    if (isPunchDisabled) {
                         await WhatsAppSession.deleteOne({ phone: waPhone });
-                        reply = `Punch in cancelled. Send *punch in* when you are ready.`;
-                    } else {
+                        reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
+                    } else if (intent !== 'UNKNOWN' && intent !== 'PUNCH_IN') {
+                        // User chose another menu option (e.g. 2, 3, 4, 5, 6, 7, 8)! Clear session and execute chosen intent!
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        executeFreshIntent = true;
+                    } else if (session.step === 'awaiting_web_verify') {
                         const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_IN', waPhone, session.data);
-                        reply = `📍 *Real-Time GPS Verification Required*\n\nPlease tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n(Send *cancel* to cancel).`;
-                    }
-                } else {
-                    const intent = detectIntent(text);
-                    if (intent === 'HELP') {
-                        await WhatsAppSession.deleteOne({ phone: waPhone });
-                        reply = handleHelp(employee);
+                        reply = `📍 *Real-Time GPS Verification Required*\n\nPlease tap the secure link below to verify your real device GPS location and confirm your Punch In:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n💡 _Reply with *2* to punch out, *3* for status, or *cancel* to exit._`;
                     } else {
                         reply = await handlePunchInReason(employee, text, session, waPhone);
                     }
-                }
-            } else if (session?.flow === 'apply_leave') {
-                const intent = detectIntent(text);
-                // Allow cancel and help to break out of flow
-                if (intent === 'HELP') {
-                    await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = handleHelp(employee);
-                } else {
-                    reply = await handleLeaveFlow(employee, text, session, waPhone);
-                }
-            } else if (session?.flow === 'punch_out') {
-                if (isPunchDisabled) {
-                    await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
-                } else if (session.step === 'awaiting_web_verify') {
-                    if (text.toLowerCase() === 'cancel') {
+                } else if (session.flow === 'punch_out') {
+                    if (isPunchDisabled) {
                         await WhatsAppSession.deleteOne({ phone: waPhone });
-                        reply = `Punch out cancelled. Send *punch out* when you are ready.`;
-                    } else {
+                        reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.\n\nOther WhatsApp features (Leave, Salary Slips, Reports) remain available. Send *help* to see all options.`;
+                    } else if (intent !== 'UNKNOWN' && intent !== 'PUNCH_OUT') {
+                        // User chose another menu option! Clear session and execute chosen intent!
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        executeFreshIntent = true;
+                    } else if (session.step === 'awaiting_web_verify') {
                         const verifyUrl = generatePunchVerifyUrl(employee, 'PUNCH_OUT', waPhone, session.data);
-                        reply = `📍 *Real-Time Departure Verification Required*\n\nPlease tap the secure link below to verify your real departure GPS location:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n(Send *cancel* to cancel).`;
-                    }
-                } else {
-                    const intent = detectIntent(text);
-                    if (intent === 'HELP') {
-                        await WhatsAppSession.deleteOne({ phone: waPhone });
-                        reply = handleHelp(employee);
+                        reply = `📍 *Real-Time Departure Verification Required*\n\nPlease tap the secure link below to verify your real departure GPS location:\n\n👉 ${verifyUrl}\n\n⏱️ _Link valid for 5 minutes._\n\n💡 _Reply with *1* to punch in, *3* for status, or *cancel* to exit._`;
                     } else {
                         reply = await handlePunchOutReport(employee, text, session, waPhone);
                     }
+                } else if (session.flow === 'apply_leave') {
+                    // In apply_leave, options 1, 2, 3 might be user picking leave type or duration
+                    // Only break out if intent is an explicit non-leave command
+                    if (['PUNCH_IN', 'PUNCH_OUT', 'SALARY_SLIP', 'ATTENDANCE_STATUS', 'MONTHLY_ATTENDANCE'].includes(intent)) {
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        executeFreshIntent = true;
+                    } else {
+                        reply = await handleLeaveFlow(employee, text, session, waPhone);
+                    }
+                } else if (session.flow === 'regularize_attendance') {
+                    if (['PUNCH_IN', 'PUNCH_OUT', 'SALARY_SLIP', 'LEAVE_BALANCE', 'ATTENDANCE_STATUS', 'MONTHLY_ATTENDANCE'].includes(intent)) {
+                        await WhatsAppSession.deleteOne({ phone: waPhone });
+                        executeFreshIntent = true;
+                    } else {
+                        reply = await handleRegularizationFlow(employee, text, session, waPhone);
+                    }
                 }
-            } else if (session?.flow === 'regularize_attendance') {
-                const intent = detectIntent(text);
-                if (intent === 'HELP') {
-                    await WhatsAppSession.deleteOne({ phone: waPhone });
-                    reply = handleHelp(employee);
-                } else {
-                    reply = await handleRegularizationFlow(employee, text, session, waPhone);
-                }
-            } else if (locationData) {
-                // Reject manual/dropped location pin to prevent location spoofing
-                if (isPunchDisabled) {
-                    reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.`;
-                } else {
-                    const date = getTodayStr();
-                    const record = await Attendance.findOne({ employee: employee._id, date });
-                    const lastPunch = record?.punches?.length > 0 ? record.punches[record.punches.length - 1] : null;
-                    const action = (!record || lastPunch?.type !== 'IN') ? 'PUNCH_IN' : 'PUNCH_OUT';
-                    const verifyUrl = generatePunchVerifyUrl(employee, action, waPhone);
+            }
 
-                    reply = `⚠️ *Manual Location Pins Not Accepted*\n\n` +
-                           `To ensure attendance accuracy and prevent location spoofing, please tap the secure GPS verification link below:\n\n` +
-                           `👉 ${verifyUrl}\n\n` +
-                           `⏱️ _Link valid for 5 minutes._`;
-                }
-            } else {
-                // Detect intent from fresh message
-                const intent = detectIntent(text);
+            // Fresh command execution (if no session, or if session was broken out of)
+            if (executeFreshIntent) {
+                if (locationData) {
+                    // Reject manual/dropped location pin to prevent location spoofing
+                    if (isPunchDisabled) {
+                        reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease punch in/out using the HRMS Mobile App or Web Portal.`;
+                    } else {
+                        const date = getTodayStr();
+                        const record = await Attendance.findOne({ employee: employee._id, date });
+                        const lastPunch = record?.punches?.length > 0 ? record.punches[record.punches.length - 1] : null;
+                        const action = (!record || lastPunch?.type !== 'IN') ? 'PUNCH_IN' : 'PUNCH_OUT';
+                        const verifyUrl = generatePunchVerifyUrl(employee, action, waPhone);
 
-                switch (intent) {
-                    case 'PUNCH_IN':
-                        if (isPunchDisabled) {
-                            reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
-                        } else {
-                            reply = await handlePunchIn(employee, waPhone, text);
-                        }
-                        break;
-                    case 'PUNCH_OUT':
-                        if (isPunchDisabled) {
-                            reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
-                        } else {
-                            reply = await handlePunchOut(employee, waPhone, text);
-                        }
-                        break;
-                    case 'LEAVE_BALANCE':
-                        reply = await handleLeaveBalance(employee);
-                        break;
-                    case 'ATTENDANCE_STATUS':
-                        reply = await handleAttendanceStatus(employee);
-                        break;
-                    case 'MONTHLY_ATTENDANCE':
-                        reply = await handleMonthlyAttendance(employee, text);
-                        break;
-                    case 'SALARY_SLIP':
-                        reply = await handleSalarySlip(employee, text, waPhone);
-                        break;
-                    case 'APPLY_LEAVE':
-                        reply = await handleLeaveFlow(employee, text, null, waPhone);
-                        break;
-                    case 'REGULARIZE':
-                        reply = await handleRegularizationFlow(employee, text, null, waPhone);
-                        break;
-                    case 'HELP':
-                        reply = handleHelp(employee);
-                        break;
-                    default:
-                        reply = `I did not understand that.\n\nSend *help* to see all available commands.`;
+                        reply = `⚠️ *Manual Location Pins Not Accepted*\n\n` +
+                               `To ensure attendance accuracy and prevent location spoofing, please tap the secure GPS verification link below:\n\n` +
+                               `👉 ${verifyUrl}\n\n` +
+                               `⏱️ _Link valid for 5 minutes._`;
+                    }
+                } else {
+                    switch (intent) {
+                        case 'PUNCH_IN':
+                            if (isPunchDisabled) {
+                                reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
+                            } else {
+                                reply = await handlePunchIn(employee, waPhone, text);
+                            }
+                            break;
+                        case 'PUNCH_OUT':
+                            if (isPunchDisabled) {
+                                reply = `⚠️ *Punching Restricted*\n\nHello *${employee.name}*,\n\nPunching in/out via WhatsApp is disabled for your account by your administrator.\n\nPlease use the HRMS Mobile App or Web Portal to record your attendance.\n\nAll other self-service options (such as *apply leave*, *leave balance*, *salary slip*, and *attendance report*) are still available on WhatsApp. Send *help* to see all commands.`;
+                            } else {
+                                reply = await handlePunchOut(employee, waPhone, text);
+                            }
+                            break;
+                        case 'ATTENDANCE_STATUS':
+                            reply = await handleAttendanceStatus(employee);
+                            break;
+                        case 'MONTHLY_ATTENDANCE':
+                            reply = await handleMonthlyAttendance(employee, text);
+                            break;
+                        case 'LEAVE_BALANCE':
+                            reply = await handleLeaveBalance(employee);
+                            break;
+                        case 'APPLY_LEAVE':
+                            reply = await handleLeaveFlow(employee, text, null, waPhone);
+                            break;
+                        case 'SALARY_SLIP':
+                            reply = await handleSalarySlip(employee, text, waPhone);
+                            break;
+                        case 'REGULARIZE':
+                            reply = await handleRegularizationFlow(employee, text, null, waPhone);
+                            break;
+                        case 'HELP':
+                            reply = handleHelp(employee);
+                            break;
+                        default:
+                            reply = `I did not understand that.\n\nSend *help* to see all available commands.`;
+                    }
                 }
             }
 

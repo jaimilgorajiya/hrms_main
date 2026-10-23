@@ -133,6 +133,7 @@ export const getTodayAttendance = async (req, res) => {
                 record: null,
                 status: 'not_started',
                 isPunchedIn: false,
+                isDoneForToday: false,
                 isOnBreak: false,
                 workingMinutes: 0,
                 workingFormatted: '0h 0m',
@@ -145,6 +146,7 @@ export const getTodayAttendance = async (req, res) => {
 
         const lastPunch = record.punches[record.punches.length - 1];
         const isPunchedIn = lastPunch?.type === 'IN';
+        const isDoneForToday = record.punches?.some(p => p.type === 'OUT');
 
         const lastBreak = record.breaks?.[record.breaks.length - 1];
         const isOnBreak = !!(lastBreak && !lastBreak.end);
@@ -205,6 +207,7 @@ export const getTodayAttendance = async (req, res) => {
             record,
             status: record.status,
             isPunchedIn,
+            isDoneForToday,
             isOnBreak,
             currentBreakType,
             workingMinutes,
@@ -325,15 +328,27 @@ export const togglePunch = async (req, res) => {
                 branch = await Branch.findOne({ branchName: { $regex: new RegExp(`^${escaped}$`, 'i') }, adminId: emp.adminId || emp._id });
             }
             if (branch && branch.latitude !== 0) {
-                if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
-                    return res.status(400).json({ success: false, message: "Location coordinates are required to verify geofence boundaries." });
-                }
-                const distance = getDistance(latitude, longitude, branch.latitude, branch.longitude);
-                const radius = branch.radius || 200;
                 const { shift } = await getEmployeeShiftToday(req.user._id, date);
-                if (distance > radius) {
+                if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+                    // Browser/device does not provide GPS coordinates (desktop/laptop web browser)
                     if (shift?.requireOutOfRangeReason && !geofenceReason) {
-                        return res.status(400).json({ success: false, requireOutOfRangeReason: true, message: "You are out of office range. Please provide a reason." });
+                        return res.status(400).json({
+                            success: false,
+                            requireOutOfRangeReason: true,
+                            message: "Location coordinates unavailable on this device. Please provide a reason to punch via web portal."
+                        });
+                    }
+                } else {
+                    const distance = getDistance(latitude, longitude, branch.latitude, branch.longitude);
+                    const radius = branch.radius || 200;
+                    if (distance > radius) {
+                        if (shift?.requireOutOfRangeReason && !geofenceReason) {
+                            return res.status(400).json({
+                                success: false,
+                                requireOutOfRangeReason: true,
+                                message: `You are out of office range (${Math.round(distance)}m from branch). Please provide a reason.`
+                            });
+                        }
                     }
                 }
             }
@@ -451,13 +466,14 @@ export const togglePunch = async (req, res) => {
                     date,
                     punches: [newPunch],
                     status: punchStatus,
+                    approvalStatus: 'Approved',
                     lateInPenalty
                 });
             } else {
                 record.punches = [newPunch];
                 record.status = punchStatus;
                 record.lateInPenalty = lateInPenalty;
-                record.approvalStatus = 'Pending'; // Reset if it was On Leave
+                record.approvalStatus = 'Approved';
             }
 
             await record.save();
@@ -672,6 +688,7 @@ export const togglePunch = async (req, res) => {
             finalStatus = oldStatus;
         }
         record.status = finalStatus;
+        record.approvalStatus = 'Approved';
 
         await record.save();
         notifyAdminPunch(req.user._id, 'OUT', date, record.status);
@@ -813,25 +830,53 @@ export const getAttendanceHistory = async (req, res) => {
         const leavePolicy = user?.leaveGroup?.leaveBalanceVisibility || 'Default (Multiple of 0.5)';
 
         // Also fetch requests for this month to show "Request already sent"
-        const requests = await Request.find(filter).populate('leaveType', 'name').sort({ date: -1 });
+        let reqFilter = { employee: employeeId };
+        if (month) {
+            reqFilter.$or = [
+                { date: { $regex: `^${month}` } },
+                { fromDate: { $regex: `^${month}` } },
+                { toDate: { $regex: `^${month}` } }
+            ];
+        }
+        const requests = await Request.find(reqFilter).populate('leaveType', 'name').sort({ date: -1, createdAt: -1 });
         const todayStr = getTodayStr();
         const rqMap = {};
         requests.forEach(rq => {
             // Hide 'Attendance Correction' requests for the current day
             if (rq.requestType === 'Attendance Correction' && rq.date === todayStr) return;
 
-            rqMap[rq.date] = {
+            const reqObj = {
                 id: rq._id,
                 type: rq.requestType,
                 status: rq.status,
                 reason: rq.reason,
                 workSummary: rq.workSummary,
                 adminRemark: rq.adminRemark,
-                leaveType: rq.leaveType?.name,
+                leaveType: rq.leaveType?.name || rq.leaveTypeName || 'Leave',
+                leaveDuration: rq.leaveDuration || 'Full Day',
+                leaveCategory: rq.leaveCategory || 'Paid',
                 appliedAt: rq.appliedAt,
                 manualIn: rq.manualIn,
                 manualOut: rq.manualOut
             };
+
+            if (rq.fromDate && rq.toDate) {
+                const s = new Date(rq.fromDate + 'T00:00:00');
+                const e = new Date(rq.toDate + 'T00:00:00');
+                for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const ds = `${y}-${m}-${day}`;
+                    if (!rqMap[ds] || rq.status === 'Approved') {
+                        rqMap[ds] = reqObj;
+                    }
+                }
+            } else if (rq.date) {
+                if (!rqMap[rq.date] || rq.status === 'Approved') {
+                    rqMap[rq.date] = reqObj;
+                }
+            }
         });
 
         const formatted = records.map(r => {
@@ -847,8 +892,14 @@ export const getAttendanceHistory = async (req, res) => {
             const firstIn = r.punches.find(p => p.type === 'IN');
             const lastOut = [...r.punches].reverse().find(p => p.type === 'OUT');
 
-            let status = r.status || "Present";
-            if (firstIn && !lastOut && r.status !== 'On Leave') {
+            const reqForDate = rqMap[r.date] || null;
+            const isLeaveStatus = r.status === 'On Leave' || r.status === 'Leave' || (reqForDate?.type === 'Leave' && reqForDate?.status === 'Approved');
+            const leaveCategory = r.leaveCategory || reqForDate?.leaveCategory || (isLeaveStatus ? 'Paid' : null);
+            const leaveDuration = r.leaveDuration || reqForDate?.leaveDuration || (isLeaveStatus ? 'Full Day' : null);
+            const leaveTypeName = reqForDate?.leaveType || r.leaveTypeName || (isLeaveStatus ? 'Leave' : null);
+
+            let status = isLeaveStatus ? (leaveDuration?.includes('Half') ? 'Half Day' : 'On Leave') : (r.status || "Present");
+            if (firstIn && !lastOut && status !== 'On Leave') {
                 status = (r.date === todayStr) ? 'Clocked In' : 'Incomplete';
             }
 
@@ -866,11 +917,43 @@ export const getAttendanceHistory = async (req, res) => {
                 workSummary: r.workSummary,
                 lateInPenalty: r.lateInPenalty || { amount: 0, isApplied: false },
                 earlyOutPenalty: r.earlyOutPenalty || { amount: 0, isApplied: false },
-                approvalStatus: r.approvalStatus || "Pending",
-                leaveCategory: r.leaveCategory || null,
-                request: rqMap[r.date] || null
+                approvalStatus: r.approvalStatus === 'Rejected' ? 'Rejected' : (r.punches?.length > 0 ? 'Approved' : (r.approvalStatus || 'Approved')),
+                leaveCategory,
+                leaveDuration,
+                leaveTypeName,
+                request: reqForDate
             };
         });
+
+        // Ensure approved leave requests show in formatted if no attendance document exists yet
+        for (const reqDate in rqMap) {
+            const reqInfo = rqMap[reqDate];
+            if (reqInfo.type === 'Leave' && reqInfo.status === 'Approved') {
+                const existing = formatted.find(f => f.date === reqDate);
+                if (!existing) {
+                    formatted.push({
+                        date: reqDate,
+                        status: reqInfo.leaveDuration?.includes('Half') ? 'Half Day' : 'On Leave',
+                        punchIn: null,
+                        punchOut: null,
+                        workingMinutes: 0,
+                        workingFormatted: '0h 0m',
+                        breakCount: 0,
+                        breakFormatted: '0h 0m',
+                        punches: [],
+                        breaks: [],
+                        workSummary: reqInfo.reason || '',
+                        lateInPenalty: { amount: 0, isApplied: false },
+                        earlyOutPenalty: { amount: 0, isApplied: false },
+                        approvalStatus: 'Approved',
+                        leaveCategory: reqInfo.leaveCategory || 'Paid',
+                        leaveDuration: reqInfo.leaveDuration || 'Full Day',
+                        leaveTypeName: reqInfo.leaveType || 'Leave',
+                        request: reqInfo
+                    });
+                }
+            }
+        }
 
         const totalPenalty = records.reduce((acc, r) => acc + (r.lateInPenalty?.amount || 0), 0);
 
@@ -893,6 +976,7 @@ export const getAttendanceHistory = async (req, res) => {
         for (const hDate in holidayMap) {
             const existing = formatted.find(r => r.date === hDate);
             if (existing) {
+                existing.holidayName = holidayMap[hDate]?.name || 'Holiday';
                 if (!existing.punches || existing.punches.length === 0 || existing.status === 'Absent') {
                     existing.status = 'Holiday';
                 }
@@ -900,6 +984,7 @@ export const getAttendanceHistory = async (req, res) => {
                 formatted.push({
                     date: hDate,
                     status: 'Holiday',
+                    holidayName: holidayMap[hDate]?.name || 'Holiday',
                     punchIn: null,
                     punchOut: null,
                     workingMinutes: 0,
@@ -987,7 +1072,7 @@ export const getAdminAttendance = async (req, res) => {
                 isEarly: record?.earlyOutPenalty?.isEarly || false,
                 lateInPenalty: record?.lateInPenalty || { amount: 0, isApplied: false },
                 earlyOutPenalty: record?.earlyOutPenalty || { amount: 0, isApplied: false },
-                approvalStatus: record ? (record.approvalStatus || 'Pending') : 'N/A',
+                approvalStatus: record ? (record.approvalStatus === 'Rejected' ? 'Rejected' : (record.punches?.length > 0 ? 'Approved' : (record.approvalStatus || 'Approved'))) : 'N/A',
                 punches: record?.punches || [],
                 breaks: record?.breaks || []
             };
@@ -1599,7 +1684,7 @@ export const getMonthlyAttendanceStats = async (req, res) => {
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 workingFormatted: formatMinutes(workingMins),
-                approvalStatus: r.approvalStatus || 'Pending',
+                approvalStatus: r.approvalStatus === 'Rejected' ? 'Rejected' : (r.punches?.length > 0 ? 'Approved' : (r.approvalStatus || 'Approved')),
                 punches: r.punches,
                 breaks: r.breaks,
                 lateInPenalty: r.lateInPenalty,
@@ -1647,7 +1732,7 @@ export const getSpecificRecord = async (req, res) => {
                 remark: record.remark || '',
                 punchIn: firstIn ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
                 punchOut: lastOut ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
-                approvalStatus: record.approvalStatus || "Pending"
+                approvalStatus: record.approvalStatus === 'Rejected' ? 'Rejected' : (record.punches?.length > 0 ? 'Approved' : (record.approvalStatus || 'Approved'))
             }
         });
     } catch (error) {

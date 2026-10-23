@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { LogIn, LogOut, Coffee, Zap } from 'lucide-react';
+import { LogIn, LogOut, Coffee, CheckCircle, Clock } from 'lucide-react';
 import Swal from 'sweetalert2';
 import authenticatedFetch from '../utils/apiHandler';
 import API_URL from '../config/api';
@@ -73,12 +73,16 @@ const PunchWidget = () => {
     return () => clearInterval(t);
   }, []);
 
+  const punches = todayData?.punches || [];
+  const breaks = todayData?.breaks || [];
+  const isPunchedIn = todayData?.isPunchedIn;
+  const isDoneForToday = todayData?.isDoneForToday || (punches.length > 0 && punches[punches.length - 1].type === 'OUT');
+  const isOnBreak = todayData?.isOnBreak;
+
   useEffect(() => {
     clearInterval(timerRef.current);
-    if (todayData?.isPunchedIn) {
-      if (todayData?.isOnBreak) {
-        const punches = todayData.punches || [];
-        const breaks = todayData.breaks || [];
+    if (isPunchedIn) {
+      if (isOnBreak) {
         let workedMs = 0;
         const sorted = [...punches].sort((a, b) => new Date(a.time) - new Date(b.time));
         for (let i = 0; i < sorted.length - 1; i += 2) {
@@ -91,8 +95,6 @@ const PunchWidget = () => {
         breaks.forEach(b => { if (b.end) workedMs -= new Date(b.end) - new Date(b.start); });
         setElapsed(Math.max(0, Math.floor(workedMs / 1000)));
       } else {
-        const punches = todayData.punches || [];
-        const breaks = todayData.breaks || [];
         let workedMs = 0;
         const sorted = [...punches].sort((a, b) => new Date(a.time) - new Date(b.time));
         for (let i = 0; i < sorted.length - 1; i += 2) {
@@ -110,11 +112,23 @@ const PunchWidget = () => {
         setElapsed(base);
         timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
       }
+    } else if (isDoneForToday) {
+      // Completed for today — compute and freeze total worked time
+      let workedMs = 0;
+      const sorted = [...punches].sort((a, b) => new Date(a.time) - new Date(b.time));
+      for (let i = 0; i < sorted.length - 1; i += 2) {
+        if (sorted[i].type === 'IN' && sorted[i+1]?.type === 'OUT')
+          workedMs += new Date(sorted[i+1].time) - new Date(sorted[i].time);
+      }
+      breaks.forEach(b => {
+        if (b.start && b.end) workedMs -= (new Date(b.end) - new Date(b.start));
+      });
+      setElapsed(Math.max(0, Math.floor(workedMs / 1000)));
     } else {
       setElapsed(0);
     }
     return () => clearInterval(timerRef.current);
-  }, [todayData]);
+  }, [isPunchedIn, isOnBreak, isDoneForToday, punches, breaks]);
 
   const fetchToday = useCallback(async () => {
     try {
@@ -128,51 +142,101 @@ const PunchWidget = () => {
   useEffect(() => { fetchToday(); }, [fetchToday]);
 
   const handlePunch = async () => {
-    const action = todayData?.isPunchedIn ? 'OUT' : 'IN';
-    const { isConfirmed } = await Swal.fire({
-      title: `Punch ${action}?`,
-      text: liveTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      icon: 'question', showCancelButton: true,
-      confirmButtonColor: action === 'IN' ? '#10B981' : '#EF4444',
-      cancelButtonColor: '#6B7280',
-      confirmButtonText: `Punch ${action}`,
-    });
-    if (!isConfirmed) return;
+    if (isDoneForToday) {
+      Swal.fire({
+        title: 'Already Punched Out',
+        text: 'You have already completed your punch for today.',
+        icon: 'info',
+        confirmButtonColor: '#3B82F6'
+      });
+      return;
+    }
+
+    const action = isPunchedIn ? 'OUT' : 'IN';
+    let workSummary = '';
+
+    if (action === 'OUT') {
+      const { value: summary, isConfirmed } = await Swal.fire({
+        title: 'Punch Out',
+        html: `
+          <div style="text-align: left; font-size: 14px; color: #475569; margin-bottom: 12px;">
+            <p style="margin: 0 0 8px;">Time: <b>${liveTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}</b></p>
+            <label style="font-size: 13px; font-weight: 600; color: #334155; display: block; margin-bottom: 6px;">
+              Daily Work Summary (Optional):
+            </label>
+          </div>
+        `,
+        input: 'textarea',
+        inputPlaceholder: 'Enter key tasks or work summary accomplished today...',
+        inputAttributes: { rows: 3 },
+        showCancelButton: true,
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Punch Out Now',
+      });
+      if (!isConfirmed) return;
+      workSummary = summary?.trim() || '';
+    } else {
+      const { isConfirmed } = await Swal.fire({
+        title: 'Punch In?',
+        text: liveTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }),
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10B981',
+        cancelButtonColor: '#6B7280',
+        confirmButtonText: 'Punch In Now',
+      });
+      if (!isConfirmed) return;
+    }
 
     setActionLoading(true);
     try {
-      // Query browser geolocation controls
+      // ── Geolocation acquisition with graceful web desktop fallback ──
       let latitude = null;
       let longitude = null;
       let isMocked = false;
+      let locationAddress = 'Web Portal';
+
+      const getCoords = (opts) => new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject(new Error('Geolocation not supported'));
+        navigator.geolocation.getCurrentPosition(resolve, reject, opts);
+      });
+
       try {
-        if (navigator.geolocation) {
-          const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { 
-              enableHighAccuracy: true, 
-              timeout: 4000 
-            });
-          });
-          latitude = pos.coords.latitude;
-          longitude = pos.coords.longitude;
-          if (pos.coords.accuracy === 0) {
-            isMocked = true;
-          }
-        } else {
-          console.log('Location acquisition not supported/available in this context');
+        const pos = await Promise.race([
+          getCoords({ enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5500))
+        ]);
+        latitude = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+        locationAddress = 'Web Geolocation';
+        if (pos.coords.accuracy === 0) isMocked = true;
+      } catch {
+        try {
+          const posLow = await Promise.race([
+            getCoords({ enableHighAccuracy: false, timeout: 2500, maximumAge: 300000 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2800))
+          ]);
+          latitude = posLow.coords.latitude;
+          longitude = posLow.coords.longitude;
+          locationAddress = 'Web Geolocation (Standard)';
+          if (posLow.coords.accuracy === 0) isMocked = true;
+        } catch {
+          console.log('Location acquisition unavailable; continuing with Web Portal mode.');
+          locationAddress = 'Web Portal';
         }
-      } catch (e) {
-        console.log('Location acquisition failed or denied in web browser');
       }
 
       const payloadBase = {
         latitude,
         longitude,
+        locationAddress,
         isMocked,
+        workSummary: action === 'OUT' ? workSummary : undefined,
         clientTime: new Date().toISOString()
       };
 
-      // First attempt — pass validation payload
+      // First attempt
       const res = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,17 +246,18 @@ const PunchWidget = () => {
 
       if (json.success) {
         await fetchToday();
-        Swal.fire({ title: json.message, icon: 'success', timer: 1200, showConfirmButton: false });
+        Swal.fire({ title: json.message || `Punch ${action} Successful!`, icon: 'success', timer: 1500, showConfirmButton: false });
         return;
       }
 
-      // Handle Out of Office Range Reason Requirement
+      // Handle Out of Office Range / Web Location Verification
       if (json.requireOutOfRangeReason) {
         const { value: reason, isConfirmed: reasonConfirmed } = await Swal.fire({
-          title: 'Out of Office Range',
-          html: `<p style="color:#64748B;margin-bottom:12px">${json.message}</p>`,
+          title: latitude ? 'Out of Office Range' : 'Web Punch Verification',
+          html: `<p style="color:#64748B;margin-bottom:12px;font-size:14px;">${json.message}</p>`,
           input: 'textarea',
-          inputPlaceholder: 'Enter reason for out of range punch...',
+          inputValue: latitude ? '' : 'Punch from Web Portal (Office Desktop)',
+          inputPlaceholder: 'Enter reason or location note...',
           inputAttributes: { rows: 3 },
           showCancelButton: true,
           confirmButtonColor: '#F59E0B',
@@ -209,9 +274,9 @@ const PunchWidget = () => {
         const json2 = await res2.json();
         if (json2.success) {
           await fetchToday();
-          Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
+          Swal.fire({ title: json2.message || 'Punch Successful!', icon: 'success', timer: 1500, showConfirmButton: false });
         } else {
-          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
+          Swal.fire({ title: 'Unable to Punch', text: json2.message, icon: 'error', confirmButtonColor: '#3B82F6' });
         }
         return;
       }
@@ -220,7 +285,7 @@ const PunchWidget = () => {
       if (json.requireLateReason) {
         const { value: reason, isConfirmed: reasonConfirmed } = await Swal.fire({
           title: 'Late Punch In',
-          html: `<p style="color:#64748B;margin-bottom:12px">${json.message}</p>`,
+          html: `<p style="color:#64748B;margin-bottom:12px;font-size:14px;">${json.message}</p>`,
           input: 'textarea',
           inputPlaceholder: 'Enter reason for late arrival...',
           inputAttributes: { rows: 3 },
@@ -239,19 +304,19 @@ const PunchWidget = () => {
         const json2 = await res2.json();
         if (json2.success) {
           await fetchToday();
-          Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
+          Swal.fire({ title: json2.message || 'Punch In Successful!', icon: 'success', timer: 1500, showConfirmButton: false });
         } else {
-          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
+          Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3B82F6' });
         }
         return;
       }
 
-      // Early-out blocked — needs reason or is hard-blocked
+      // Handle Early-out
       if (json.earlyOut) {
         if (json.requireReason) {
           const { value: reason, isConfirmed: reasonConfirmed } = await Swal.fire({
             title: 'Early Punch Out',
-            html: `<p style="color:#64748B;margin-bottom:12px">You are punching out <b>${json.earlyByMins} min</b> early. Please provide a reason.</p>`,
+            html: `<p style="color:#64748B;margin-bottom:12px;font-size:14px;">You are punching out <b>${json.earlyByMins} min</b> early. Please provide a reason.</p>`,
             input: 'textarea',
             inputPlaceholder: 'Enter reason for early punch out...',
             inputAttributes: { rows: 3 },
@@ -262,67 +327,82 @@ const PunchWidget = () => {
           });
           if (!reasonConfirmed || !reason?.trim()) return;
 
-          // Retry with reason
           const res2 = await authenticatedFetch(`${API_URL}/api/attendance/toggle-punch`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...payloadBase, reason: reason.trim() }),
+            body: JSON.stringify({ ...payloadBase, reason: reason.trim(), earlyReason: reason.trim() }),
           });
           const json2 = await res2.json();
           if (json2.success) {
             await fetchToday();
-            Swal.fire({ title: json2.message, icon: 'success', timer: 1200, showConfirmButton: false });
+            Swal.fire({ title: json2.message || 'Punch Out Successful!', icon: 'success', timer: 1500, showConfirmButton: false });
           } else {
-            Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3b82f6' });
+            Swal.fire({ title: 'Blocked', text: json2.message, icon: 'error', confirmButtonColor: '#3B82F6' });
           }
         } else {
-          // Hard blocked — too early, no reason option
           Swal.fire({
             title: 'Early Punch Out Not Allowed',
-            html: `You are <b>${json.earlyByMins} min</b> early.<br>Maximum allowed early out is <b>${json.maxAllowedMins} min</b>.`,
+            html: `You are <b>${json.earlyByMins} min</b> early.<br>${json.message || 'Early punch out is restricted.'}`,
             icon: 'warning',
-            confirmButtonColor: '#3b82f6',
+            confirmButtonColor: '#3B82F6',
           });
         }
         return;
       }
 
-      Swal.fire({ title: 'Error', text: json.message, icon: 'error', confirmButtonColor: '#3b82f6' });
-    } catch { Swal.fire({ title: 'Error', text: 'Server error', icon: 'error' }); }
-    finally { setActionLoading(false); }
+      Swal.fire({ title: 'Notice', text: json.message || 'Punch failed. Please check status.', icon: 'error', confirmButtonColor: '#3B82F6' });
+    } catch {
+      Swal.fire({ title: 'Error', text: 'Server communication error. Please try again.', icon: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleBreak = async () => {
     setActionLoading(true);
     try {
       const res = await authenticatedFetch(`${API_URL}/api/attendance/toggle-break`, {
-        method: 'POST', body: JSON.stringify({ breakType: 'General' }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ breakType: 'General' }),
       });
       const json = await res.json();
       if (json.success) {
         await fetchToday();
-        Swal.fire({ title: todayData?.isOnBreak ? 'Break Ended' : 'Break Started', icon: 'success', timer: 1000, showConfirmButton: false });
+        Swal.fire({ title: isOnBreak ? 'Break Ended' : 'Break Started', icon: 'success', timer: 1000, showConfirmButton: false });
+      } else {
+        Swal.fire({ title: 'Break Action Failed', text: json.message, icon: 'error' });
       }
-    } catch { /* silent */ }
-    finally { setActionLoading(false); }
+    } catch {
+      Swal.fire({ title: 'Error', text: 'Server communication error', icon: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const isPunchedIn = todayData?.isPunchedIn;
-  const isOnBreak = todayData?.isOnBreak;
-  const firstIn = todayData?.punches?.find(p => p.type === 'IN');
+  const firstIn = punches.find(p => p.type === 'IN');
+  const lastOut = [...punches].reverse().find(p => p.type === 'OUT');
+
   const punchInTime = firstIn
     ? new Date(firstIn.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
     : null;
-  const breakCount = todayData?.breaks?.filter(b => b.end).length || 0;
+
+  const punchOutTime = lastOut
+    ? new Date(lastOut.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    : null;
+
+  const breakCount = breaks.filter(b => b.end).length || 0;
   const shiftSecs = (todayData?.shiftDurationMinutes || 480) * 60;
   const progress = Math.min(elapsed / shiftSecs, 1);
   const shiftHours = Math.round((todayData?.shiftDurationMinutes || 480) / 60);
 
-  const theme = isOnBreak
-    ? { ring: '#F59E0B', glow: '#F59E0B', label: 'On Break',       labelBg: '#FFFBEB', labelColor: '#D97706' }
+  const theme = isDoneForToday
+    ? { ring: '#10B981', glow: '#10B981', label: 'Completed Today', labelBg: 'rgba(16, 185, 129, 0.15)', labelColor: '#059669' }
+    : isOnBreak
+    ? { ring: '#F59E0B', glow: '#F59E0B', label: 'On Break', labelBg: '#FFFBEB', labelColor: '#D97706' }
     : isPunchedIn
-    ? { ring: '#10B981', glow: '#10B981', label: 'Working',         labelBg: '#ECFDF5', labelColor: '#059669' }
-    : { ring: '#3b82f6', glow: '#3b82f6', label: 'Not Punched In',  labelBg: '#EFF6FF', labelColor: '#3b82f6' };
+    ? { ring: '#10B981', glow: '#10B981', label: 'Working', labelBg: '#ECFDF5', labelColor: '#059669' }
+    : { ring: '#3B82F6', glow: '#3B82F6', label: 'Not Punched In', labelBg: '#EFF6FF', labelColor: '#3B82F6' };
 
   return (
     <div className="pw-card-v2">
@@ -350,10 +430,19 @@ const PunchWidget = () => {
             <span className="pw-v2-elapsed" style={{ color: theme.ring }}>{fmt(elapsed)}</span>
           </div>
         </div>
-        {punchInTime
-          ? <span className="pw-v2-in-label">Punch In Time : {punchInTime}</span>
-          : <span className="pw-v2-in-label">not started</span>
-        }
+
+        {isDoneForToday ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginTop: 4 }}>
+            <span className="pw-v2-in-label" style={{ color: '#059669', fontWeight: 700 }}>
+              Punch In: {punchInTime} • Out: {punchOutTime}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--ep-text-muted)', fontWeight: 600 }}>Shift Completed</span>
+          </div>
+        ) : punchInTime ? (
+          <span className="pw-v2-in-label">Punch In Time : {punchInTime}</span>
+        ) : (
+          <span className="pw-v2-in-label">not started</span>
+        )}
 
         {/* Stats row below ring */}
         <div className="pw-v2-stats">
@@ -374,7 +463,7 @@ const PunchWidget = () => {
               const rm = Math.floor((remainSecs % 3600) / 60);
               return <>
                 <span className="pw-v2-stat-val">{Math.floor(elapsed/3600)}h {Math.floor((elapsed%3600)/60)}m / {shiftHours}h</span>
-                <span className="pw-v2-stat-lbl">{remainSecs > 0 ? `${rh}h ${rm}m left` : 'Shift complete'}</span>
+                <span className="pw-v2-stat-lbl">{isDoneForToday ? 'Shift done' : remainSecs > 0 ? `${rh}h ${rm}m left` : 'Shift complete'}</span>
               </>;
             })()}
           </div>
@@ -383,15 +472,36 @@ const PunchWidget = () => {
 
       {/* Buttons */}
       <div className="pw-v2-actions">
-        <button
-          className={`pw-v2-btn primary ${isPunchedIn ? 'out' : 'in'}`}
-          onClick={handlePunch}
-          disabled={actionLoading || loading}
-        >
-          {isPunchedIn ? <LogOut size={15} /> : <LogIn size={15} />}
-          {actionLoading ? 'Processing...' : isPunchedIn ? 'Punch Out' : 'Punch In'}
-        </button>
-        {isPunchedIn && (
+        {isDoneForToday ? (
+          <button
+            className="pw-v2-btn completed"
+            disabled
+            style={{
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#059669',
+              border: '1px solid rgba(16, 185, 129, 0.28)',
+              cursor: 'default',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontWeight: 700
+            }}
+          >
+            <CheckCircle size={16} /> Punched Out Today
+          </button>
+        ) : (
+          <button
+            className={`pw-v2-btn primary ${isPunchedIn ? 'out' : 'in'}`}
+            onClick={handlePunch}
+            disabled={actionLoading || loading}
+          >
+            {isPunchedIn ? <LogOut size={15} /> : <LogIn size={15} />}
+            {actionLoading ? 'Processing...' : isPunchedIn ? 'Punch Out' : 'Punch In'}
+          </button>
+        )}
+
+        {isPunchedIn && !isDoneForToday && (
           <button
             className={`pw-v2-btn secondary ${isOnBreak ? 'end' : 'start'}`}
             onClick={handleBreak}

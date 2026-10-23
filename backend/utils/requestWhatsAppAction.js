@@ -352,13 +352,13 @@ export const handleAdminWhatsAppAction = async ({ fromPhone, buttonId = null, te
         if (!action && text) {
             const cleanText = text.trim().toLowerCase();
 
-            if (cleanText.startsWith('approve') || cleanText === '1' || cleanText === 'yes') {
+            if (cleanText.startsWith('approve') || cleanText === 'yes') {
                 action = 'Approved';
                 const parts = text.trim().split(/\s+/);
                 if (parts.length > 1 && parts[1].length >= 12) {
                     targetRequestId = parts[1];
                 }
-            } else if (cleanText.startsWith('reject') || cleanText === '2' || cleanText === 'no') {
+            } else if (cleanText.startsWith('reject') || cleanText === 'no') {
                 action = 'Rejected';
                 const parts = text.trim().split(/\s+/);
                 if (parts.length > 1 && parts[1].length >= 12) {

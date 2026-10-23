@@ -7,16 +7,22 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay,
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function getDayClass(dateStr, markedDates, selectedDate) {
-  if (dateStr === selectedDate) return 'selected';
   const m = markedDates[dateStr];
-  if (!m) return '';
-  if (m.type === 'holiday') return 'holiday';
-  if (m.type === 'weekend') return 'weekend';
-  if (m.type === 'present') return 'present';
-  if (m.type === 'absent') return 'absent';
-  if (m.type === 'leave') return 'leave';
-  if (m.type === 'missing') return 'missing';
-  return '';
+  let typeClass = '';
+  if (m) {
+    if (m.type === 'holiday') typeClass = 'holiday';
+    else if (m.type === 'weekend') typeClass = 'weekend';
+    else if (m.type === 'present') typeClass = 'present';
+    else if (m.type === 'absent') typeClass = 'absent';
+    else if (m.type === 'paid-leave') typeClass = 'paid-leave';
+    else if (m.type === 'unpaid-leave') typeClass = 'unpaid-leave';
+    else if (m.type === 'leave') typeClass = 'paid-leave';
+    else if (m.type === 'missing') typeClass = 'missing';
+  }
+  if (dateStr === selectedDate) {
+    return `selected ${typeClass}`.trim();
+  }
+  return typeClass;
 }
 
 export default function MobileAttendance() {
@@ -28,7 +34,7 @@ export default function MobileAttendance() {
   const [requests, setRequests] = useState({});
   const [markedDates, setMarkedDates] = useState({});
   const [selectedDate, setSelectedDate] = useState(null);
-  const [stats, setStats] = useState({ present: 0, absent: 0, missing: 0, leaves: 0 });
+  const [stats, setStats] = useState({ present: 0, absent: 0, missing: 0, paidLeaves: 0, unpaidLeaves: 0 });
   const [empStats, setEmpStats] = useState(null);
   const [weekOffDays, setWeekOffDays] = useState([]);
   const [joiningDate, setJoiningDate] = useState(null);
@@ -63,7 +69,7 @@ export default function MobileAttendance() {
     const end = endOfMonth(new Date(`${targetMonth}-01`));
     const today = format(new Date(), 'yyyy-MM-dd');
     const marked = {};
-    let sPresent = 0, sAbsent = 0, sMissing = 0, sLeaves = 0;
+    let sPresent = 0, sAbsent = 0, sMissing = 0, sPaidLeaves = 0, sUnpaidLeaves = 0;
 
     eachDayOfInterval({ start, end }).forEach(day => {
       const dateStr = format(day, 'yyyy-MM-dd');
@@ -73,27 +79,60 @@ export default function MobileAttendance() {
       const req = reqs[dateStr];
 
       if (r) {
-        const isMissing = r.punchIn && !r.punchOut && dateStr < today;
+        const isMissing = r.punchIn && !r.punchOut && dateStr < today && r.status !== 'On Leave' && r.status !== 'Leave';
         if (isMissing) {
           marked[dateStr] = { type: 'missing' };
           if (!req || (req.status !== 'Pending' && req.status !== 'Approved')) sMissing++;
-        } else if (r.status === 'Present') { marked[dateStr] = { type: 'present' }; sPresent++; }
-        else if (r.status === 'Absent') { marked[dateStr] = { type: 'absent' }; sAbsent++; }
-        else if (r.status === 'Leave' || r.status === 'On Leave') { marked[dateStr] = { type: 'leave' }; sLeaves++; }
-        else if (r.status === 'Holiday') { marked[dateStr] = { type: 'holiday' }; }
-        else { marked[dateStr] = { type: 'missing' }; }
+        } else if (r.status === 'Present' || r.status === 'Clocked In' || (r.punchIn && dateStr === today)) {
+          marked[dateStr] = { type: 'present' };
+          sPresent++;
+        } else if (r.status === 'Absent') {
+          marked[dateStr] = { type: 'absent' };
+          sAbsent++;
+        } else if (r.status === 'Leave' || r.status === 'On Leave' || r.leaveCategory) {
+          const cat = r.leaveCategory || req?.leaveCategory || 'Paid';
+          const isPaid = String(cat).toLowerCase() === 'paid';
+          marked[dateStr] = {
+            type: isPaid ? 'paid-leave' : 'unpaid-leave',
+            leaveCategory: cat,
+            leaveTypeName: r.leaveTypeName || req?.leaveType || 'Leave',
+            leaveDuration: r.leaveDuration || req?.leaveDuration || 'Full Day',
+          };
+          if (isPaid) sPaidLeaves++; else sUnpaidLeaves++;
+        } else if (r.status === 'Holiday') {
+          marked[dateStr] = { type: 'holiday' };
+        } else {
+          marked[dateStr] = { type: 'missing' };
+        }
       } else if (req) {
-        if (req.status === 'Approved') marked[dateStr] = { type: req.type === 'Leave' ? 'leave' : 'present' };
-        else if (req.status === 'Pending') marked[dateStr] = { type: 'missing' };
+        if (req.status === 'Approved') {
+          if (req.type === 'Leave') {
+            const cat = req.leaveCategory || 'Paid';
+            const isPaid = String(cat).toLowerCase() === 'paid';
+            marked[dateStr] = {
+              type: isPaid ? 'paid-leave' : 'unpaid-leave',
+              leaveCategory: cat,
+              leaveTypeName: req.leaveType || 'Leave',
+              leaveDuration: req.leaveDuration || 'Full Day',
+            };
+            if (isPaid) sPaidLeaves++; else sUnpaidLeaves++;
+          } else {
+            marked[dateStr] = { type: 'present' };
+            sPresent++;
+          }
+        } else if (req.status === 'Pending') {
+          marked[dateStr] = { type: 'missing' };
+        }
       } else if (isWeekend) {
         marked[dateStr] = { type: 'weekend' };
       } else if (dateStr < today && (!jDate || dateStr >= jDate)) {
-        marked[dateStr] = { type: 'absent' }; sAbsent++;
+        marked[dateStr] = { type: 'absent' };
+        sAbsent++;
       }
     });
 
     setMarkedDates(marked);
-    setStats({ present: sPresent, absent: sAbsent, missing: sMissing, leaves: sLeaves });
+    setStats({ present: sPresent, absent: sAbsent, missing: sMissing, paidLeaves: sPaidLeaves, unpaidLeaves: sUnpaidLeaves });
   }, []);
 
   const loadData = useCallback(async (m) => {
@@ -143,11 +182,58 @@ export default function MobileAttendance() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const selectedRecord = records.find(r => r.date === selectedDate);
   const currentRequest = requests[selectedDate];
-  const isMissingPunchOut = selectedRecord && selectedRecord.punchIn && !selectedRecord.punchOut && selectedDate < today;
-  const isAbsent = !selectedRecord && selectedDate < today && (!joiningDate || selectedDate >= joiningDate) && !weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE'));
-  const isPunchComplete = selectedRecord && selectedRecord.punchIn && selectedRecord.punchOut;
+
+  const isLeaveDay = 
+    selectedRecord?.status === 'On Leave' || 
+    selectedRecord?.status === 'Leave' || 
+    Boolean(selectedRecord?.leaveCategory) ||
+    (currentRequest?.type === 'Leave' && currentRequest?.status === 'Approved') ||
+    markedDates[selectedDate]?.type === 'paid-leave' ||
+    markedDates[selectedDate]?.type === 'unpaid-leave';
+
+  const leaveCategoryVal = 
+    selectedRecord?.leaveCategory || 
+    currentRequest?.leaveCategory || 
+    markedDates[selectedDate]?.leaveCategory || 
+    'Paid';
+  const isPaidLeave = isLeaveDay && String(leaveCategoryVal).toLowerCase() === 'paid';
+  const isUnpaidLeave = isLeaveDay && String(leaveCategoryVal).toLowerCase() === 'unpaid';
+
+  const leaveTypeName = selectedRecord?.leaveTypeName || currentRequest?.leaveType || markedDates[selectedDate]?.leaveTypeName || 'Leave';
+  const leaveDurationVal = selectedRecord?.leaveDuration || currentRequest?.leaveDuration || markedDates[selectedDate]?.leaveDuration || 'Full Day';
+  const leaveReason = currentRequest?.reason || selectedRecord?.workSummary || '';
+
+  const hasPunches = Boolean(selectedRecord?.punchIn || selectedRecord?.punchOut);
+  const isPunchComplete = Boolean(selectedRecord?.punchIn && selectedRecord?.punchOut);
+  const isMissingPunchOut = Boolean(selectedRecord?.punchIn && !selectedRecord?.punchOut && selectedDate < today && !isLeaveDay);
   const isHoliday = selectedRecord?.status === 'Holiday' || markedDates[selectedDate]?.type === 'holiday';
-  const canRequest = selectedDate && !currentRequest && !isPunchComplete && !isHoliday && (isAbsent || isMissingPunchOut || selectedDate >= today);
+
+  const isPastWorkingDay = selectedDate < today && (!joiningDate || selectedDate >= joiningDate) && !weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE'));
+
+  const isAbsent = !isLeaveDay && !isHoliday && isPastWorkingDay && (
+    !selectedRecord || 
+    selectedRecord.status === 'Absent' || 
+    (!selectedRecord.punchIn && !selectedRecord.punchOut)
+  );
+
+  const canRequestAttendance = Boolean(
+    selectedDate && 
+    !isLeaveDay && 
+    !isHoliday && 
+    selectedDate <= today && 
+    (!currentRequest || currentRequest.status === 'Rejected') && 
+    (!isPunchComplete || isAbsent || isMissingPunchOut)
+  );
+
+  const canRequestLeave = Boolean(
+    selectedDate && 
+    !isLeaveDay && 
+    !isHoliday && 
+    (!currentRequest || currentRequest.status === 'Rejected') && 
+    (!isPunchComplete || isAbsent)
+  );
+
+  const canRequest = canRequestAttendance || canRequestLeave;
 
   const handleSubmit = async () => {
     if (reqType === 'Leave') {
@@ -208,7 +294,9 @@ export default function MobileAttendance() {
           {[
             { val: stats.present, label: 'Present', color: 'var(--m-success)' },
             { val: stats.absent, label: 'Absent', color: 'var(--m-danger)' },
-            { val: stats.missing, label: 'Missing Punch', color: 'var(--m-warning)' },
+            ...(stats.missing > 0 ? [{ val: stats.missing, label: 'Missing', color: 'var(--m-warning)' }] : []),
+            { val: stats.paidLeaves, label: 'Paid Leave', color: '#0891B2' },
+            { val: stats.unpaidLeaves, label: 'Unpaid Leave', color: '#64748B' },
           ].map(({ val, label, color }) => (
             <div key={label} className="m-cal-stat">
               <div className="m-cal-stat-val" style={{ color }}>{val}</div>
@@ -235,23 +323,29 @@ export default function MobileAttendance() {
               const dateStr = format(day, 'yyyy-MM-dd');
               const isToday = dateStr === today;
               const dayClass = getDayClass(dateStr, markedDates, selectedDate);
+              const mark = markedDates[dateStr];
               return (
                 <div
                   key={dateStr}
-                  className={`m-cal-day ${dayClass} ${isToday && dayClass !== 'selected' ? 'today' : ''}`}
+                  className={`m-cal-day ${dayClass} ${isToday && !dayClass.includes('selected') ? 'today' : ''}`}
                   onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
                 >
-                  {day.getDate()}
+                  <span className="m-cal-day-num">{day.getDate()}</span>
+                  {mark?.type && (
+                    <span className={`day-dot ${mark.type}`} />
+                  )}
                 </div>
               );
             })}
           </div>
 
           {/* Legend */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--m-border)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--m-border)' }}>
             {[
               { color: 'var(--m-success)', label: 'Present' },
               { color: 'var(--m-danger)', label: 'Absent' },
+              { color: '#0891B2', label: 'Paid Leave' },
+              { color: '#64748B', label: 'Unpaid Leave' },
               { color: 'var(--m-warning)', label: 'Missing/Late' },
               { color: 'var(--m-purple)', label: 'Week Off' },
             ].map(({ color, label }) => (
@@ -270,12 +364,167 @@ export default function MobileAttendance() {
               <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--m-text)' }}>
                 {format(new Date(selectedDate + 'T00:00:00'), 'dd MMMM yyyy')}
               </span>
-              <button onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--m-muted)' }}>
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {isLeaveDay ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: isPaidLeave ? 'rgba(6, 182, 212, 0.15)' : 'rgba(100, 116, 139, 0.15)',
+                      color: isPaidLeave ? '#0891B2' : '#64748B',
+                      border: `1px solid ${isPaidLeave ? 'rgba(6, 182, 212, 0.3)' : 'rgba(100, 116, 139, 0.3)'}`
+                    }}
+                  >
+                    {isPaidLeave ? <CheckCircle size={12} color="#0891B2" /> : <AlertCircle size={12} color="#64748B" />}
+                    {isPaidLeave ? 'Paid Leave' : 'Unpaid Leave'}
+                  </span>
+                ) : isAbsent ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      color: 'var(--m-danger)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)'
+                    }}
+                  >
+                    <XCircle size={12} color="var(--m-danger)" /> Absent
+                  </span>
+                ) : isMissingPunchOut ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      color: 'var(--m-warning)',
+                      border: '1px solid rgba(245, 158, 11, 0.25)'
+                    }}
+                  >
+                    <AlertTriangle size={12} color="var(--m-warning)" /> Missing Punch
+                  </span>
+                ) : null}
+                <button onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--m-muted)', padding: 2 }}>
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {selectedRecord ? (
+            {isLeaveDay ? (
+              <div>
+                <div style={{
+                  background: isPaidLeave ? 'rgba(6, 182, 212, 0.08)' : 'rgba(100, 116, 139, 0.08)',
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  border: `1px solid ${isPaidLeave ? 'rgba(6, 182, 212, 0.2)' : 'rgba(100, 116, 139, 0.2)'}`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <CalendarDays size={16} color={isPaidLeave ? '#0891B2' : '#64748B'} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--m-text)' }}>
+                        {leaveTypeName}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: isPaidLeave ? 'rgba(6, 182, 212, 0.15)' : 'rgba(100, 116, 139, 0.15)',
+                      color: isPaidLeave ? '#0891B2' : '#64748B'
+                    }}>
+                      {leaveDurationVal}
+                    </span>
+                  </div>
+                  {leaveReason ? (
+                    <div style={{ fontSize: 12, color: 'var(--m-muted)', marginTop: 6, lineHeight: 1.4 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--m-text)' }}>Reason: </span>
+                      {leaveReason}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--m-muted)', marginTop: 4 }}>
+                      Approved leave recorded for this day
+                    </div>
+                  )}
+                </div>
+
+                {/* If punch records exist (e.g. for half-day leave), show them */}
+                {hasPunches && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="m-detail-row">
+                      <span className="m-detail-label"><LogIn size={14} color="var(--m-success)" />Punch In</span>
+                      <span className="m-detail-value">{selectedRecord.punchIn || '—'}</span>
+                    </div>
+                    <div className="m-detail-row">
+                      <span className="m-detail-label"><LogOut size={14} color="var(--m-danger)" />Punch Out</span>
+                      <span className="m-detail-value">{selectedRecord.punchOut || '—'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : isAbsent ? (
+              <div>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  marginBottom: 10
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                    <XCircle size={16} color="var(--m-danger)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--m-danger)' }}>
+                      No Punches Recorded
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--m-muted)', lineHeight: 1.5 }}>
+                    You forgot to punch on this day. You can apply for attendance correction or apply for leave below.
+                  </p>
+                </div>
+              </div>
+            ) : isMissingPunchOut ? (
+              <div>
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  marginBottom: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                    <AlertTriangle size={15} color="var(--m-warning)" />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--m-warning)' }}>
+                      Missing Punch Out
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--m-muted)' }}>
+                    Punched in at <b>{selectedRecord.punchIn}</b>, but punch out was missed.
+                  </div>
+                </div>
+                <div className="m-detail-row">
+                  <span className="m-detail-label"><LogIn size={14} color="var(--m-success)" />Punch In</span>
+                  <span className="m-detail-value">{selectedRecord.punchIn}</span>
+                </div>
+                <div className="m-detail-row">
+                  <span className="m-detail-label"><LogOut size={14} color="var(--m-warning)" />Punch Out</span>
+                  <span className="m-detail-value" style={{ color: 'var(--m-warning)', fontWeight: 700 }}>Missing</span>
+                </div>
+              </div>
+            ) : selectedRecord && hasPunches ? (
               <div>
                 <div className="m-detail-row">
                   <span className="m-detail-label"><LogIn size={14} color="var(--m-success)" />Punch In</span>
@@ -298,32 +547,70 @@ export default function MobileAttendance() {
                   <span className={`m-badge ${currentRequest.status === 'Approved' ? 'success' : currentRequest.status === 'Rejected' ? 'danger' : 'warning'}`}>
                     {currentRequest.status}
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--m-text)' }}>{currentRequest.type}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--m-text)' }}>
+                    {currentRequest.type === 'Leave' ? `${currentRequest.leaveCategory || 'Paid'} Leave` : currentRequest.type}
+                  </span>
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--m-muted)' }}>{currentRequest.reason}</div>
               </div>
             ) : (
               <div style={{ color: 'var(--m-muted)', fontSize: 13, textAlign: 'center', padding: '10px 0' }}>
-                {isAbsent ? 'Marked as Absent' : weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE')) ? '🌴 Week Off' : 'No records for this day'}
+                {weekOffDays.includes(format(new Date(selectedDate + 'T00:00:00'), 'EEEE')) ? '🌴 Week Off' : 'No records for this day'}
               </div>
             )}
 
             {canRequest && (
-              <button
-                className="m-btn m-btn-primary m-btn-full m-btn-sm"
-                style={{ marginTop: 14 }}
-                onClick={() => {
-                  setReqType(isMissingPunchOut ? 'Attendance Correction' : 'Leave');
-                  if (isMissingPunchOut && selectedRecord?.punchIn) {
-                    const match = selectedRecord.punchIn.match(/(\d{1,2}):(\d{2})/);
-                    if (match) setManualIn(`${match[1].padStart(2, '0')}:${match[2]}`);
-                  }
-                  setShowModal(true);
-                }}
-              >
-                <Send size={16} />
-                {isMissingPunchOut ? 'Request Punch Correction' : 'Request Leave / Correction'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
+                {canRequestAttendance && (
+                  <button
+                    className="m-btn m-btn-primary m-btn-full"
+                    style={{
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '11px 16px',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      borderRadius: 14
+                    }}
+                    onClick={() => {
+                      setReqType('Attendance Correction');
+                      if (selectedRecord?.punchIn) {
+                        const match = selectedRecord.punchIn.match(/(\d{1,2}):(\d{2})/);
+                        if (match) setManualIn(`${match[1].padStart(2, '0')}:${match[2]}`);
+                      } else {
+                        setManualIn('09:30');
+                      }
+                      setManualOut('18:30');
+                      setShowModal(true);
+                    }}
+                  >
+                    <Clock size={16} /> Apply for Attendance Correction
+                  </button>
+                )}
+
+                {canRequestLeave && (
+                  <button
+                    className="m-btn m-btn-full"
+                    style={{
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: '11px 16px',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      borderRadius: 14,
+                      background: 'rgba(79, 70, 229, 0.08)',
+                      border: '1.5px solid var(--m-primary)',
+                      color: 'var(--m-primary)'
+                    }}
+                    onClick={() => {
+                      setReqType('Leave');
+                      setShowModal(true);
+                    }}
+                  >
+                    <CalendarDays size={16} /> Apply for Leave
+                  </button>
+                )}
+              </div>
             )}
 
             {currentRequest && currentRequest.status === 'Rejected' && (
@@ -349,22 +636,22 @@ export default function MobileAttendance() {
                 📅 {selectedDate && format(new Date(selectedDate + 'T00:00:00'), 'dd MMMM yyyy')}
               </p>
 
-              {!isMissingPunchOut && (
-                <div className="m-input-group">
-                  <label className="m-input-label">Request Type</label>
-                  <div className="m-segment">
-                    <button className={`m-segment-btn ${reqType === 'Leave' ? 'active' : ''}`} onClick={() => setReqType('Leave')}>Leave</button>
-                    <button 
-                      className={`m-segment-btn ${reqType === 'Attendance Correction' ? 'active' : ''}`} 
-                      onClick={() => selectedDate <= today && setReqType('Attendance Correction')}
-                      disabled={selectedDate > today}
-                      style={selectedDate > today ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                    >
-                      Correction
-                    </button>
-                  </div>
+              <div className="m-input-group">
+                <label className="m-input-label">Request Type</label>
+                <div className="m-segment">
+                  <button 
+                    className={`m-segment-btn ${reqType === 'Attendance Correction' ? 'active' : ''}`} 
+                    onClick={() => setReqType('Attendance Correction')}
+                    disabled={selectedDate > today}
+                    style={selectedDate > today ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                  >
+                    Attendance Correction
+                  </button>
+                  <button className={`m-segment-btn ${reqType === 'Leave' ? 'active' : ''}`} onClick={() => setReqType('Leave')}>
+                    Leave
+                  </button>
                 </div>
-              )}
+              </div>
 
               {reqType === 'Leave' && leaveTypes.length > 0 && (
                 <div className="m-input-group">

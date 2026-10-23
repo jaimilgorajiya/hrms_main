@@ -782,45 +782,68 @@
 .m-cal-day {
   aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--m-text);
   cursor: pointer;
   transition: all var(--m-transition);
   position: relative;
+  gap: 3px;
+}
+
+.m-cal-day-num {
+  line-height: 1;
 }
 
 .m-cal-day:hover { background: var(--m-primary-light); }
 .m-cal-day.other-month { color: var(--m-placeholder); opacity: 0.4; }
 .m-cal-day.today { color: var(--m-primary); font-weight: 900; }
-.m-cal-day.selected { background: var(--m-primary); color: white; box-shadow: 0 2px 8px var(--m-primary-glow); }
+.m-cal-day.selected { background: var(--m-primary) !important; color: white !important; box-shadow: 0 2px 8px var(--m-primary-glow); }
 
 .m-cal-day .day-dot {
-  position: absolute;
-  bottom: 3px;
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
+  flex-shrink: 0;
+  transition: all var(--m-transition);
 }
 
-.m-cal-day.present { background: rgba(16, 185, 129, 0.12); color: var(--m-success); }
-.m-cal-day.absent  { background: rgba(239, 68, 68, 0.12);  color: var(--m-danger);  }
-.m-cal-day.leave   { background: rgba(245, 158, 11, 0.12); color: var(--m-warning); }
-.m-cal-day.holiday { background: rgba(236, 72, 153, 0.15); color: #EC4899; }
-.m-cal-day.weekend { background: rgba(139, 92, 246, 0.08); color: var(--m-purple);  }
-.m-cal-day.missing { background: rgba(245, 158, 11, 0.1);  color: var(--m-warning); }
+.m-cal-day .day-dot.present { background: var(--m-success); }
+.m-cal-day .day-dot.absent { background: var(--m-danger); }
+.m-cal-day .day-dot.leave,
+.m-cal-day .day-dot.paid-leave { background: #0891b2; }
+.m-cal-day .day-dot.unpaid-leave { background: #64748b; }
+.m-cal-day .day-dot.holiday { background: #EC4899; }
+.m-cal-day .day-dot.weekend { background: var(--m-purple); }
+.m-cal-day .day-dot.missing { background: var(--m-warning); }
+
+.m-cal-day.present    { background: rgba(16, 185, 129, 0.14); color: #059669; }
+.m-cal-day.absent     { background: rgba(239, 68, 68, 0.14);  color: #dc2626;  }
+.m-cal-day.leave      { background: rgba(6, 182, 212, 0.14);  color: #0891b2; }
+.m-cal-day.paid-leave { background: rgba(6, 182, 212, 0.16);  color: #0891b2; font-weight: 700; }
+.m-cal-day.unpaid-leave { background: rgba(100, 116, 139, 0.16); color: #475569; font-weight: 700; }
+.m-cal-day.holiday    { background: rgba(236, 72, 153, 0.16); color: #db2777; }
+.m-cal-day.weekend    { background: rgba(139, 92, 246, 0.10); color: #7c3aed;  }
+.m-cal-day.missing    { background: rgba(245, 158, 11, 0.14); color: #d97706; }
+
+.m-cal-day.selected .day-dot {
+  background: #ffffff !important;
+}
 
 .m-cal-day.selected.present,
 .m-cal-day.selected.absent,
 .m-cal-day.selected.leave,
+.m-cal-day.selected.paid-leave,
+.m-cal-day.selected.unpaid-leave,
 .m-cal-day.selected.holiday,
 .m-cal-day.selected.weekend,
 .m-cal-day.selected.missing {
-  background: var(--m-primary);
-  color: white;
+  background: var(--m-primary) !important;
+  color: white !important;
 }
 
 /* ─── PUNCH RING ─────────────────────────────────────────── */
@@ -1140,8 +1163,8 @@
 /* ─── MINI CALENDAR STATS ────────────────────────────────── */
 .m-cal-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   margin-bottom: 16px;
 }
 
@@ -1149,7 +1172,7 @@
   background: var(--m-card);
   border: 1px solid var(--m-border);
   border-radius: var(--m-radius);
-  padding: 12px 10px;
+  padding: 10px 6px;
   text-align: center;
   cursor: pointer;
   transition: all var(--m-transition);
